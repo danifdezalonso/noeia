@@ -5,6 +5,15 @@ import type { NewSession } from '~/components/ScheduleSessionModal.vue'
 const shell = createDashboardShell()
 provide(SHELL_KEY, shell)
 
+// Sync persona role from route so the sidebar profile + header always reflect
+// the correct role regardless of whether onboarding was completed first.
+const route = useRoute()
+const { persona } = usePersona()
+watch(() => route.path, (path) => {
+  if (path.startsWith('/organization/')) persona.value.role = 'organization'
+  else if (path.startsWith('/doctor/'))   persona.value.role = 'doctor'
+}, { immediate: true })
+
 const { sessionModalOpen, patientModalOpen, billModalOpen } = useGlobalModals()
 const { saveEvent } = useCalendar()
 
@@ -49,6 +58,8 @@ function onHeaderSessionSaved(data: NewSession) {
       <main class="flex-1 overflow-hidden flex flex-col min-w-0 min-h-0">
         <slot />
       </main>
+
+      <NoeiaSidebar />
     </div>
   </div>
 

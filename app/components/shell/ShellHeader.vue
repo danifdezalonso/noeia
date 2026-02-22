@@ -3,14 +3,15 @@ import {
   Menu, Building2, ChevronDown, Search, Plus,
   Bell, MessageCircle, HelpCircle, Check, LogOut,
   Settings, User, CreditCard,
-  CalendarPlus, UserPlus, ReceiptText,
+  CalendarPlus, UserPlus, ReceiptText, Stethoscope,
 } from 'lucide-vue-next'
 import { SHELL_KEY } from '~/composables/useDashboard'
 
 const shell = inject(SHELL_KEY)!
+const { persona } = usePersona()
 
 const ctaOpen = ref(false)
-const { sessionModalOpen, patientModalOpen, billModalOpen } = useGlobalModals()
+const { sessionModalOpen, patientModalOpen, billModalOpen, doctorModalOpen } = useGlobalModals()
 
 function handleSidebarToggle() {
   if (process.client && window.innerWidth < 768) {
@@ -214,6 +215,15 @@ const notifications = [
                 <p class="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Create invoice</p>
               </div>
             </button>
+            <button v-if="persona.role === 'organization'" type="button" class="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors" @click="doctorModalOpen = true; ctaOpen = false">
+              <div class="w-7 h-7 rounded-lg bg-violet-100 dark:bg-violet-900 flex items-center justify-center flex-shrink-0">
+                <Stethoscope class="w-3.5 h-3.5 text-violet-600 dark:text-violet-400" />
+              </div>
+              <div class="text-left">
+                <p class="font-medium leading-none">Doctor</p>
+                <p class="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Add team member</p>
+              </div>
+            </button>
           </div>
         </Transition>
       </div>
@@ -293,7 +303,7 @@ const notifications = [
           class="flex items-center gap-1.5 sm:gap-2 pl-1 pr-1 sm:pr-2 py-1 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
         >
           <div class="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center ring-2 ring-white dark:ring-slate-900">
-            <span class="text-white text-xs font-bold">DT</span>
+            <span class="text-white text-xs font-bold">{{ persona.avatarInitials }}</span>
           </div>
           <ChevronDown class="hidden sm:block w-3 h-3 text-slate-400 dark:text-slate-500 transition-transform duration-150"
             :class="{ 'rotate-180': shell.profileOpen.value }" />
@@ -312,8 +322,14 @@ const notifications = [
           >
             <!-- User info -->
             <div class="px-3 py-2.5 border-b border-slate-100 dark:border-slate-700">
-              <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">Dr. Torres</p>
-              <p class="text-xs text-slate-400 dark:text-slate-500 mt-0.5">torres@mindcare.com</p>
+              <div class="flex items-center gap-1.5 mb-0.5">
+                <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ persona.name }}</p>
+                <span v-if="persona.role === 'organization'" class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900 text-violet-700 dark:text-violet-300">
+                  Org
+                </span>
+              </div>
+              <p v-if="persona.orgName" class="text-xs text-slate-400 dark:text-slate-500">{{ persona.orgName }}</p>
+              <p v-else class="text-xs text-slate-400 dark:text-slate-500">torres@mindcare.com</p>
             </div>
 
             <div class="py-1">
@@ -333,7 +349,8 @@ const notifications = [
 
             <div class="border-t border-slate-100 dark:border-slate-700 pt-1">
               <button type="button"
-                class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950 transition-colors">
+                class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950 transition-colors"
+                @click="navigateTo('/')">
                 <LogOut class="w-4 h-4" /> Sign out
               </button>
             </div>

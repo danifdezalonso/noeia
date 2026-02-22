@@ -2,6 +2,7 @@
 import { z } from 'zod'
 
 const router = useRouter()
+const { setDoctor } = usePersona()
 
 // ─── Local state (plain ref — no SSR useState for UI nav) ─────────
 const currentStep = ref(1)
@@ -108,6 +109,7 @@ function back() {
 
 async function finish() {
   if (!validateStep()) { shake(); return }
+  setDoctor(form.full_name || 'Dr. Torres')
   isComplete.value = true
   await nextTick()
   fireConfetti()
@@ -123,7 +125,7 @@ async function fireConfetti() {
 }
 
 function goToDashboard() {
-  router.push('/dashboard')
+  router.push('/doctor/dashboard')
 }
 
 // ─── Specialties ──────────────────────────────────────────────────
@@ -204,13 +206,18 @@ const steps = [
 
     <!-- Top bar -->
     <header class="bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
-      <div class="flex items-center gap-2">
-        <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
-          <span class="text-white font-bold text-sm">N</span>
-        </div>
-        <span class="text-slate-800 font-semibold tracking-tight">Noeia</span>
+      <img src="/Noeia_logo.svg" alt="Noeia" class="h-7" />
+      <div class="flex items-center gap-3">
+        <button
+          type="button"
+          class="px-3 py-1.5 text-xs font-semibold bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+          title="Dev only — skip onboarding"
+          @click="router.push('/doctor/dashboard')"
+        >
+          [DEV] Skip
+        </button>
+        <span class="text-slate-400 text-sm">Doctor Onboarding</span>
       </div>
-      <span class="text-slate-400 text-sm">Doctor Onboarding</span>
     </header>
 
     <main class="flex-1 flex flex-col items-center justify-center px-4 py-10">
@@ -294,12 +301,12 @@ const steps = [
                       @input="clearError('full_name')"
                       type="text"
                       placeholder="Dr. Ana Torres"
-                      class="w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all"
+                      class="w-full px-4 py-2.5 rounded-xl border text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400"
                       :class="errors.full_name
                         ? 'border-rose-300 bg-rose-50 focus:border-rose-400 focus:ring-2 focus:ring-rose-100'
                         : form.full_name.length >= 2
-                          ? 'border-emerald-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50'
-                          : 'border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50'"
+                          ? 'bg-white border-emerald-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50'
+                          : 'bg-white border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50'"
                     />
                     <Transition name="err">
                       <p v-if="errors.full_name" class="flex items-center gap-1.5 text-rose-500 text-xs mt-1.5">
@@ -324,12 +331,12 @@ const steps = [
                       type="email"
                       placeholder="you@clinic.com"
                       :readonly="isEmailReadOnly"
-                      class="w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all"
+                      class="w-full px-4 py-2.5 rounded-xl border text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400"
                       :class="errors.email
                         ? 'border-rose-300 bg-rose-50 focus:border-rose-400 focus:ring-2 focus:ring-rose-100'
                         : isEmailReadOnly
-                          ? 'border-slate-200 bg-slate-50 text-slate-500 cursor-not-allowed'
-                          : 'border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50'"
+                          ? 'bg-slate-50 border-slate-200 text-slate-500 cursor-not-allowed'
+                          : 'bg-white border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50'"
                     />
                     <Transition name="err">
                       <p v-if="errors.email" class="flex items-center gap-1.5 text-rose-500 text-xs mt-1.5">
@@ -349,12 +356,12 @@ const steps = [
                       v-model="form.dob"
                       @change="clearError('dob')"
                       type="date"
-                      class="w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all"
+                      class="w-full px-4 py-2.5 rounded-xl border text-sm text-slate-900 outline-none transition-all"
                       :class="errors.dob
                         ? 'border-rose-300 bg-rose-50 focus:border-rose-400 focus:ring-2 focus:ring-rose-100'
                         : form.dob
-                          ? 'border-emerald-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50'
-                          : 'border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50'"
+                          ? 'bg-white border-emerald-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50'
+                          : 'bg-white border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50'"
                     />
                     <Transition name="err">
                       <p v-if="errors.dob" class="flex items-center gap-1.5 text-rose-500 text-xs mt-1.5">
@@ -420,7 +427,7 @@ const steps = [
                       v-model="form.description"
                       rows="4"
                       placeholder="Your practice approach, areas of expertise, professional philosophy..."
-                      class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none transition-all resize-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50"
+                      class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-900 outline-none transition-all resize-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50 placeholder:text-slate-400"
                     />
                     <p class="text-xs text-slate-400 mt-1 text-right">{{ form.description.length }} / 500</p>
                   </div>
@@ -448,12 +455,12 @@ const steps = [
                         @input="clearError('specialty')"
                         type="text"
                         placeholder="Search or select..."
-                        class="w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all pr-10"
+                        class="w-full px-4 py-2.5 rounded-xl border text-sm text-slate-900 outline-none transition-all pr-10 placeholder:text-slate-400"
                         :class="errors.specialty
                           ? 'border-rose-300 bg-rose-50 focus:border-rose-400 focus:ring-2 focus:ring-rose-100'
                           : form.specialty
-                            ? 'border-emerald-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50'
-                            : 'border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50'"
+                            ? 'bg-white border-emerald-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50'
+                            : 'bg-white border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50'"
                       />
                       <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                         <svg v-if="form.specialty" class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -530,7 +537,7 @@ const steps = [
                         v-model="form.contact_phone"
                         type="tel"
                         placeholder="612 345 678"
-                        class="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50 transition-all"
+                        class="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50 transition-all placeholder:text-slate-400"
                       />
                     </div>
                   </div>
@@ -544,12 +551,12 @@ const steps = [
                       @input="clearError('contact_email')"
                       type="email"
                       placeholder="contact@yourpractice.com"
-                      class="w-full px-4 py-2.5 rounded-xl border text-sm outline-none transition-all"
+                      class="w-full px-4 py-2.5 rounded-xl border text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400"
                       :class="errors.contact_email
                         ? 'border-rose-300 bg-rose-50 focus:border-rose-400 focus:ring-2 focus:ring-rose-100'
                         : form.contact_email
-                          ? 'border-emerald-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50'
-                          : 'border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50'"
+                          ? 'bg-white border-emerald-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50'
+                          : 'bg-white border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50'"
                     />
                     <p class="text-xs text-slate-400 mt-1.5">May differ from your login email — shown on patient comms and invoices.</p>
                     <Transition name="err">

@@ -1,18 +1,38 @@
 <script setup lang="ts">
-import { X, Clock, User, MapPin, AlignLeft } from 'lucide-vue-next'
+import { X, Clock, User, MapPin, AlignLeft, Stethoscope, Link2 } from 'lucide-vue-next'
 import type { CalendarEvent } from '~/composables/useCalendar'
 
-const { quickModalOpen, quickModalPos, pendingRange, saveEvent, openFullModal, mockPatients } = useCalendar()
+const cal = useCalendar()
+const { quickModalOpen, quickModalPos, pendingRange, saveEvent, openFullModal, mockPatients } = cal
+const { persona } = usePersona()
+
+const orgDoctors = [
+  { id: 'd1', name: 'Dr. Elena Voss' },
+  { id: 'd2', name: 'Dr. Marco Silva' },
+  { id: 'd3', name: 'Dr. Priya Nair' },
+  { id: 'd4', name: 'Dr. James Okafor' },
+  { id: 'd5', name: 'Dr. Sofia Reyes' },
+  { id: 'd6', name: 'Dr. Lena Brandt' },
+  { id: 'd7', name: 'Dr. Aarav Patel' },
+]
+
+const DOCTOR_HEX: Record<string, string> = {
+  d1: '#6366f1', d2: '#0ea5e9', d3: '#22c55e',
+  d4: '#f59e0b', d5: '#ef4444', d6: '#8b5cf6', d7: '#14b8a6',
+}
 
 // ── Form ──────────────────────────────────────────────────────────────────────
 const form = reactive({
-  category: 'session' as 'session' | 'ooo' | 'task' | 'focus' | 'appointment',
+  category: 'session' as 'session' | 'ooo' | 'task' | 'focus' | 'appointment' | 'documentation',
   title: '',
   patientId: '',
   patientName: '',
   modality: 'online' as 'online' | 'inperson',
   location: '',
   description: '',
+  doctorId: '',
+  doctorName: '',
+  linkedSessionId: '',
 })
 
 const patientSearch       = ref('')
@@ -21,11 +41,12 @@ const titleInputRef       = ref<HTMLInputElement>()
 
 // ── Category config ───────────────────────────────────────────────────────────
 const categories = [
-  { value: 'session'     as const, label: 'Session',      activeClass: 'bg-indigo-600 text-white'  },
-  { value: 'ooo'         as const, label: 'Out of Office', activeClass: 'bg-amber-500 text-white'   },
-  { value: 'focus'       as const, label: 'Focus',         activeClass: 'bg-violet-600 text-white'  },
-  { value: 'task'        as const, label: 'Task',           activeClass: 'bg-emerald-600 text-white' },
-  { value: 'appointment' as const, label: 'Appointment',   activeClass: 'bg-teal-600 text-white'    },
+  { value: 'session'       as const, label: 'Session',       activeClass: 'bg-indigo-600 text-white'  },
+  { value: 'documentation' as const, label: 'Documentation', activeClass: 'bg-slate-600 text-white'   },
+  { value: 'ooo'           as const, label: 'Out of Office', activeClass: 'bg-amber-500 text-white'   },
+  { value: 'focus'         as const, label: 'Focus',         activeClass: 'bg-violet-600 text-white'  },
+  { value: 'task'          as const, label: 'Task',          activeClass: 'bg-emerald-600 text-white' },
+  { value: 'appointment'   as const, label: 'Appointment',   activeClass: 'bg-teal-600 text-white'    },
 ]
 
 // ── Positioning ───────────────────────────────────────────────────────────────
@@ -41,11 +62,24 @@ const popoverStyle = computed(() => {
   return { left: `${left}px`, top: `${top}px`, width: `${W}px` }
 })
 
-// ── OOO: auto-fill title ──────────────────────────────────────────────────────
+// ── Auto-fill title by category ───────────────────────────────────────────────
 watch(() => form.category, (cat) => {
-  if (cat === 'ooo' && !form.title) form.title = 'Out of Office'
-  if (cat === 'focus' && !form.title) form.title = 'Focus Time'
+  if (cat === 'ooo'           && !form.title) form.title = 'Out of Office'
+  if (cat === 'focus'         && !form.title) form.title = 'Focus Time'
+  if (cat === 'documentation' && !form.title) form.title = 'Documentation'
 })
+
+// ── Session list for documentation link ──────────────────────────────────────
+const sessionOptions = computed(() =>
+  cal.events.value
+    .filter(e => e.category === 'session')
+    .sort((a, b) => b.start.localeCompare(a.start)) // most recent first
+    .slice(0, 20)
+    .map(e => ({
+      id: e.id,
+      label: `${e.title} · ${new Date(e.start).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
+    }))
+)
 
 // ── Time display ──────────────────────────────────────────────────────────────
 function fmt12(t: string): string {
@@ -78,7 +112,7 @@ function onPatientBlur() { setTimeout(() => { showPatientDropdown.value = false 
 // ── Reset on close ────────────────────────────────────────────────────────────
 watch(quickModalOpen, (open) => {
   if (!open) {
-    Object.assign(form, { category: 'session', title: '', patientId: '', patientName: '', modality: 'online', location: '', description: '' })
+    Object.assign(form, { category: 'session', title: '', patientId: '', patientName: '', modality: 'online', location: '', description: '', doctorId: '', doctorName: '', linkedSessionId: '' })
     patientSearch.value = ''
   } else {
     nextTick(() => titleInputRef.value?.focus())
@@ -88,20 +122,23 @@ watch(quickModalOpen, (open) => {
 // ── Save ──────────────────────────────────────────────────────────────────────
 function handleSave() {
   if (!pendingRange.value) return
-  const defaults: Record<string, string> = { session: form.patientName ? `Session – ${form.patientName}` : 'Session', ooo: 'Out of Office', task: 'Task', focus: 'Focus Time', appointment: 'Appointment Slots' }
+  const defaults: Record<string, string> = { session: form.patientName ? `Session – ${form.patientName}` : 'Session', ooo: 'Out of Office', task: 'Task', focus: 'Focus Time', appointment: 'Appointment Slots', documentation: 'Documentation' }
   saveEvent({
-    title:       form.title.trim() || defaults[form.category] || form.category,
-    start:       pendingRange.value.start,
-    end:         pendingRange.value.end,
-    category:    form.category as CalendarEvent['category'],
-    patientId:   form.category === 'session' && form.patientId   ? form.patientId   : undefined,
-    patientName: form.category === 'session' && form.patientName ? form.patientName : undefined,
-    modality:    form.category === 'session' ? form.modality : undefined,
-    location:    form.location   || undefined,
-    description: form.description || undefined,
-    recurrence:  'none',
-    done:        form.category === 'task' ? false : undefined,
-    declineMode: form.category === 'ooo' ? 'all' : undefined,
+    title:           form.title.trim() || defaults[form.category] || form.category,
+    start:           pendingRange.value.start,
+    end:             pendingRange.value.end,
+    category:        form.category as CalendarEvent['category'],
+    patientId:       form.category === 'session' && form.patientId   ? form.patientId   : undefined,
+    patientName:     form.category === 'session' && form.patientName ? form.patientName : undefined,
+    modality:        form.category === 'session' ? form.modality : undefined,
+    location:        form.location   || undefined,
+    description:     form.description || undefined,
+    recurrence:      'none',
+    done:            form.category === 'task' ? false : undefined,
+    declineMode:     form.category === 'ooo' ? 'all' : undefined,
+    doctorId:        form.doctorId   || undefined,
+    doctorName:      form.doctorName || undefined,
+    linkedSessionId: form.category === 'documentation' && form.linkedSessionId ? form.linkedSessionId : undefined,
   })
 }
 
@@ -176,6 +213,23 @@ function handleMoreOptions() {
               <span class="text-sm text-slate-700 dark:text-slate-200">{{ timeDisplay }}</span>
             </div>
 
+            <!-- Documentation: linked session picker -->
+            <template v-if="form.category === 'documentation'">
+              <div class="flex items-center gap-3">
+                <Link2 class="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" />
+                <select
+                  v-model="form.linkedSessionId"
+                  class="flex-1 px-2.5 py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-500"
+                >
+                  <option value="">Link to session (optional)</option>
+                  <option v-for="s in sessionOptions" :key="s.id" :value="s.id">{{ s.label }}</option>
+                </select>
+              </div>
+              <div class="ml-7 text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2">
+                When linked, billing will count <strong>session + documentation</strong> time together.
+              </div>
+            </template>
+
             <!-- OOO info note -->
             <div v-if="form.category === 'ooo'" class="ml-7 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
               Colleagues will see you're unavailable. Use <strong>More options</strong> to configure meeting decline settings.
@@ -190,6 +244,29 @@ function handleMoreOptions() {
             <div v-if="form.category === 'appointment'" class="ml-7 text-xs text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/30 border border-teal-200 dark:border-teal-800 rounded-lg px-3 py-2">
               Create a bookable slot. A shareable link will be generated. Configure in <strong>More options</strong>.
             </div>
+
+            <!-- Session: Doctor select (org only) -->
+            <template v-if="form.category === 'session' && persona.role === 'organization'">
+              <div class="flex items-center gap-3">
+                <Stethoscope class="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" />
+                <div class="flex-1 relative">
+                  <!-- Color swatch dot when a doctor is selected -->
+                  <span
+                    v-if="form.doctorId"
+                    class="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full"
+                    :style="{ backgroundColor: DOCTOR_HEX[form.doctorId] }"
+                  />
+                  <select
+                    v-model="form.doctorId"
+                    :class="['w-full py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500', form.doctorId ? 'pl-7 pr-2.5' : 'px-2.5']"
+                    @change="form.doctorName = orgDoctors.find(d => d.id === form.doctorId)?.name ?? ''"
+                  >
+                    <option value="">Select doctor</option>
+                    <option v-for="d in orgDoctors" :key="d.id" :value="d.id">{{ d.name }}</option>
+                  </select>
+                </div>
+              </div>
+            </template>
 
             <!-- Session: Patient + Modality -->
             <template v-if="form.category === 'session'">

@@ -2,26 +2,34 @@
 import {
   LayoutDashboard, Calendar, ClipboardList, Users,
   MessageSquare, Receipt, Sparkles, Settings, ChevronRight,
-  Sun, Moon,
+  Sun, Moon, Stethoscope, Building2,
 } from 'lucide-vue-next'
 import { useDark, useToggle } from '@vueuse/core'
 import { SHELL_KEY } from '~/composables/useDashboard'
 
 const shell = inject(SHELL_KEY)!
 const route = useRoute()
+const { persona } = usePersona()
 
 const isDark = useDark()
 const toggleDark = useToggle(isDark)
 
 const iconMap: Record<string, Component> = {
   LayoutDashboard, Calendar, ClipboardList, Users,
-  MessageSquare, Receipt, Sparkles,
+  MessageSquare, Receipt, Sparkles, Stethoscope, Building2,
 }
 
 function isActive(path: string) {
-  if (path === '/dashboard') return route.path === '/dashboard'
+  // Root items match exactly so Dashboard doesn't stay lit on sub-pages
+  if (path === '/organization/dashboard' || path === '/doctor/dashboard') {
+    return route.path === path
+  }
   return route.path.startsWith(path)
 }
+
+const profileSubLabel = computed(() =>
+  persona.value.role === 'organization' ? persona.value.orgName : 'Clinical Psychology',
+)
 </script>
 
 <template>
@@ -38,7 +46,7 @@ function isActive(path: string) {
     <!-- ── Logo ── -->
     <div class="flex items-center h-14 px-3 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
       <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center flex-shrink-0">
-        <span class="text-white font-bold text-sm">N</span>
+        <img src="/Noeia_logo_mini.svg" alt="Noeia" class="w-4 h-4 brightness-0 invert" />
       </div>
       <Transition
         enter-active-class="transition duration-150 ease-out"
@@ -46,11 +54,9 @@ function isActive(path: string) {
         leave-active-class="transition duration-100 ease-in"
         leave-to-class="opacity-0"
       >
-        <span
-          v-if="shell.sidebarOpen.value"
-          class="ml-2.5 font-semibold text-slate-800 dark:text-slate-100 tracking-tight whitespace-nowrap overflow-hidden"
-        >
-          Noeia
+        <span v-if="shell.sidebarOpen.value" class="ml-2.5 overflow-hidden flex-shrink-0">
+          <img src="/Noeia_logo.svg" alt="Noeia" class="h-5 dark:hidden" />
+          <img src="/Noeia_logo_white.svg" alt="Noeia" class="h-5 hidden dark:block" />
         </span>
       </Transition>
     </div>
@@ -58,7 +64,7 @@ function isActive(path: string) {
     <!-- ── Nav items ── -->
     <nav class="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto overflow-x-hidden">
       <NuxtLink
-        v-for="item in shell.navItems"
+        v-for="item in shell.navItems.value"
         :key="item.id"
         :to="item.path"
         class="relative flex items-center gap-3 py-2 rounded-lg transition-colors group"
@@ -159,10 +165,10 @@ function isActive(path: string) {
       <div
         class="flex items-center gap-2.5 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors group"
         :class="shell.sidebarOpen.value ? 'px-2.5' : 'justify-center px-2'"
-        :title="!shell.sidebarOpen.value ? 'Dr. Torres' : undefined"
+        :title="!shell.sidebarOpen.value ? persona.name : undefined"
       >
         <div class="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center flex-shrink-0 ring-2 ring-white dark:ring-slate-900">
-          <span class="text-white text-[10px] font-bold">DT</span>
+          <span class="text-white text-[10px] font-bold">{{ persona.avatarInitials }}</span>
         </div>
         <Transition
           enter-active-class="transition duration-150 ease-out"
@@ -171,8 +177,8 @@ function isActive(path: string) {
           leave-to-class="opacity-0"
         >
           <div v-if="shell.sidebarOpen.value" class="flex-1 min-w-0">
-            <p class="text-sm font-medium text-slate-700 dark:text-slate-200 truncate leading-tight">Dr. Torres</p>
-            <p class="text-[11px] text-slate-400 dark:text-slate-500 truncate leading-tight">Clinical Psychology</p>
+            <p class="text-sm font-medium text-slate-700 dark:text-slate-200 truncate leading-tight">{{ persona.name }}</p>
+            <p class="text-[11px] text-slate-400 dark:text-slate-500 truncate leading-tight">{{ profileSubLabel }}</p>
           </div>
         </Transition>
         <ChevronRight

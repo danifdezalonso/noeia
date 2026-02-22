@@ -4,12 +4,19 @@ import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import listPlugin from '@fullcalendar/list'
 import interactionPlugin from '@fullcalendar/interaction'
+import type { CalendarEvent } from '~/composables/useCalendar'
 
+const props = defineProps<{ events?: CalendarEvent[] }>()
+
+const cal = useCalendar()
 const {
-  events, viewMode, currentTitle,
+  viewMode, currentTitle,
   hideWeekends, showWeekNums, slotDuration, workStart, workEnd,
   openQuickCreate, openEdit, moveEvent, toggleTaskDone, openContextMenu,
-} = useCalendar()
+} = cal
+
+// Use prop events if provided, otherwise fall back to composable events
+const activeEvents = computed(() => props.events ?? cal.events.value)
 
 const calendarRef = ref<InstanceType<typeof FullCalendar>>()
 
@@ -20,7 +27,8 @@ const categoryStyle: Record<string, { bg: string; text: string }> = {
   meeting:     { bg: '#0284c7', text: '#ffffff' },
   task:        { bg: '#16a34a', text: '#ffffff' },
   focus:       { bg: '#7c3aed', text: '#ffffff' },
-  appointment: { bg: '#0d9488', text: '#ffffff' },
+  appointment:   { bg: '#0d9488', text: '#ffffff' },
+  documentation: { bg: '#64748b', text: '#ffffff' },
 }
 
 function toLocalIso(date: Date): string {
@@ -30,7 +38,7 @@ function toLocalIso(date: Date): string {
 
 // ── FC event feed ────────────────────────────────────────────────────────────
 const fcEvents = computed(() =>
-  events.value.map((ev) => {
+  activeEvents.value.map((ev) => {
     const style = categoryStyle[ev.category] ?? { bg: '#6b7280', text: '#ffffff' }
     const bg = ev.color ?? style.bg
     return {
@@ -111,11 +119,11 @@ const calendarOptions = computed(() => ({
     // Task circle → toggle done
     if ((info.jsEvent.target as HTMLElement).closest('.fc-task-check')) {
       info.jsEvent.preventDefault()
-      const ev = events.value.find((e) => e.id === info.event.id)
+      const ev = activeEvents.value.find((e) => e.id === info.event.id)
       if (ev?.category === 'task') toggleTaskDone(ev.id)
       return
     }
-    const ev = events.value.find((e) => e.id === info.event.id)
+    const ev = activeEvents.value.find((e) => e.id === info.event.id)
     if (ev) openEdit(ev)
   },
 
@@ -130,7 +138,7 @@ const calendarOptions = computed(() => ({
     // We inject a <span class="fc-task-check"> into FullCalendar's default
     // rendered structure so the title + time remain visible.
     // The done/undone appearance is driven purely by the .fc-ev-done CSS class.
-    const ev = events.value.find((e) => e.id === info.event.id)
+    const ev = activeEvents.value.find((e) => e.id === info.event.id)
     if (ev?.category === 'task') {
       const mainEl = info.el.querySelector('.fc-event-main') as HTMLElement | null
       if (mainEl && !mainEl.querySelector('.fc-task-check')) {
@@ -277,6 +285,9 @@ defineExpose({
 
 /* ── Appointment slots: dashed border ──────────────────────────────────── */
 .fc-ev-appointment { border: 2px dashed rgba(255,255,255,0.5) !important; }
+
+/* ── Documentation events: subtle left accent to signal linked session ──── */
+.fc-ev-documentation { border-left: 3px solid rgba(255,255,255,0.4) !important; }
 
 /* ── Events (month/daygrid) ─────────────────────────────────────────────── */
 .fc-daygrid-event { border-radius: 4px !important; border: none !important; font-size: 11px !important; font-weight: 600 !important; padding: 1px 5px !important; box-shadow: 0 1px 2px rgba(0,0,0,0.12) !important; transition: filter 0.15s !important; }

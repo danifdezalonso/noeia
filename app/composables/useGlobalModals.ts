@@ -2,6 +2,7 @@ export const useGlobalModals = () => {
   const sessionModalOpen = useState('gm_session', () => false)
   const patientModalOpen = useState('gm_patient', () => false)
   const billModalOpen    = useState('gm_bill',    () => false)
+  const doctorModalOpen  = useState('gm_doctor',  () => false)
 
-  return { sessionModalOpen, patientModalOpen, billModalOpen }
+  return { sessionModalOpen, patientModalOpen, billModalOpen, doctorModalOpen }
 }

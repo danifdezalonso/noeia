@@ -5,7 +5,7 @@ export interface CalendarEvent {
   title: string
   start: string // local ISO "YYYY-MM-DDTHH:mm:ss"
   end: string
-  category: 'session' | 'ooo' | 'meeting' | 'task' | 'focus' | 'appointment'
+  category: 'session' | 'ooo' | 'meeting' | 'task' | 'focus' | 'appointment' | 'documentation'
   allDay?: boolean
   // session
   patientId?: string
@@ -29,6 +29,10 @@ export interface CalendarEvent {
   notification?: number // minutes before; -1 = none
   visibility?: 'default' | 'public' | 'private'
   deadline?: string // tasks only
+  linkedSessionId?: string // documentation only — links to a session for combined billing
+  // doctor (org view)
+  doctorId?: string
+  doctorName?: string
   // style overrides
   color?: string
   labels?: string[]
@@ -58,13 +62,27 @@ function localIso(date: Date, hour: number, minute = 0): string {
 function createSeedEvents(): CalendarEvent[] {
   const mon = startOfWeek(new Date(), { weekStartsOn: 1 })
   return [
-    { id: crypto.randomUUID(), title: 'Session – Sofia Martinez', start: localIso(addDays(mon, 0), 10), end: localIso(addDays(mon, 0), 11), category: 'session', patientId: 'p1', patientName: 'Sofia Martinez', modality: 'online', recurrence: 'weekly' },
-    { id: crypto.randomUUID(), title: 'Session – James Wilson',   start: localIso(addDays(mon, 0), 14), end: localIso(addDays(mon, 0), 15), category: 'session', patientId: 'p2', patientName: 'James Wilson', modality: 'inperson', location: 'Room 101', recurrence: 'biweekly' },
-    { id: crypto.randomUUID(), title: 'Team Standup',             start: localIso(addDays(mon, 1), 9),  end: localIso(addDays(mon, 1), 9, 30), category: 'meeting', recurrence: 'none' },
-    { id: crypto.randomUUID(), title: 'Session – Emma Thompson',  start: localIso(addDays(mon, 2), 11), end: localIso(addDays(mon, 2), 12), category: 'session', patientId: 'p3', patientName: 'Emma Thompson', modality: 'online', recurrence: 'weekly' },
-    { id: crypto.randomUUID(), title: 'Conference – Out of Office', start: localIso(addDays(mon, 3), 8), end: localIso(addDays(mon, 3), 18), category: 'ooo', recurrence: 'none', declineMode: 'all' },
-    { id: crypto.randomUUID(), title: 'Review billing report',    start: localIso(addDays(mon, 4), 16), end: localIso(addDays(mon, 4), 16, 30), category: 'task', done: false, recurrence: 'none' },
-    { id: crypto.randomUUID(), title: 'Deep work – Research',     start: localIso(addDays(mon, 2), 14), end: localIso(addDays(mon, 2), 16), category: 'focus', focusDnd: true, focusDeclineInvites: false, recurrence: 'none' },
+    // ── Dr. Elena Voss (d1 · indigo) ──────────────────────────────────────
+    { id: crypto.randomUUID(), title: 'Session – Sofia Martinez', start: localIso(addDays(mon, 0), 10),     end: localIso(addDays(mon, 0), 11),     category: 'session', patientId: 'p1', patientName: 'Sofia Martinez', modality: 'online',   recurrence: 'weekly',   doctorId: 'd1', doctorName: 'Dr. Elena Voss' },
+    { id: crypto.randomUUID(), title: 'Session – Emma Thompson',  start: localIso(addDays(mon, 2), 11),     end: localIso(addDays(mon, 2), 12),     category: 'session', patientId: 'p3', patientName: 'Emma Thompson',  modality: 'online',   recurrence: 'weekly',   doctorId: 'd1', doctorName: 'Dr. Elena Voss' },
+    { id: crypto.randomUUID(), title: 'Session – Noah Chen',      start: localIso(addDays(mon, 4), 10),     end: localIso(addDays(mon, 4), 11),     category: 'session', patientId: 'p6', patientName: 'Noah Chen',      modality: 'online',   recurrence: 'weekly',   doctorId: 'd1', doctorName: 'Dr. Elena Voss' },
+    // ── Dr. Marco Silva (d2 · sky) ────────────────────────────────────────
+    { id: crypto.randomUUID(), title: 'Session – James Wilson',   start: localIso(addDays(mon, 0), 14),     end: localIso(addDays(mon, 0), 15),     category: 'session', patientId: 'p2', patientName: 'James Wilson',   modality: 'inperson', location: 'Room 101', recurrence: 'biweekly', doctorId: 'd2', doctorName: 'Dr. Marco Silva' },
+    { id: crypto.randomUUID(), title: 'Session – Hannah Kim',     start: localIso(addDays(mon, 2), 14),     end: localIso(addDays(mon, 2), 15),     category: 'session', patientId: 'p9', patientName: 'Hannah Kim',     modality: 'inperson', location: 'Room 101', recurrence: 'weekly',   doctorId: 'd2', doctorName: 'Dr. Marco Silva' },
+    { id: crypto.randomUUID(), title: 'Session – David Okafor',   start: localIso(addDays(mon, 4), 14),     end: localIso(addDays(mon, 4), 15),     category: 'session', patientId: 'p10', patientName: 'David Okafor', modality: 'inperson', location: 'Room 101', recurrence: 'weekly',   doctorId: 'd2', doctorName: 'Dr. Marco Silva' },
+    // ── Dr. Priya Nair (d3 · green) ───────────────────────────────────────
+    { id: crypto.randomUUID(), title: 'Session – Carlos Rivera',  start: localIso(addDays(mon, 1), 10),     end: localIso(addDays(mon, 1), 11),     category: 'session', patientId: 'p4', patientName: 'Carlos Rivera',  modality: 'online',   recurrence: 'weekly',   doctorId: 'd3', doctorName: 'Dr. Priya Nair' },
+    { id: crypto.randomUUID(), title: 'Session – Lucia Fernández',start: localIso(addDays(mon, 3), 14),     end: localIso(addDays(mon, 3), 15, 30), category: 'session', patientId: 'p7', patientName: 'Lucia Fernández', modality: 'inperson', location: 'Room 102', recurrence: 'biweekly', doctorId: 'd3', doctorName: 'Dr. Priya Nair' },
+    // ── Dr. James Okafor (d4 · amber) — overlaps d1 Mon 10–11 ────────────
+    { id: crypto.randomUUID(), title: 'Group Session',            start: localIso(addDays(mon, 0), 10),     end: localIso(addDays(mon, 0), 11, 30), category: 'session', patientId: 'p5', patientName: 'Group', modality: 'inperson', location: 'Room 201', recurrence: 'weekly', doctorId: 'd4', doctorName: 'Dr. James Okafor' },
+    { id: crypto.randomUUID(), title: 'Group Session',            start: localIso(addDays(mon, 3), 10),     end: localIso(addDays(mon, 3), 11, 30), category: 'session', patientId: 'p5', patientName: 'Group', modality: 'inperson', location: 'Room 201', recurrence: 'weekly', doctorId: 'd4', doctorName: 'Dr. James Okafor' },
+    // ── Dr. Sofia Reyes (d5 · red) ────────────────────────────────────────
+    { id: crypto.randomUUID(), title: 'Session – Aisha Patel',    start: localIso(addDays(mon, 1), 14),     end: localIso(addDays(mon, 1), 15),     category: 'session', patientId: 'p5', patientName: 'Aisha Patel',    modality: 'online',   recurrence: 'weekly',   doctorId: 'd5', doctorName: 'Dr. Sofia Reyes' },
+    { id: crypto.randomUUID(), title: "Session – M. O'Brien",     start: localIso(addDays(mon, 3), 11),     end: localIso(addDays(mon, 3), 12),     category: 'session', patientId: 'p8', patientName: "Michael O'Brien", modality: 'online',   recurrence: 'weekly',   doctorId: 'd5', doctorName: 'Dr. Sofia Reyes' },
+    // ── Non-session events (no doctorId, always visible) ──────────────────
+    { id: crypto.randomUUID(), title: 'Team Standup',             start: localIso(addDays(mon, 1), 9),      end: localIso(addDays(mon, 1), 9, 30),  category: 'meeting', recurrence: 'none' },
+    { id: crypto.randomUUID(), title: 'Review billing report',    start: localIso(addDays(mon, 4), 16),     end: localIso(addDays(mon, 4), 16, 30), category: 'task', done: false, recurrence: 'none' },
+    { id: crypto.randomUUID(), title: 'Deep work – Research',     start: localIso(addDays(mon, 2), 14),     end: localIso(addDays(mon, 2), 16),     category: 'focus', focusDnd: true, focusDeclineInvites: false, recurrence: 'none' },
   ]
 }
 

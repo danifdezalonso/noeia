@@ -6,7 +6,7 @@ const roles = [
     label: 'Organization',
     sublabel: 'For clinics & healthcare networks',
     desc: 'Manage multiple practitioners, locations, and patients under one unified dashboard.',
-    href: '/login/organization',
+    href: '/onboarding/organization',
     color: 'violet',
   },
   {
@@ -41,11 +41,8 @@ const roles = [
     <div class="relative w-full max-w-3xl">
       <!-- Logo -->
       <div class="text-center mb-10">
-        <NuxtLink to="/" class="inline-flex items-center gap-2 mb-6">
-          <div class="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center">
-            <span class="text-white font-bold">N</span>
-          </div>
-          <span class="text-white font-semibold text-xl tracking-tight">Noeia</span>
+        <NuxtLink to="/" class="inline-flex items-center mb-6">
+          <img src="/Noeia_logo_white.svg" alt="Noeia" class="h-8" />
         </NuxtLink>
         <h1 class="text-2xl font-bold text-white mt-2">How are you joining?</h1>
         <p class="text-slate-400 mt-2 text-sm">Select your role to get started or sign in.</p>

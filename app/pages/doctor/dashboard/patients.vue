@@ -242,7 +242,7 @@ function scheduleSession(patient: Patient) {
   const toIso = (d: Date) =>
     `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:00`
   openCreate(toIso(now), toIso(end))
-  navigateTo('/dashboard/calendar')
+  navigateTo('/doctor/dashboard/calendar')
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
