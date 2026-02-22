@@ -4,13 +4,6 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
-  app: {
-    head: {
-      script: [
-        { src: 'https://mcp.figma.com/mcp/html-to-design/capture.js', async: true }
-      ]
-    }
-  },
   css: ['~/assets/css/main.css'],
   components: {
     dirs: [
