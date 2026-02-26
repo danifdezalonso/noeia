@@ -33,6 +33,12 @@ export interface CalendarEvent {
   // doctor (org view)
   doctorId?: string
   doctorName?: string
+  // session extras
+  sessionType?: string
+  cancelled?: boolean
+  cancellationReason?: string
+  notifyPatient?: boolean
+  notifyPatientMinutes?: number
   // style overrides
   color?: string
   labels?: string[]
@@ -86,6 +92,8 @@ function createSeedEvents(): CalendarEvent[] {
   ]
 }
 
+export interface WorkDayHours { enabled: boolean; start: string; end: string }
+
 export interface ContextMenuState { open: boolean; x: number; y: number; eventId: string }
 
 export const useCalendar = () => {
@@ -108,8 +116,15 @@ export const useCalendar = () => {
   const hideWeekends = useState<boolean>('cal-hide-weekends',  () => true)
   const showWeekNums = useState<boolean>('cal-week-numbers',   () => false)
   const slotDuration = useState<string>('cal-slot-duration',   () => '01:00:00')
-  const workStart    = useState<string>('cal-work-start',      () => '08:00')
-  const workEnd      = useState<string>('cal-work-end',        () => '18:00')
+  const workHours = useState<Record<number, WorkDayHours>>('cal-work-hours', () => ({
+    0: { enabled: false, start: '08:00', end: '18:00' },
+    1: { enabled: true,  start: '08:00', end: '18:00' },
+    2: { enabled: true,  start: '08:00', end: '18:00' },
+    3: { enabled: true,  start: '08:00', end: '18:00' },
+    4: { enabled: true,  start: '08:00', end: '18:00' },
+    5: { enabled: true,  start: '08:00', end: '18:00' },
+    6: { enabled: false, start: '08:00', end: '18:00' },
+  }))
 
   // ── Open helpers ────────────────────────────────────────────────────────────
   function openCreate(start: string, end: string) {
@@ -174,38 +189,73 @@ export const useCalendar = () => {
 
   // ── CRUD ────────────────────────────────────────────────────────────────────
   function saveEvent(data: Omit<CalendarEvent, 'id'> & { id?: string }) {
+    let saved: CalendarEvent
     if (data.id) {
       const idx = events.value.findIndex((e) => e.id === data.id)
       if (idx !== -1) {
+        saved = { ...events.value[idx]!, ...data, id: data.id } as CalendarEvent
         events.value = [
           ...events.value.slice(0, idx),
-          { ...events.value[idx]!, ...data, id: data.id },
+          saved,
           ...events.value.slice(idx + 1),
         ]
+      } else {
+        saved = { ...data, id: data.id } as CalendarEvent
       }
     } else {
-      events.value = [...events.value, { ...data, id: crypto.randomUUID() } as CalendarEvent]
+      saved = { ...data, id: crypto.randomUUID() } as CalendarEvent
+      events.value = [...events.value, saved]
     }
     modalOpen.value      = false
     quickModalOpen.value = false
-    if (data.category === 'session') { console.log('→ Billing: pending entry created'); console.log('→ IA: session placeholder created') }
+    if (data.category === 'session') {
+      const db = useSessionsDb()
+      db.upsertSession(saved)
+    }
     if (data.category === 'meeting') console.log('→ Notification: org members notified')
     if (data.patientId)              console.log('→ Patient record: event appended')
   }
 
   function deleteEvents(ids: string[]) {
+    const toDelete = events.value.filter((e) => ids.includes(e.id))
     events.value = events.value.filter((e) => !ids.includes(e.id))
+    const db = useSessionsDb()
+    for (const ev of toDelete) {
+      if (ev.category === 'session') db.removeSession(ev.id)
+    }
   }
 
   function moveEvent(id: string, start: string, end: string) {
     const idx = events.value.findIndex((e) => e.id === id)
-    if (idx !== -1)
-      events.value = [...events.value.slice(0, idx), { ...events.value[idx]!, start, end }, ...events.value.slice(idx + 1)]
+    if (idx !== -1) {
+      const updated = { ...events.value[idx]!, start, end }
+      events.value = [...events.value.slice(0, idx), updated, ...events.value.slice(idx + 1)]
+      if (updated.category === 'session') useSessionsDb().upsertSession(updated)
+    }
   }
 
   function deleteEvent(id: string) {
+    const ev = events.value.find((e) => e.id === id)
     events.value = events.value.filter((e) => e.id !== id)
     modalOpen.value = false
+    if (ev?.category === 'session') useSessionsDb().removeSession(id)
+  }
+
+  // ── Load from Supabase ───────────────────────────────────────────────────────
+  async function initSessions() {
+    if (!import.meta.client) return
+    try {
+      const sessions = await useSessionsDb().fetchSessions()
+      if (sessions.length > 0) {
+        // Replace in-memory session events with DB records; keep non-session seed events
+        events.value = [
+          ...events.value.filter((e) => e.category !== 'session'),
+          ...sessions,
+        ]
+      }
+    } catch {
+      // Supabase not configured – silently keep seed data
+    }
   }
 
   function toggleTaskDone(id: string) {
@@ -251,11 +301,12 @@ export const useCalendar = () => {
     events, modalOpen, editingEvent, pendingRange, viewMode, currentTitle,
     quickModalOpen, quickModalPos, draftData,
     contextMenu,
-    hideWeekends, showWeekNums, slotDuration, workStart, workEnd,
+    hideWeekends, showWeekNums, slotDuration, workHours,
     mockPatients,
     openCreate, openQuickCreate, openFullModal, openEdit,
     saveEvent, moveEvent, deleteEvent, deleteEvents, checkConflict, getConflictingEvents,
     toggleTaskDone,
     openContextMenu, closeContextMenu, setEventColor, toggleEventLabel, duplicateEvent,
+    initSessions,
   }
 }

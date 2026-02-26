@@ -2,11 +2,14 @@
 import { ChevronLeft, ChevronRight, Plus, Settings2 } from 'lucide-vue-next'
 import { addDays, startOfWeek } from 'date-fns'
 import type { CalendarEvent } from '~/composables/useCalendar'
+import { Button } from '~/components/ui/button'
+import { ToggleGroup, ToggleGroupItem } from '~/components/ui/toggle-group'
 
 definePageMeta({ layout: 'dashboard' })
 
 const cal = useCalendar()
-const { viewMode, currentTitle, openCreate, events } = cal
+const { viewMode, currentTitle, openCreate, events, initSessions } = cal
+onMounted(initSessions)
 
 const calendarViewRef = ref<{
   prev: () => void
@@ -49,10 +52,10 @@ function handleOutsideClick(e: MouseEvent) {
 onMounted(() => { document.addEventListener('click', handleOutsideClick) })
 onBeforeUnmount(() => { document.removeEventListener('click', handleOutsideClick) })
 
-// ── Doctor filter chips ───────────────────────────────────────────────────
+// ── Doctor filter chips ───────────────────────────────────────────────────────
 
 const DOCTOR_COLORS: Record<string, { chip: string; active: string; hex: string }> = {
-  d1: { chip: 'bg-indigo-100 text-indigo-700 border-indigo-200',   active: 'bg-indigo-600 text-white border-indigo-600',   hex: '#6366f1' },
+  d1: { chip: 'bg-primary/10 text-primary border-primary/20',      active: 'bg-primary text-primary-foreground border-primary', hex: '#E83D59' },
   d2: { chip: 'bg-sky-100 text-sky-700 border-sky-200',            active: 'bg-sky-600 text-white border-sky-600',         hex: '#0ea5e9' },
   d3: { chip: 'bg-green-100 text-green-700 border-green-200',      active: 'bg-green-600 text-white border-green-600',     hex: '#22c55e' },
   d4: { chip: 'bg-amber-100 text-amber-700 border-amber-200',      active: 'bg-amber-500 text-white border-amber-500',     hex: '#f59e0b' },
@@ -80,7 +83,6 @@ function toggleDoctorFilter(id: string) {
   activeDoctors.value = s
 }
 
-// Inject hex colors from DOCTOR_COLORS into every event that has a doctorId
 const coloredEvents = computed<CalendarEvent[]>(() =>
   events.value.map(e => ({
     ...e,
@@ -88,7 +90,6 @@ const coloredEvents = computed<CalendarEvent[]>(() =>
   }))
 )
 
-// When set is empty show all; when non-empty keep matching doctor events + events with no doctorId
 const filteredEvents = computed<CalendarEvent[]>(() => {
   if (activeDoctors.value.size === 0) return coloredEvents.value
   return coloredEvents.value.filter(e => !e.doctorId || activeDoctors.value.has(e.doctorId))
@@ -102,26 +103,37 @@ const filteredEvents = computed<CalendarEvent[]>(() => {
     <header class="shrink-0 border-b border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900">
 
       <!-- Row 1 -->
-      <div class="flex items-center justify-between gap-3 px-4 h-12">
+      <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-2">
         <div class="flex items-center gap-1.5">
-          <button class="flex items-center gap-1.5 pl-3 pr-3.5 py-1.5 rounded-2xl border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm font-medium text-gray-700 dark:text-slate-200 shadow-sm hover:bg-gray-50 hover:shadow transition-all mr-1" @click="createNew">
+          <Button variant="outline" class="rounded-2xl mr-1" @click="createNew">
             <Plus class="w-4 h-4" /> New
-          </button>
-          <button class="px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-slate-200 border border-gray-300 dark:border-slate-600 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors" @click="calendarViewRef?.today()">Today</button>
-          <button class="p-1.5 rounded-full text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors" @click="calendarViewRef?.prev()"><ChevronLeft class="w-5 h-5" /></button>
-          <button class="p-1.5 rounded-full text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors" @click="calendarViewRef?.next()"><ChevronRight class="w-5 h-5" /></button>
+          </Button>
+          <Button variant="outline" size="sm" @click="calendarViewRef?.today()">Today</Button>
+          <Button variant="ghost" size="icon" class="rounded-full" @click="calendarViewRef?.prev()">
+            <ChevronLeft class="w-5 h-5" />
+          </Button>
+          <Button variant="ghost" size="icon" class="rounded-full" @click="calendarViewRef?.next()">
+            <ChevronRight class="w-5 h-5" />
+          </Button>
           <h2 class="text-base font-normal text-gray-800 dark:text-slate-100 ml-1 select-none whitespace-nowrap">{{ currentTitle || '…' }}</h2>
         </div>
         <div ref="settingsTriggerRef" class="relative">
-          <button :class="['p-2 rounded-full transition-colors', settingsOpen ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-600' : 'text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 hover:text-gray-700']" title="Calendar settings" @click.stop="toggleSettings">
+          <Button
+            variant="ghost"
+            size="icon"
+            class="rounded-full"
+            :class="settingsOpen ? 'bg-primary/10 text-primary' : ''"
+            title="Calendar settings"
+            @click.stop="toggleSettings"
+          >
             <Settings2 class="w-4.5 h-4.5" />
-          </button>
+          </Button>
           <CalendarSettings :open="settingsOpen" @close="closeSettings" />
         </div>
       </div>
 
       <!-- Row 2: doctor filter chips + view switcher -->
-      <div class="flex items-center justify-between px-4 pb-2 gap-3">
+      <div class="flex flex-wrap items-center justify-between px-4 pb-2 gap-x-3 gap-y-2">
         <!-- Doctor filter chips -->
         <div class="flex items-center gap-1.5 flex-wrap min-w-0">
           <span class="text-xs text-gray-400 font-medium shrink-0 mr-0.5">Doctors:</span>
@@ -150,15 +162,21 @@ const filteredEvents = computed<CalendarEvent[]>(() => {
         </div>
 
         <!-- View switcher -->
-        <div class="flex items-center rounded-md border border-gray-300 dark:border-slate-600 overflow-hidden bg-white dark:bg-slate-800 shrink-0">
-          <button
+        <ToggleGroup
+          type="single"
+          :model-value="viewMode"
+          variant="outline"
+          class="shrink-0"
+          @update:model-value="(v) => v && handleChangeView(v)"
+        >
+          <ToggleGroupItem
             v-for="v in views" :key="v.key"
-            :class="['px-3.5 py-1 text-sm font-medium transition-colors border-r border-gray-300 dark:border-slate-600 last:border-r-0', viewMode === v.key ? 'bg-indigo-600 text-white' : 'text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700']"
-            @click="handleChangeView(v.key)"
+            :value="v.key"
+            class="px-3.5 py-1 text-sm font-medium data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
           >
             {{ v.label }}
-          </button>
-        </div>
+          </ToggleGroupItem>
+        </ToggleGroup>
       </div>
     </header>
 

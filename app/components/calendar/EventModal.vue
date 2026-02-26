@@ -1,8 +1,18 @@
 <script setup lang="ts">
-import { X, Clock, User, MapPin, AlignLeft, Bell, Eye, Video, Target, Link2, CalendarDays, Repeat } from 'lucide-vue-next'
+import { useEventListener } from '@vueuse/core'
+import { X, Clock, User, MapPin, AlignLeft, Bell, Eye, Video, Target, Link2, CalendarDays, Repeat, ClipboardList, XCircle, FileText } from 'lucide-vue-next'
 import type { CalendarEvent } from '~/composables/useCalendar'
+import { Button } from '~/components/ui/button'
+import { Input } from '~/components/ui/input'
+import { Textarea } from '~/components/ui/textarea'
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '~/components/ui/select'
+import { Switch } from '~/components/ui/switch'
+import { Checkbox } from '~/components/ui/checkbox'
 
 const { modalOpen, editingEvent, pendingRange, draftData, saveEvent, deleteEvent, checkConflict, getConflictingEvents, deleteEvents, mockPatients } = useCalendar()
+const { persona } = usePersona()
 
 // ── Form ──────────────────────────────────────────────────────────────────────
 const form = reactive({
@@ -33,26 +43,44 @@ const form = reactive({
   // Appointment
   appointmentDuration: 30,
   bookingLink:         '',
+  // Documentation
+  linkedSessionId:     '',
+  // Session extras
+  sessionType:         '',
+  cancelled:           false,
+  cancellationReason:  '',
+  notifyPatient:       false,
+  notifyPatientMinutes: 60,
 })
 
-const patientSearch         = ref('')
-const showPatientDropdown   = ref(false)
-const showOooConflictDialog = ref(false)
-const oooConflicts          = ref<CalendarEvent[]>([])
+const patientSearch          = ref('')
+const showPatientDropdown    = ref(false)
+const showOooConflictDialog  = ref(false)
+const oooConflicts           = ref<CalendarEvent[]>([])
 const pendingSave            = ref<Parameters<typeof saveEvent>[0] | null>(null)
+const showDiscardConfirm     = ref(false)
+const patientError           = ref(false)
 
 // ── Category config ───────────────────────────────────────────────────────────
 const categories = [
-  { value: 'session'     as const, label: 'Session',        activeClass: 'bg-indigo-600 text-white dark:bg-indigo-500'    },
-  { value: 'ooo'         as const, label: 'Out of Office',  activeClass: 'bg-amber-500 text-white'                         },
-  { value: 'meeting'     as const, label: 'Meeting',        activeClass: 'bg-sky-600 text-white dark:bg-sky-500'           },
-  { value: 'focus'       as const, label: 'Focus Time',     activeClass: 'bg-violet-600 text-white dark:bg-violet-500'    },
-  { value: 'task'        as const, label: 'Task',           activeClass: 'bg-emerald-600 text-white dark:bg-emerald-500'  },
-  { value: 'appointment' as const, label: 'Appointments',  activeClass: 'bg-teal-600 text-white dark:bg-teal-500'         },
+  { value: 'session'       as const, label: 'Session',        activeClass: 'bg-primary text-primary-foreground'            },
+  { value: 'ooo'           as const, label: 'Out of Office',  activeClass: 'bg-amber-500 text-white'                       },
+  { value: 'meeting'       as const, label: 'Meeting',        activeClass: 'bg-sky-600 text-white dark:bg-sky-500'         },
+  { value: 'focus'         as const, label: 'Focus Time',     activeClass: 'bg-violet-600 text-white dark:bg-violet-500'   },
+  { value: 'task'          as const, label: 'Task',           activeClass: 'bg-emerald-600 text-white dark:bg-emerald-500' },
+  { value: 'appointment'   as const, label: 'Appointments',   activeClass: 'bg-teal-600 text-white dark:bg-teal-500'       },
+  { value: 'documentation' as const, label: 'Documentation',  activeClass: 'bg-slate-600 text-white'                       },
 ]
 
 // ── Derived ───────────────────────────────────────────────────────────────────
 const isEditing = computed(() => !!editingEvent.value)
+
+// Dirty: when editing always confirm; when creating check if any meaningful field filled
+const isDirty = computed(() => {
+  if (isEditing.value) return true
+  if (form.category === 'session') return !!(form.patientId || form.location || form.description)
+  return !!(form.location || form.description)
+})
 
 const duration = computed(() => {
   if (form.allDay || !form.startTime || !form.endTime) return ''
@@ -74,6 +102,17 @@ const filteredPatients = computed(() => {
   return q ? mockPatients.filter(p => p.name.toLowerCase().includes(q) && p.name !== patientSearch.value) : []
 })
 
+const sessionOptions = computed(() =>
+  useCalendar().events.value
+    .filter(e => e.category === 'session')
+    .sort((a, b) => b.start.localeCompare(a.start))
+    .slice(0, 20)
+    .map(e => ({
+      id: e.id,
+      label: `${e.title} · ${new Date(e.start).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
+    }))
+)
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const timeFromIso = (iso: string) => iso.split('T')[1]?.slice(0, 5) ?? ''
 const dateFromIso = (iso: string) => iso.split('T')[0] ?? ''
@@ -93,15 +132,31 @@ function resetForm() {
     location: '', recurrence: 'none', done: false, description: '', notification: -1,
     visibility: 'default', deadline: '', declineMode: 'all', oooMessage: 'I am currently out of the office.',
     focusDnd: true, focusDeclineInvites: false, appointmentDuration: 30, bookingLink: '',
+    linkedSessionId: '',
+    sessionType: '', cancelled: false, cancellationReason: '', notifyPatient: false, notifyPatientMinutes: 60,
   })
   patientSearch.value = ''
   showPatientDropdown.value = false
+  showDiscardConfirm.value = false
+  patientError.value = false
 }
 
-// ── OOO: auto-fill title ──────────────────────────────────────────────────────
+// ── Auto-fill session title from patient / doctor ─────────────────────────────
+watch(() => form.patientName, (patient) => {
+  if (form.category !== 'session' || isEditing.value) return
+  if (!patient) return
+  const drName = persona.role === 'doctor' ? persona.name : ''
+  form.title = drName ? `${patient} <> ${drName}` : patient
+})
+
+// ── Category title auto-fill ──────────────────────────────────────────────────
+const MODAL_CATEGORY_DEFAULTS: Partial<Record<CalendarEvent['category'], string>> = {
+  ooo: 'Out of Office', meeting: 'Meeting', focus: 'Focus Time',
+  documentation: 'Documentation', task: 'Task', appointment: 'Appointment Slots',
+}
 watch(() => form.category, (cat) => {
-  if (cat === 'ooo'   && !form.title) form.title = 'Out of Office'
-  if (cat === 'focus' && !form.title) form.title = 'Focus Time'
+  const def = MODAL_CATEGORY_DEFAULTS[cat]
+  if (def && !form.title) form.title = def
 })
 
 // ── Populate form on open ─────────────────────────────────────────────────────
@@ -132,9 +187,15 @@ watch(modalOpen, (open) => {
     form.oooMessage          = ev.oooMessage  ?? 'I am currently out of the office.'
     form.focusDnd            = ev.focusDnd    ?? true
     form.focusDeclineInvites = ev.focusDeclineInvites ?? false
-    form.appointmentDuration = ev.appointmentDuration ?? 30
-    form.bookingLink         = ev.bookingLink ?? ''
-    patientSearch.value      = ev.patientName ?? ''
+    form.appointmentDuration  = ev.appointmentDuration ?? 30
+    form.bookingLink          = ev.bookingLink ?? ''
+    form.linkedSessionId      = ev.linkedSessionId ?? ''
+    form.sessionType          = ev.sessionType ?? ''
+    form.cancelled            = ev.cancelled ?? false
+    form.cancellationReason   = ev.cancellationReason ?? ''
+    form.notifyPatient        = ev.notifyPatient ?? false
+    form.notifyPatientMinutes = ev.notifyPatientMinutes ?? 60
+    patientSearch.value       = ev.patientName ?? ''
   } else {
     const draft = draftData.value
     const range = pendingRange.value
@@ -152,17 +213,34 @@ watch(modalOpen, (open) => {
       form.startTime = timeFromIso(range.start)
       form.endTime   = timeFromIso(range.end)
     }
-    // Auto-fill OOO title on fresh create
-    if (form.category === 'ooo' && !form.title)   form.title = 'Out of Office'
-    if (form.category === 'focus' && !form.title) form.title = 'Focus Time'
+    // Auto-fill title for non-session categories on fresh create
+    const def = MODAL_CATEGORY_DEFAULTS[form.category]
+    if (def && !form.title) form.title = def
     // Auto-generate booking link for appointments
     if (form.category === 'appointment' && !form.bookingLink) form.bookingLink = generateBookingLink()
   }
 })
 
 // ── Actions ───────────────────────────────────────────────────────────────────
+function close() { modalOpen.value = false }
+
+function tryClose() {
+  if (showOooConflictDialog.value) { showOooConflictDialog.value = false; return }
+  if (showDiscardConfirm.value) { confirmDiscard(); return }
+  if (isDirty.value) {
+    showDiscardConfirm.value = true
+  } else {
+    close()
+  }
+}
+
+function confirmDiscard() {
+  showDiscardConfirm.value = false
+  close()
+}
+
 function selectPatient(p: (typeof mockPatients)[number]) {
-  form.patientId = p.id; form.patientName = p.name; patientSearch.value = p.name; showPatientDropdown.value = false
+  form.patientId = p.id; form.patientName = p.name; patientSearch.value = p.name; showPatientDropdown.value = false; patientError.value = false
 }
 function onPatientBlur() { setTimeout(() => { showPatientDropdown.value = false }, 150) }
 
@@ -196,12 +274,23 @@ function buildEventData(): Parameters<typeof saveEvent>[0] {
     oooMessage:          form.category === 'ooo' && form.declineMode !== 'none' ? form.oooMessage : undefined,
     focusDnd:            form.category === 'focus' ? form.focusDnd : undefined,
     focusDeclineInvites: form.category === 'focus' ? form.focusDeclineInvites : undefined,
-    appointmentDuration: form.category === 'appointment' ? form.appointmentDuration : undefined,
-    bookingLink:         form.category === 'appointment' ? form.bookingLink : undefined,
+    appointmentDuration:  form.category === 'appointment' ? form.appointmentDuration : undefined,
+    bookingLink:          form.category === 'appointment' ? form.bookingLink : undefined,
+    linkedSessionId:      form.category === 'documentation' && form.linkedSessionId ? form.linkedSessionId : undefined,
+    sessionType:          form.category === 'session' && form.sessionType ? form.sessionType : undefined,
+    cancelled:            form.category === 'session' ? form.cancelled : undefined,
+    cancellationReason:   form.category === 'session' && form.cancelled && form.cancellationReason ? form.cancellationReason : undefined,
+    notifyPatient:        form.category === 'session' ? form.notifyPatient : undefined,
+    notifyPatientMinutes: form.category === 'session' && form.notifyPatient ? form.notifyPatientMinutes : undefined,
   }
 }
 
 function handleSave() {
+  if (form.category === 'session' && !form.patientId) {
+    patientError.value = true
+    return
+  }
+  patientError.value = false
   // OOO: check for conflicts and prompt
   if (form.category === 'ooo' && form.declineMode !== 'none') {
     const start = form.allDay ? `${form.date}T00:00:00` : `${form.date}T${form.startTime}:00`
@@ -228,6 +317,16 @@ function confirmOooSave(cancelConflicts: boolean) {
 function handleDelete() {
   if (editingEvent.value && confirm('Delete this event?')) deleteEvent(editingEvent.value.id)
 }
+
+// ── Escape key ────────────────────────────────────────────────────────────────
+useEventListener(document, 'keydown', (e: KeyboardEvent) => {
+  if (!modalOpen.value) return
+  if (e.key !== 'Escape') return
+  e.preventDefault()
+  if (showOooConflictDialog.value) { showOooConflictDialog.value = false; return }
+  if (showDiscardConfirm.value) { showDiscardConfirm.value = false; return }
+  tryClose()
+})
 </script>
 
 <template>
@@ -235,7 +334,7 @@ function handleDelete() {
     <Transition enter-active-class="transition duration-200 ease-out" enter-from-class="opacity-0" enter-to-class="opacity-100" leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100" leave-to-class="opacity-0">
       <div v-if="modalOpen" class="fixed inset-0 z-50 flex items-start justify-center pt-8 pb-4 px-4 overflow-y-auto">
         <!-- Backdrop -->
-        <div class="fixed inset-0 bg-black/50 backdrop-blur-sm" @click="modalOpen = false" />
+        <div class="fixed inset-0 bg-black/50 backdrop-blur-sm" @click="tryClose" />
 
         <!-- OOO Conflict Dialog -->
         <Transition enter-active-class="transition duration-150 ease-out" enter-from-class="opacity-0 scale-95" enter-to-class="opacity-100 scale-100">
@@ -251,8 +350,8 @@ function handleDelete() {
               </ul>
               <p class="text-xs text-slate-600 dark:text-slate-300 mb-4">Would you like to cancel these events?</p>
               <div class="flex gap-2">
-                <button class="flex-1 py-2 text-xs font-medium text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors" @click="confirmOooSave(false)">Keep them</button>
-                <button class="flex-1 py-2 text-xs font-semibold bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors" @click="confirmOooSave(true)">Cancel events</button>
+                <Button variant="outline" class="flex-1 text-xs" @click="confirmOooSave(false)">Keep them</Button>
+                <Button class="flex-1 text-xs bg-red-600 hover:bg-red-700 text-white" @click="confirmOooSave(true)">Cancel events</Button>
               </div>
             </div>
           </div>
@@ -264,14 +363,14 @@ function handleDelete() {
 
             <!-- Header -->
             <div class="flex items-center gap-3 px-5 pt-5 pb-3 shrink-0">
-              <button class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 dark:text-slate-500 transition-colors" @click="modalOpen = false">
+              <Button variant="ghost" size="icon" class="rounded-lg shrink-0" @click="tryClose">
                 <X class="w-5 h-5" />
-              </button>
+              </Button>
               <input
                 v-model="form.title"
                 type="text"
                 :placeholder="form.category === 'ooo' ? 'Out of Office' : form.category === 'focus' ? 'Focus Time' : 'Add title'"
-                class="flex-1 text-2xl font-normal text-slate-800 dark:text-slate-100 bg-transparent border-b-2 border-indigo-500 focus:outline-none pb-1 placeholder:text-slate-300 dark:placeholder:text-slate-500"
+                class="flex-1 text-2xl font-normal text-slate-800 dark:text-slate-100 bg-transparent border-b-2 border-primary focus:outline-none pb-1 placeholder:text-slate-300 dark:placeholder:text-slate-500"
               />
             </div>
 
@@ -295,28 +394,33 @@ function handleDelete() {
                 <!-- Date + Times row -->
                 <div class="flex items-center gap-2 flex-wrap">
                   <Clock class="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" />
-                  <input v-model="form.date" type="date" :disabled="form.allDay" class="px-2.5 py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50" />
+                  <input v-model="form.date" type="date" :disabled="form.allDay" class="px-2.5 py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-50" />
                   <template v-if="!form.allDay">
-                    <input v-model="form.startTime" type="time" class="px-2.5 py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                    <input v-model="form.startTime" type="time" class="px-2.5 py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary/30" />
                     <span class="text-slate-400 dark:text-slate-500 text-sm">–</span>
-                    <input v-model="form.endTime" type="time" class="px-2.5 py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                    <input v-model="form.endTime" type="time" class="px-2.5 py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary/30" />
                     <span v-if="duration" class="text-xs text-slate-400 dark:text-slate-500 font-medium">{{ duration }}</span>
                   </template>
                 </div>
                 <!-- All day + Recurrence row -->
                 <div class="flex items-center gap-4 pl-6 flex-wrap">
                   <label class="flex items-center gap-2 cursor-pointer">
-                    <input v-model="form.allDay" type="checkbox" class="w-3.5 h-3.5 rounded accent-indigo-600" />
+                    <input v-model="form.allDay" type="checkbox" class="w-3.5 h-3.5 rounded accent-primary" />
                     <span class="text-xs text-slate-600 dark:text-slate-400">All day</span>
                   </label>
                   <div class="flex items-center gap-2">
                     <Repeat class="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
-                    <select v-model="form.recurrence" class="text-xs border border-slate-200 dark:border-slate-600 rounded-lg px-2 py-1 bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                      <option value="none">Doesn't repeat</option>
-                      <option value="weekly">Weekly</option>
-                      <option value="biweekly">Bi-weekly</option>
-                      <option value="monthly">Monthly</option>
-                    </select>
+                    <Select v-model="form.recurrence">
+                      <SelectTrigger class="h-7 text-xs w-36">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Doesn't repeat</SelectItem>
+                        <SelectItem value="weekly">Weekly</SelectItem>
+                        <SelectItem value="biweekly">Bi-weekly</SelectItem>
+                        <SelectItem value="monthly">Monthly</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               </div>
@@ -327,7 +431,16 @@ function handleDelete() {
                 <div class="flex items-start gap-3">
                   <User class="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0 mt-2" />
                   <div class="flex-1 relative">
-                    <input v-model="patientSearch" type="text" placeholder="Search patient…" autocomplete="off" class="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-slate-400 dark:placeholder:text-slate-500" @focus="showPatientDropdown = true" @blur="onPatientBlur" @input="() => { form.patientId = ''; form.patientName = '' }" />
+                    <Input
+                    v-model="patientSearch"
+                    :class="patientError ? 'border-red-500 focus-visible:ring-red-500/30' : ''"
+                    placeholder="Search patient…"
+                    autocomplete="off"
+                    @focus="showPatientDropdown = true; patientError = false"
+                    @blur="onPatientBlur"
+                    @input="() => { form.patientId = ''; form.patientName = ''; patientError = false }"
+                  />
+                  <p v-if="patientError" class="mt-1 text-xs text-red-500 font-medium">Patient is required to save a session.</p>
                     <div v-if="showPatientDropdown && filteredPatients.length" class="absolute top-full left-0 right-0 z-20 mt-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl shadow-lg overflow-hidden">
                       <button v-for="p in filteredPatients" :key="p.id" class="w-full px-3 py-2 text-sm text-left hover:bg-slate-50 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200" @mousedown.prevent="selectPatient(p)">{{ p.name }}</button>
                     </div>
@@ -335,30 +448,83 @@ function handleDelete() {
                 </div>
                 <!-- Modality -->
                 <div class="flex gap-2 pl-7">
-                  <button :class="['flex-1 py-2 text-xs rounded-lg font-medium border transition-colors', form.modality === 'online' ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-700' : 'bg-white dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600']" @click="form.modality = 'online'">Online</button>
-                  <button :class="['flex-1 py-2 text-xs rounded-lg font-medium border transition-colors', form.modality === 'inperson' ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-700' : 'bg-white dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600']" @click="form.modality = 'inperson'">In-person</button>
+                  <button :class="['flex-1 py-2 text-xs rounded-lg font-medium border transition-colors', form.modality === 'online' ? 'bg-primary/10 text-primary border-primary/20' : 'bg-white dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600']" @click="form.modality = 'online'">Online</button>
+                  <button :class="['flex-1 py-2 text-xs rounded-lg font-medium border transition-colors', form.modality === 'inperson' ? 'bg-primary/10 text-primary border-primary/20' : 'bg-white dark:bg-slate-700 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600']" @click="form.modality = 'inperson'">In-person</button>
                 </div>
+                <!-- Session type -->
+                <div class="flex items-center gap-3">
+                  <ClipboardList class="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" />
+                  <div class="flex-1">
+                    <Select v-model="form.sessionType">
+                      <SelectTrigger class="w-full">
+                        <SelectValue placeholder="Session type (optional)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="individual">Individual therapy</SelectItem>
+                        <SelectItem value="initial">Initial consultation</SelectItem>
+                        <SelectItem value="followup">Follow-up session</SelectItem>
+                        <SelectItem value="group">Group session</SelectItem>
+                        <SelectItem value="family">Family therapy</SelectItem>
+                        <SelectItem value="crisis">Crisis intervention</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
                 <!-- Location (in-person) -->
                 <div v-if="form.modality === 'inperson'" class="flex items-center gap-3">
                   <MapPin class="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" />
-                  <select v-model="form.location" class="flex-1 px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    <option value="">Select location…</option>
-                    <option>Room 101</option>
-                    <option>Room 102</option>
-                    <option>Main Street Clinic</option>
-                  </select>
+                  <Select v-model="form.location">
+                    <SelectTrigger class="flex-1">
+                      <SelectValue placeholder="Select location…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Room 101">Room 101</SelectItem>
+                      <SelectItem value="Room 102">Room 102</SelectItem>
+                      <SelectItem value="Main Street Clinic">Main Street Clinic</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <!-- Online meeting link -->
                 <div v-if="form.modality === 'online'" class="flex items-center gap-3">
                   <Video class="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" />
                   <div class="flex-1">
-                    <button v-if="!form.meetingLinkEnabled" class="text-sm text-indigo-600 dark:text-indigo-400 hover:underline" @click="toggleMeetingLink">+ Add online meeting link</button>
+                    <button v-if="!form.meetingLinkEnabled" class="text-sm text-primary hover:text-primary/80 hover:underline transition-colors" @click="toggleMeetingLink">+ Add online meeting link</button>
                     <div v-else class="flex items-center gap-2">
-                      <input v-model="form.meetingLink" type="url" class="flex-1 px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500" readonly />
+                      <input v-model="form.meetingLink" type="url" class="flex-1 px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary/30" readonly />
                       <button class="text-xs text-slate-400 hover:text-red-500 transition-colors" @click="form.meetingLinkEnabled = false; form.meetingLink = ''">Remove</button>
                     </div>
                   </div>
                 </div>
+                <!-- Cancellation (when editing) -->
+                <template v-if="isEditing">
+                  <div class="space-y-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4">
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center gap-2">
+                        <XCircle class="w-4 h-4 text-red-500 dark:text-red-400" />
+                        <span class="text-sm font-medium text-slate-700 dark:text-slate-200">Mark as cancelled</span>
+                      </div>
+                      <Switch v-model:checked="form.cancelled" />
+                    </div>
+                    <template v-if="form.cancelled">
+                      <div class="flex-1">
+                        <Select v-model="form.cancellationReason">
+                          <SelectTrigger class="w-full h-8">
+                            <SelectValue placeholder="Reason (optional)" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="patient-noshow">Patient no-show</SelectItem>
+                            <SelectItem value="patient-cancelled">Patient cancelled</SelectItem>
+                            <SelectItem value="provider-unavailable">Provider unavailable</SelectItem>
+                            <SelectItem value="rescheduled">Rescheduled</SelectItem>
+                            <SelectItem value="emergency">Emergency</SelectItem>
+                            <SelectItem value="other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </template>
+                  </div>
+                </template>
               </template>
 
               <!-- ── OOO fields ────────────────────────────────────────────── -->
@@ -379,7 +545,7 @@ function handleDelete() {
                   </label>
                   <div v-if="form.declineMode !== 'none'" class="mt-2">
                     <label class="block text-xs text-slate-500 dark:text-slate-400 mb-1">Decline message</label>
-                    <textarea v-model="form.oooMessage" rows="2" class="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none" />
+                    <Textarea v-model="form.oooMessage" :rows="2" class="resize-none" />
                   </div>
                 </div>
               </template>
@@ -390,15 +556,11 @@ function handleDelete() {
                   <p class="text-xs font-semibold text-violet-700 dark:text-violet-400 uppercase tracking-wide">Focus settings</p>
                   <label class="flex items-center justify-between cursor-pointer">
                     <span class="text-sm text-slate-700 dark:text-slate-200">Do Not Disturb mode</span>
-                    <button role="switch" :aria-checked="form.focusDnd" :class="['relative w-9 h-5 rounded-full transition-colors duration-200', form.focusDnd ? 'bg-violet-600' : 'bg-slate-200 dark:bg-slate-600']" @click="form.focusDnd = !form.focusDnd">
-                      <span :class="['absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200', form.focusDnd ? 'translate-x-4' : 'translate-x-0']" />
-                    </button>
+                    <Switch v-model:checked="form.focusDnd" />
                   </label>
                   <label class="flex items-center justify-between cursor-pointer">
                     <span class="text-sm text-slate-700 dark:text-slate-200">Auto-decline new invitations</span>
-                    <button role="switch" :aria-checked="form.focusDeclineInvites" :class="['relative w-9 h-5 rounded-full transition-colors duration-200', form.focusDeclineInvites ? 'bg-violet-600' : 'bg-slate-200 dark:bg-slate-600']" @click="form.focusDeclineInvites = !form.focusDeclineInvites">
-                      <span :class="['absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200', form.focusDeclineInvites ? 'translate-x-4' : 'translate-x-0']" />
-                    </button>
+                    <Switch v-model:checked="form.focusDeclineInvites" />
                   </label>
                 </div>
               </template>
@@ -409,13 +571,34 @@ function handleDelete() {
                   <Target class="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" />
                   <div class="flex-1">
                     <label class="block text-xs text-slate-500 dark:text-slate-400 mb-1">Deadline (optional)</label>
-                    <input v-model="form.deadline" type="date" class="px-2.5 py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                    <input v-model="form.deadline" type="date" class="px-2.5 py-1.5 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-primary/30" />
                   </div>
                 </div>
-                <label class="flex items-center gap-2.5 pl-7 cursor-pointer">
-                  <input v-model="form.done" type="checkbox" class="w-4 h-4 rounded accent-emerald-600" />
-                  <span class="text-sm text-slate-700 dark:text-slate-200">Mark as done</span>
-                </label>
+                <div class="flex items-center gap-2.5 pl-7">
+                  <Checkbox v-model:checked="form.done" />
+                  <span class="text-sm text-slate-700 dark:text-slate-200 cursor-pointer" @click="form.done = !form.done">Mark as done</span>
+                </div>
+              </template>
+
+              <!-- ── DOCUMENTATION fields ───────────────────────────────────── -->
+              <template v-if="form.category === 'documentation'">
+                <div class="flex items-center gap-3">
+                  <Link2 class="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" />
+                  <div class="flex-1">
+                    <Select v-model="form.linkedSessionId">
+                      <SelectTrigger class="w-full">
+                        <SelectValue placeholder="Link to session (optional)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">No linked session</SelectItem>
+                        <SelectItem v-for="s in sessionOptions" :key="s.id" :value="s.id">{{ s.label }}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div class="ml-7 text-xs text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2">
+                  When linked, billing will count <strong>session + documentation</strong> time together.
+                </div>
               </template>
 
               <!-- ── APPOINTMENT fields ──────────────────────────────────────── -->
@@ -424,20 +607,28 @@ function handleDelete() {
                   <p class="text-xs font-semibold text-teal-700 dark:text-teal-400 uppercase tracking-wide">Appointment slot settings</p>
                   <div>
                     <label class="block text-xs text-slate-500 dark:text-slate-400 mb-1">Session duration</label>
-                    <select v-model="form.appointmentDuration" class="px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500">
-                      <option :value="15">15 minutes</option>
-                      <option :value="30">30 minutes</option>
-                      <option :value="45">45 minutes</option>
-                      <option :value="50">50 minutes</option>
-                      <option :value="60">1 hour</option>
-                      <option :value="90">1.5 hours</option>
-                    </select>
+                    <Select
+                      :model-value="String(form.appointmentDuration)"
+                      @update:model-value="v => form.appointmentDuration = Number(v)"
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="15">15 minutes</SelectItem>
+                        <SelectItem value="30">30 minutes</SelectItem>
+                        <SelectItem value="45">45 minutes</SelectItem>
+                        <SelectItem value="50">50 minutes</SelectItem>
+                        <SelectItem value="60">1 hour</SelectItem>
+                        <SelectItem value="90">1.5 hours</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div>
                     <label class="block text-xs text-slate-500 dark:text-slate-400 mb-1">Booking link</label>
                     <div class="flex items-center gap-2">
                       <input :value="form.bookingLink" readonly class="flex-1 px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 focus:outline-none" />
-                      <button class="px-2.5 py-2 text-xs text-teal-600 dark:text-teal-400 border border-teal-200 dark:border-teal-700 rounded-lg hover:bg-teal-50 dark:hover:bg-teal-900/30 transition-colors" @click="navigator.clipboard?.writeText(form.bookingLink)">Copy</button>
+                      <Button variant="outline" size="sm" class="text-teal-600 border-teal-200 hover:bg-teal-50" @click="navigator.clipboard?.writeText(form.bookingLink)">Copy</Button>
                     </div>
                   </div>
                   <p class="text-xs text-slate-500 dark:text-slate-400 flex items-start gap-1.5">
@@ -450,38 +641,77 @@ function handleDelete() {
               <!-- ── Location (non-session) ──────────────────────────────────── -->
               <div v-if="form.category !== 'session' && form.category !== 'appointment'" class="flex items-center gap-3">
                 <MapPin class="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" />
-                <input v-model="form.location" type="text" placeholder="Add location" class="flex-1 px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 placeholder:text-slate-400 dark:placeholder:text-slate-500" />
+                <Input v-model="form.location" placeholder="Add location" class="flex-1" />
               </div>
 
               <!-- ── Notifications ───────────────────────────────────────────── -->
               <div class="flex items-center gap-3">
                 <Bell class="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" />
-                <select v-model="form.notification" class="flex-1 px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                  <option :value="-1">No notification</option>
-                  <option :value="0">At event time</option>
-                  <option :value="5">5 minutes before</option>
-                  <option :value="10">10 minutes before</option>
-                  <option :value="15">15 minutes before</option>
-                  <option :value="30">30 minutes before</option>
-                  <option :value="60">1 hour before</option>
-                  <option :value="1440">1 day before</option>
-                </select>
+                <Select
+                  :model-value="String(form.notification)"
+                  @update:model-value="v => form.notification = Number(v)"
+                >
+                  <SelectTrigger class="flex-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="-1">No notification</SelectItem>
+                    <SelectItem value="0">At event time</SelectItem>
+                    <SelectItem value="5">5 minutes before</SelectItem>
+                    <SelectItem value="10">10 minutes before</SelectItem>
+                    <SelectItem value="15">15 minutes before</SelectItem>
+                    <SelectItem value="30">30 minutes before</SelectItem>
+                    <SelectItem value="60">1 hour before</SelectItem>
+                    <SelectItem value="1440">1 day before</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
+
+              <!-- Patient reminder (sessions only) -->
+              <template v-if="form.category === 'session'">
+                <div class="flex items-center gap-3 pl-7">
+                  <span class="text-sm text-slate-600 dark:text-slate-300 flex-1">Notify patient</span>
+                  <div class="flex items-center gap-2">
+                    <div v-if="form.notifyPatient" class="w-40">
+                      <Select
+                        :model-value="String(form.notifyPatientMinutes)"
+                        @update:model-value="v => form.notifyPatientMinutes = Number(v)"
+                      >
+                        <SelectTrigger class="h-8 w-full text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="30">30 min before</SelectItem>
+                          <SelectItem value="60">1 hour before</SelectItem>
+                          <SelectItem value="120">2 hours before</SelectItem>
+                          <SelectItem value="1440">1 day before</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Switch v-model:checked="form.notifyPatient" />
+                  </div>
+                </div>
+              </template>
 
               <!-- ── Visibility ─────────────────────────────────────────────── -->
               <div class="flex items-center gap-3">
                 <Eye class="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0" />
-                <select v-model="form.visibility" class="flex-1 px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                  <option value="default">Default visibility</option>
-                  <option value="public">Public</option>
-                  <option value="private">Private</option>
-                </select>
+                <Select v-model="form.visibility">
+                  <SelectTrigger class="flex-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="default">Default visibility</SelectItem>
+                    <SelectItem value="public">Public</SelectItem>
+                    <SelectItem value="private">Private</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <!-- ── Description ────────────────────────────────────────────── -->
               <div class="flex items-start gap-3">
                 <AlignLeft class="w-4 h-4 text-slate-400 dark:text-slate-500 shrink-0 mt-2" />
-                <textarea v-model="form.description" placeholder="Add description or notes…" rows="3" class="flex-1 px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none placeholder:text-slate-400 dark:placeholder:text-slate-500" />
+                <Textarea v-model="form.description" placeholder="Add description or notes…" :rows="3" class="flex-1 resize-none" />
               </div>
 
               <!-- ── Conflict warning ────────────────────────────────────────── -->
@@ -493,14 +723,23 @@ function handleDelete() {
 
             <!-- Footer -->
             <div class="flex items-center justify-between px-5 py-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 shrink-0">
-              <button v-if="isEditing" class="px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 rounded-lg transition-colors" @click="handleDelete">Delete</button>
-              <div v-else />
-              <div class="flex items-center gap-2">
-                <button class="px-4 py-2 text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors" @click="modalOpen = false">Cancel</button>
-                <button class="px-5 py-2 text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700 rounded-lg transition-colors shadow-sm" @click="handleSave">
-                  {{ form.category === 'appointment' ? 'Create slot' : 'Save event' }}
-                </button>
-              </div>
+              <template v-if="showDiscardConfirm">
+                <span class="text-sm text-slate-600 dark:text-slate-300">Discard changes?</span>
+                <div class="flex items-center gap-2">
+                  <Button variant="ghost" class="text-xs" @click="showDiscardConfirm = false">Keep editing</Button>
+                  <Button variant="destructive" class="text-xs" @click="confirmDiscard">Discard</Button>
+                </div>
+              </template>
+              <template v-else>
+                <Button v-if="isEditing" variant="ghost" class="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/50 text-xs" @click="handleDelete">Delete</Button>
+                <div v-else />
+                <div class="flex items-center gap-2">
+                  <Button variant="ghost" class="text-xs" @click="tryClose">Cancel</Button>
+                  <Button class="text-xs" @click="handleSave">
+                    {{ form.category === 'appointment' ? 'Create slot' : 'Save event' }}
+                  </Button>
+                </div>
+              </template>
             </div>
           </div>
         </Transition>

@@ -11,7 +11,7 @@ const props = defineProps<{ events?: CalendarEvent[] }>()
 const cal = useCalendar()
 const {
   viewMode, currentTitle,
-  hideWeekends, showWeekNums, slotDuration, workStart, workEnd,
+  hideWeekends, showWeekNums, slotDuration, workHours,
   openQuickCreate, openEdit, moveEvent, toggleTaskDone, openContextMenu,
 } = cal
 
@@ -52,8 +52,9 @@ const fcEvents = computed(() =>
       borderColor: 'transparent',
       classNames: [
         `fc-ev-${ev.category}`,
-        ...(ev.done   ? ['fc-ev-done']   : []),
-        ...(ev.allDay ? ['fc-ev-allday'] : []),
+        ...(ev.done      ? ['fc-ev-done']      : []),
+        ...(ev.allDay    ? ['fc-ev-allday']    : []),
+        ...(ev.cancelled ? ['fc-ev-cancelled'] : []),
       ],
     }
   }),
@@ -101,7 +102,9 @@ const calendarOptions = computed(() => ({
   slotLabelInterval: slotDuration.value === '00:15:00' ? '01:00:00' : slotDuration.value,
   scrollTime:    '09:00:00',
   nowIndicator:  true,
-  businessHours: { daysOfWeek: [1, 2, 3, 4, 5], startTime: workStart.value, endTime: workEnd.value },
+  businessHours: Object.entries(workHours.value)
+    .filter(([, d]) => d.enabled)
+    .map(([dow, d]) => ({ daysOfWeek: [Number(dow)], startTime: d.start, endTime: d.end })),
   height: '100%',
   events: fcEvents.value,
   dayHeaderContent,
@@ -336,6 +339,17 @@ defineExpose({
 .fc-ev-done .fc-task-check { background: rgba(255,255,255,0.25); border-color: #fff; }
 .fc-ev-done .fc-task-check::before { content: '✓'; line-height: 1; }
 .fc-ev-done .fc-event-title { text-decoration: line-through !important; opacity: 0.55 !important; }
+
+/* Cancelled state — driven by .fc-ev-cancelled class on the event element */
+.fc-ev-cancelled { opacity: 0.55 !important; filter: grayscale(0.4) !important; }
+.fc-ev-cancelled .fc-event-title { text-decoration: line-through !important; }
+.fc-ev-cancelled .fc-event-main {
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent, transparent 4px,
+    rgba(0,0,0,0.06) 4px, rgba(0,0,0,0.06) 5px
+  ) !important;
+}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    Dark mode overrides

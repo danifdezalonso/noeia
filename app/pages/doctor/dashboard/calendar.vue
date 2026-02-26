@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { ChevronLeft, ChevronRight, Plus, Settings2 } from 'lucide-vue-next'
+import { Button } from '~/components/ui/button'
+import { ToggleGroup, ToggleGroupItem } from '~/components/ui/toggle-group'
 
 definePageMeta({ layout: 'dashboard' })
 
-const { viewMode, currentTitle, openCreate } = useCalendar()
+const { viewMode, currentTitle, openCreate, initSessions } = useCalendar()
+onMounted(initSessions)
 
 const calendarViewRef = ref<{
   prev: () => void
@@ -60,35 +63,29 @@ onBeforeUnmount(() => { document.removeEventListener('click', handleOutsideClick
     <header class="shrink-0 border-b border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900">
 
       <!-- Row 1: create · nav · date label · settings -->
-      <div class="flex items-center justify-between gap-3 px-4 h-12">
+      <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-2">
 
         <!-- Left: + New + navigation + date -->
         <div class="flex items-center gap-1.5">
 
           <!-- + New -->
-          <button
-            class="flex items-center gap-1.5 pl-3 pr-3.5 py-1.5 rounded-2xl border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-sm font-medium text-gray-700 dark:text-slate-200 shadow-sm hover:bg-gray-50 dark:hover:bg-slate-700 hover:shadow transition-all mr-1"
-            @click="createNew"
-          >
+          <Button variant="outline" class="rounded-2xl mr-1" @click="createNew">
             <Plus class="w-4 h-4" />
             New
-          </button>
+          </Button>
 
           <!-- Today -->
-          <button
-            class="px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-slate-200 border border-gray-300 dark:border-slate-600 rounded-md hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
-            @click="calendarViewRef?.today()"
-          >
+          <Button variant="outline" size="sm" @click="calendarViewRef?.today()">
             Today
-          </button>
+          </Button>
 
           <!-- Prev / Next -->
-          <button class="p-1.5 rounded-full text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors" @click="calendarViewRef?.prev()">
+          <Button variant="ghost" size="icon" class="rounded-full" @click="calendarViewRef?.prev()">
             <ChevronLeft class="w-5 h-5" />
-          </button>
-          <button class="p-1.5 rounded-full text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors" @click="calendarViewRef?.next()">
+          </Button>
+          <Button variant="ghost" size="icon" class="rounded-full" @click="calendarViewRef?.next()">
             <ChevronRight class="w-5 h-5" />
-          </button>
+          </Button>
 
           <!-- Date label -->
           <h2 class="text-base font-normal text-gray-800 dark:text-slate-100 ml-1 select-none whitespace-nowrap">
@@ -98,29 +95,38 @@ onBeforeUnmount(() => { document.removeEventListener('click', handleOutsideClick
 
         <!-- Right: settings gear -->
         <div ref="settingsTriggerRef" class="relative">
-          <button
-            :class="['p-2 rounded-full transition-colors', settingsOpen ? 'bg-indigo-50 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400' : 'text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700 hover:text-gray-700 dark:hover:text-slate-200']"
+          <Button
+            variant="ghost"
+            size="icon"
+            class="rounded-full"
+            :class="settingsOpen ? 'bg-primary/10 text-primary' : ''"
             title="Calendar settings"
             @click.stop="toggleSettings"
           >
-            <Settings2 class="w-4.5 h-4.5" />
-          </button>
+            <Settings2 class="w-4 h-4" />
+          </Button>
           <CalendarSettings :open="settingsOpen" @close="closeSettings" />
         </div>
       </div>
 
       <!-- Row 2: view switcher -->
       <div class="flex items-center justify-end px-4 pb-2">
-        <div class="flex items-center rounded-md border border-gray-300 dark:border-slate-600 overflow-hidden bg-white dark:bg-slate-800">
-          <button
+        <ToggleGroup
+          type="single"
+          :model-value="viewMode"
+          variant="outline"
+          class="h-8"
+          @update:model-value="(v) => v && handleChangeView(v)"
+        >
+          <ToggleGroupItem
             v-for="v in views"
             :key="v.key"
-            :class="['px-3.5 py-1 text-sm font-medium transition-colors border-r border-gray-300 dark:border-slate-600 last:border-r-0', viewMode === v.key ? 'bg-indigo-600 text-white' : 'text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700']"
-            @click="handleChangeView(v.key)"
+            :value="v.key"
+            class="text-sm px-3.5 py-1 h-8 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
           >
             {{ v.label }}
-          </button>
-        </div>
+          </ToggleGroupItem>
+        </ToggleGroup>
       </div>
     </header>
 
@@ -144,7 +150,7 @@ onBeforeUnmount(() => { document.removeEventListener('click', handleOutsideClick
               </div>
               <div class="flex-1 grid grid-cols-5">
                 <div v-for="col in 5" :key="col" class="border-r border-gray-100 dark:border-slate-800 last:border-r-0 space-y-2 p-1.5">
-                  <div v-if="col === 2" class="h-14 rounded-md bg-indigo-100 dark:bg-indigo-900/50" />
+                  <div v-if="col === 2" class="h-14 rounded-md bg-primary/10" />
                   <div v-if="col === 4" class="h-10 rounded-md bg-emerald-100 dark:bg-emerald-900/50" />
                 </div>
               </div>
