@@ -41,7 +41,7 @@ const metricCards = computed(() => [
     label: 'Sessions Today',
     display: String(Math.round(aSessions.value)),
     sub: '2 remaining',
-    color: 'indigo',
+    color: 'primary',
   },
   {
     label: 'Active Patients',
@@ -200,7 +200,7 @@ const activity = [
 // ── Accent class map ───────────────────────────────────────────────────────
 
 const accentMap: Record<string, { dot: string; value: string }> = {
-  indigo: { dot: 'bg-indigo-500', value: 'text-indigo-600' },
+  primary: { dot: 'bg-primary', value: 'text-primary' },
   violet: { dot: 'bg-violet-500', value: 'text-violet-600' },
   amber: { dot: 'bg-amber-500', value: 'text-amber-600' },
   emerald: { dot: 'bg-emerald-500', value: 'text-emerald-600' },
@@ -248,7 +248,7 @@ function getAccent(color: string) {
       <div class="appear lg:col-span-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm p-5" style="--delay: 360ms">
         <div class="flex items-center justify-between mb-1">
           <h2 class="text-sm font-semibold text-slate-800 dark:text-slate-100">Sessions This Week</h2>
-          <span class="text-xs font-medium text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
+          <span class="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
             18 total
           </span>
         </div>
@@ -314,9 +314,9 @@ function getAccent(color: string) {
             :style="{ '--i': i }"
           >
             <div
-              class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0"
+              class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0"
             >
-              <span class="text-indigo-700 text-xs font-bold">{{ s.initials }}</span>
+              <span class="text-primary text-xs font-bold">{{ s.initials }}</span>
             </div>
             <div class="flex-1 min-w-0">
               <p class="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">{{ s.name }}</p>
@@ -346,7 +346,7 @@ function getAccent(color: string) {
             class="activity-row flex items-start gap-3"
             :style="{ '--i': i }"
           >
-            <div class="w-1.5 h-1.5 rounded-full bg-indigo-400 mt-1.5 flex-shrink-0" />
+            <div class="w-1.5 h-1.5 rounded-full bg-primary/60 mt-1.5 flex-shrink-0" />
             <div>
               <p class="text-sm text-slate-700 dark:text-slate-200">{{ a.text }}</p>
               <p class="text-xs text-slate-400 mt-0.5">{{ a.time }}</p>

@@ -1,5 +1,9 @@
 <script setup lang="ts">
 import { z } from 'zod'
+import { Button } from '~/components/ui/button'
+import { Input } from '~/components/ui/input'
+import { Label } from '~/components/ui/label'
+import { Textarea } from '~/components/ui/textarea'
 
 const router = useRouter()
 const { setDoctor } = usePersona()
@@ -117,7 +121,7 @@ async function finish() {
 
 async function fireConfetti() {
   const { default: confetti } = await import('canvas-confetti')
-  confetti({ particleCount: 120, spread: 80, origin: { y: 0.55 }, colors: ['#6366f1', '#8b5cf6', '#14b8a6', '#f59e0b', '#ec4899'] })
+  confetti({ particleCount: 120, spread: 80, origin: { y: 0.55 }, colors: ['#E83D59', '#8b5cf6', '#14b8a6', '#f59e0b', '#ec4899'] })
   setTimeout(() => {
     confetti({ particleCount: 60, spread: 120, origin: { y: 0.4, x: 0.2 } })
     confetti({ particleCount: 60, spread: 120, origin: { y: 0.4, x: 0.8 } })
@@ -237,13 +241,9 @@ const steps = [
             Your clinical profile is ready. NoeIA has been calibrated for
             <span class="font-medium text-slate-700">{{ form.specialty || 'your specialization' }}</span>.
           </p>
-          <button
-            type="button"
-            @click="goToDashboard"
-            class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 rounded-xl transition-all"
-          >
+          <Button class="w-full h-auto py-3 rounded-xl text-base font-semibold" @click="goToDashboard">
             Go to Dashboard →
-          </button>
+          </Button>
         </div>
       </Transition>
 
@@ -258,9 +258,9 @@ const steps = [
                 <div
                   class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold border-2 transition-all duration-300"
                   :class="currentStep > step.n
-                    ? 'bg-indigo-600 border-indigo-600 text-white'
+                    ? 'bg-primary border-primary text-white'
                     : currentStep === step.n
-                      ? 'bg-white border-indigo-600 text-indigo-600'
+                      ? 'bg-white border-primary text-primary'
                       : 'bg-white border-slate-200 text-slate-400'"
                 >
                   <svg v-if="currentStep > step.n" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -269,12 +269,12 @@ const steps = [
                   <span v-else>{{ step.n }}</span>
                 </div>
                 <span class="text-xs hidden sm:block transition-colors duration-300"
-                  :class="currentStep === step.n ? 'text-indigo-600 font-medium' : currentStep > step.n ? 'text-slate-500' : 'text-slate-300'">
+                  :class="currentStep === step.n ? 'text-primary font-medium' : currentStep > step.n ? 'text-slate-500' : 'text-slate-300'">
                   {{ step.label }}
                 </span>
               </div>
               <div v-if="idx < steps.length - 1" class="flex-1 h-0.5 mx-2 transition-all duration-500"
-                :class="currentStep > step.n ? 'bg-indigo-600' : 'bg-slate-200'" />
+                :class="currentStep > step.n ? 'bg-primary' : 'bg-slate-200'" />
             </template>
           </div>
         </div>
@@ -293,20 +293,20 @@ const steps = [
                 <div class="space-y-5">
 
                   <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1.5">
+                    <Label class="block text-sm font-medium text-slate-700 mb-1.5">
                       Full name <span class="text-rose-500">*</span>
-                    </label>
-                    <input
+                    </Label>
+                    <Input
                       v-model="form.full_name"
-                      @input="clearError('full_name')"
                       type="text"
                       placeholder="Dr. Ana Torres"
-                      class="w-full px-4 py-2.5 rounded-xl border text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400"
+                      class="rounded-xl"
                       :class="errors.full_name
-                        ? 'border-rose-300 bg-rose-50 focus:border-rose-400 focus:ring-2 focus:ring-rose-100'
+                        ? 'border-rose-300 bg-rose-50 focus-visible:ring-rose-200'
                         : form.full_name.length >= 2
-                          ? 'bg-white border-emerald-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50'
-                          : 'bg-white border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50'"
+                          ? 'border-emerald-300 focus-visible:ring-emerald-200'
+                          : ''"
+                      @input="clearError('full_name')"
                     />
                     <Transition name="err">
                       <p v-if="errors.full_name" class="flex items-center gap-1.5 text-rose-500 text-xs mt-1.5">
@@ -319,24 +319,24 @@ const steps = [
                   </div>
 
                   <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1.5">
+                    <Label class="block text-sm font-medium text-slate-700 mb-1.5">
                       Email address <span class="text-rose-500">*</span>
-                      <span v-if="isEmailReadOnly" class="ml-2 text-xs text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-full font-normal">
+                      <span v-if="isEmailReadOnly" class="ml-2 text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-full font-normal">
                         Pre-filled from invite
                       </span>
-                    </label>
-                    <input
+                    </Label>
+                    <Input
                       v-model="form.email"
-                      @input="clearError('email')"
                       type="email"
                       placeholder="you@clinic.com"
                       :readonly="isEmailReadOnly"
-                      class="w-full px-4 py-2.5 rounded-xl border text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400"
+                      class="rounded-xl"
                       :class="errors.email
-                        ? 'border-rose-300 bg-rose-50 focus:border-rose-400 focus:ring-2 focus:ring-rose-100'
+                        ? 'border-rose-300 bg-rose-50 focus-visible:ring-rose-200'
                         : isEmailReadOnly
-                          ? 'bg-slate-50 border-slate-200 text-slate-500 cursor-not-allowed'
-                          : 'bg-white border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50'"
+                          ? 'bg-slate-50 text-slate-500 cursor-not-allowed'
+                          : ''"
+                      @input="clearError('email')"
                     />
                     <Transition name="err">
                       <p v-if="errors.email" class="flex items-center gap-1.5 text-rose-500 text-xs mt-1.5">
@@ -349,19 +349,19 @@ const steps = [
                   </div>
 
                   <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1.5">
+                    <Label class="block text-sm font-medium text-slate-700 mb-1.5">
                       Date of birth <span class="text-rose-500">*</span>
-                    </label>
-                    <input
+                    </Label>
+                    <Input
                       v-model="form.dob"
-                      @change="clearError('dob')"
                       type="date"
-                      class="w-full px-4 py-2.5 rounded-xl border text-sm text-slate-900 outline-none transition-all"
+                      class="rounded-xl"
                       :class="errors.dob
-                        ? 'border-rose-300 bg-rose-50 focus:border-rose-400 focus:ring-2 focus:ring-rose-100'
+                        ? 'border-rose-300 bg-rose-50 focus-visible:ring-rose-200'
                         : form.dob
-                          ? 'bg-white border-emerald-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50'
-                          : 'bg-white border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50'"
+                          ? 'border-emerald-300 focus-visible:ring-emerald-200'
+                          : ''"
+                      @change="clearError('dob')"
                     />
                     <Transition name="err">
                       <p v-if="errors.dob" class="flex items-center gap-1.5 text-rose-500 text-xs mt-1.5">
@@ -385,9 +385,9 @@ const steps = [
                 <div class="space-y-6">
 
                   <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-3">
+                    <Label class="block text-sm font-medium text-slate-700 mb-3">
                       Profile photo <span class="text-slate-400 text-xs font-normal">(optional)</span>
-                    </label>
+                    </Label>
                     <div class="flex items-center gap-5">
                       <div
                         @click="triggerFileInput"
@@ -395,7 +395,7 @@ const steps = [
                         @dragleave="isDragging = false"
                         @drop.prevent="onDrop"
                         class="w-24 h-24 rounded-full border-2 border-dashed cursor-pointer overflow-hidden flex items-center justify-center flex-shrink-0 transition-all"
-                        :class="isDragging ? 'border-indigo-400 bg-indigo-50' : photoPreview ? 'border-transparent' : 'border-slate-200 hover:border-indigo-300 hover:bg-slate-50'"
+                        :class="isDragging ? 'border-primary bg-primary/5' : photoPreview ? 'border-transparent' : 'border-slate-200 hover:border-primary/50 hover:bg-slate-50'"
                       >
                         <img v-if="photoPreview" :src="photoPreview" class="w-full h-full object-cover" alt="Preview" />
                         <div v-else class="text-center px-2">
@@ -406,7 +406,7 @@ const steps = [
                         </div>
                       </div>
                       <div>
-                        <button type="button" @click="triggerFileInput" class="text-sm text-indigo-600 hover:text-indigo-500 font-medium transition-colors">
+                        <button type="button" @click="triggerFileInput" class="text-sm text-primary hover:text-primary/80 font-medium transition-colors">
                           {{ photoPreview ? 'Change photo' : 'Upload photo' }}
                         </button>
                         <p class="text-xs text-slate-400 mt-1">JPG, PNG or GIF · Max 5MB</p>
@@ -420,14 +420,14 @@ const steps = [
                   </div>
 
                   <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1.5">
+                    <Label class="block text-sm font-medium text-slate-700 mb-1.5">
                       Professional bio <span class="text-slate-400 text-xs font-normal">(optional)</span>
-                    </label>
-                    <textarea
+                    </Label>
+                    <Textarea
                       v-model="form.description"
-                      rows="4"
+                      :rows="4"
                       placeholder="Your practice approach, areas of expertise, professional philosophy..."
-                      class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-900 outline-none transition-all resize-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50 placeholder:text-slate-400"
+                      class="rounded-xl resize-none"
                     />
                     <p class="text-xs text-slate-400 mt-1 text-right">{{ form.description.length }} / 500</p>
                   </div>
@@ -444,23 +444,23 @@ const steps = [
                 <div class="space-y-5">
 
                   <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1.5">
+                    <Label class="block text-sm font-medium text-slate-700 mb-1.5">
                       Your specialization <span class="text-rose-500">*</span>
-                    </label>
+                    </Label>
                     <div class="relative">
-                      <input
+                      <Input
                         v-model="specialtySearch"
+                        type="text"
+                        placeholder="Search or select..."
+                        class="rounded-xl pr-10"
+                        :class="errors.specialty
+                          ? 'border-rose-300 bg-rose-50 focus-visible:ring-rose-200'
+                          : form.specialty
+                            ? 'border-emerald-300 focus-visible:ring-emerald-200'
+                            : ''"
                         @focus="onSpecialtyFocus"
                         @blur="onSpecialtyBlur"
                         @input="clearError('specialty')"
-                        type="text"
-                        placeholder="Search or select..."
-                        class="w-full px-4 py-2.5 rounded-xl border text-sm text-slate-900 outline-none transition-all pr-10 placeholder:text-slate-400"
-                        :class="errors.specialty
-                          ? 'border-rose-300 bg-rose-50 focus:border-rose-400 focus:ring-2 focus:ring-rose-100'
-                          : form.specialty
-                            ? 'bg-white border-emerald-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50'
-                            : 'bg-white border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50'"
                       />
                       <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
                         <svg v-if="form.specialty" class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -477,10 +477,10 @@ const steps = [
                             v-for="s in filteredSpecialties" :key="s"
                             @mousedown.prevent="selectSpecialty(s)"
                             class="px-4 py-2.5 text-sm cursor-pointer transition-colors flex items-center justify-between"
-                            :class="form.specialty === s ? 'bg-indigo-50 text-indigo-700 font-medium' : 'text-slate-700 hover:bg-slate-50'"
+                            :class="form.specialty === s ? 'bg-primary/10 text-primary font-medium' : 'text-slate-700 hover:bg-slate-50'"
                           >
                             {{ s }}
-                            <svg v-if="form.specialty === s" class="w-4 h-4 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg v-if="form.specialty === s" class="w-4 h-4 text-primary flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                             </svg>
                           </div>
@@ -498,13 +498,13 @@ const steps = [
                   </div>
 
                   <Transition name="err">
-                    <div v-if="form.specialty" class="bg-indigo-50 border border-indigo-100 rounded-xl p-4 flex gap-3">
-                      <div class="w-5 h-5 rounded-md bg-indigo-600/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <span class="text-[9px] font-bold text-indigo-600">AI</span>
+                    <div v-if="form.specialty" class="bg-primary/5 border border-primary/10 rounded-xl p-4 flex gap-3">
+                      <div class="w-5 h-5 rounded-md bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span class="text-[9px] font-bold text-primary">AI</span>
                       </div>
                       <div>
-                        <p class="text-xs font-semibold text-indigo-700 mb-1">NoeIA context set</p>
-                        <p class="text-xs text-indigo-600/70 leading-relaxed">
+                        <p class="text-xs font-semibold text-primary mb-1">NoeIA context set</p>
+                        <p class="text-xs text-primary/70 leading-relaxed">
                           Clinical AI optimized for <strong>{{ form.specialty }}</strong> — pattern detection, documentation templates, and assessment scales tailored to your field.
                         </p>
                       </div>
@@ -523,40 +523,40 @@ const steps = [
                 <div class="space-y-5">
 
                   <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1.5">
+                    <Label class="block text-sm font-medium text-slate-700 mb-1.5">
                       Phone number <span class="text-slate-400 text-xs font-normal">(optional)</span>
-                    </label>
+                    </Label>
                     <div class="flex gap-2">
                       <select
                         v-model="form.contact_phone_code"
-                        class="px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50 transition-all flex-shrink-0"
+                        class="px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all flex-shrink-0"
                       >
                         <option v-for="c in countryCodes" :key="c.code" :value="c.code">{{ c.label }}</option>
                       </select>
-                      <input
+                      <Input
                         v-model="form.contact_phone"
                         type="tel"
                         placeholder="612 345 678"
-                        class="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm text-slate-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50 transition-all placeholder:text-slate-400"
+                        class="rounded-xl flex-1"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1.5">
+                    <Label class="block text-sm font-medium text-slate-700 mb-1.5">
                       Professional contact email <span class="text-rose-500">*</span>
-                    </label>
-                    <input
+                    </Label>
+                    <Input
                       v-model="form.contact_email"
-                      @input="clearError('contact_email')"
                       type="email"
                       placeholder="contact@yourpractice.com"
-                      class="w-full px-4 py-2.5 rounded-xl border text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400"
+                      class="rounded-xl"
                       :class="errors.contact_email
-                        ? 'border-rose-300 bg-rose-50 focus:border-rose-400 focus:ring-2 focus:ring-rose-100'
+                        ? 'border-rose-300 bg-rose-50 focus-visible:ring-rose-200'
                         : form.contact_email
-                          ? 'bg-white border-emerald-300 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50'
-                          : 'bg-white border-slate-200 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50'"
+                          ? 'border-emerald-300 focus-visible:ring-emerald-200'
+                          : ''"
+                      @input="clearError('contact_email')"
                     />
                     <p class="text-xs text-slate-400 mt-1.5">May differ from your login email — shown on patient comms and invoices.</p>
                     <Transition name="err">
@@ -577,17 +577,17 @@ const steps = [
 
           <!-- Navigation -->
           <div class="flex items-center justify-between mt-5">
-            <button
+            <Button
               v-if="currentStep > 1"
-              type="button"
+              variant="outline"
+              class="flex items-center gap-2 rounded-xl"
               @click="back"
-              class="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:border-slate-300 hover:text-slate-800 text-sm font-medium transition-all"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16l-4-4m0 0l4-4m-4 4h18"/>
               </svg>
               Back
-            </button>
+            </Button>
             <div v-else />
 
             <div class="flex items-center gap-3">
@@ -600,31 +600,29 @@ const steps = [
                 Skip for now
               </button>
 
-              <button
+              <Button
                 v-if="currentStep < TOTAL"
-                type="button"
-                @click="next"
-                class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2.5 rounded-xl text-sm font-semibold transition-all hover:shadow-md hover:shadow-indigo-200"
                 :class="{ shake: isShaking }"
+                class="flex items-center gap-2 rounded-xl"
+                @click="next"
               >
                 Next
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
                 </svg>
-              </button>
+              </Button>
 
-              <button
+              <Button
                 v-else
-                type="button"
-                @click="finish"
-                class="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2.5 rounded-xl text-sm font-semibold transition-all hover:shadow-md hover:shadow-indigo-200"
                 :class="{ shake: isShaking }"
+                class="flex items-center gap-2 rounded-xl"
+                @click="finish"
               >
                 Finish setup
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                 </svg>
-              </button>
+              </Button>
             </div>
           </div>
 

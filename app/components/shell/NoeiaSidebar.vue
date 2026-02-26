@@ -418,8 +418,8 @@ function toggleItem(id: number) {
 </template>
 
 <style scoped>
-/* Mobile: drawer overlays instead of pushing content */
-@media (max-width: 767px) {
+/* Below 1024px (tablets & small laptops): drawer overlays instead of pushing content */
+@media (max-width: 1023px) {
   .noeia-panel {
     position: fixed !important;
     right: 48px;

@@ -2,7 +2,7 @@
 import {
   Search, Plus, ChevronUp, ChevronDown, ChevronsUpDown,
   UserRound, Mail, Phone, CalendarDays, Link2,
-  Pencil, Trash2, Eye, CalendarPlus, UserX, ChevronDown as ChevronDownIcon,
+  Pencil, Trash2, Eye, CalendarPlus,
 } from 'lucide-vue-next'
 import { format, parseISO } from 'date-fns'
 import {
@@ -12,6 +12,9 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuLabel,
 } from '~/components/ui/dropdown-menu'
+import { Button } from '~/components/ui/button'
+import { Input } from '~/components/ui/input'
+import { Badge } from '~/components/ui/badge'
 
 definePageMeta({ layout: 'dashboard' })
 
@@ -113,9 +116,8 @@ const patients = ref<Patient[]>([
 
 // ── Filter state ───────────────────────────────────────────────────────────
 
-const search      = ref('')
+const search       = ref('')
 const statusFilter = ref<PatientStatus | 'all'>('all')
-const filterOpen  = ref(false)
 
 const statusOptions: { value: PatientStatus | 'all'; label: string }[] = [
   { value: 'all',        label: 'All status'  },
@@ -124,11 +126,6 @@ const statusOptions: { value: PatientStatus | 'all'; label: string }[] = [
   { value: 'on-hold',    label: 'On hold'     },
   { value: 'discharged', label: 'Discharged'  },
 ]
-
-// Close dropdown on outside click
-onMounted(() => {
-  document.addEventListener('click', () => { filterOpen.value = false })
-})
 
 // ── Sorting ────────────────────────────────────────────────────────────────
 
@@ -258,10 +255,10 @@ function calcAge(dob: string) {
 }
 
 const statusMeta: Record<PatientStatus, { label: string; dot: string; badge: string }> = {
-  active:     { label: 'Active',     dot: 'bg-green-500',  badge: 'bg-green-50 text-green-700 ring-green-200'   },
-  inactive:   { label: 'Inactive',   dot: 'bg-slate-400',  badge: 'bg-slate-50 text-slate-600 ring-slate-200'   },
-  'on-hold':  { label: 'On hold',    dot: 'bg-amber-400',  badge: 'bg-amber-50 text-amber-700 ring-amber-200'   },
-  discharged: { label: 'Discharged', dot: 'bg-rose-400',   badge: 'bg-rose-50 text-rose-600 ring-rose-200'      },
+  active:     { label: 'Active',     dot: 'bg-green-500',  badge: 'bg-green-50 text-green-700 border-green-200'   },
+  inactive:   { label: 'Inactive',   dot: 'bg-slate-400',  badge: 'bg-slate-50 text-slate-600 border-slate-200'   },
+  'on-hold':  { label: 'On hold',    dot: 'bg-amber-400',  badge: 'bg-amber-50 text-amber-700 border-amber-200'   },
+  discharged: { label: 'Discharged', dot: 'bg-rose-400',   badge: 'bg-rose-50 text-rose-600 border-rose-200'      },
 }
 
 const columns: { key: SortKey; label: string }[] = [
@@ -283,13 +280,10 @@ const columns: { key: SortKey; label: string }[] = [
           <h1 class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Patients</h1>
           <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Manage your patient records.</p>
         </div>
-        <button
-          class="flex items-center gap-2 px-4 py-2.5 bg-slate-900 dark:bg-slate-700 text-white text-sm font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-slate-600 transition-colors shadow-sm whitespace-nowrap"
-          @click="newPatientModalOpen = true"
-        >
+        <Button @click="newPatientModalOpen = true">
           <Plus class="w-4 h-4" />
           New Patient
-        </button>
+        </Button>
       </div>
 
       <!-- ── Search & filter bar ─────────────────────────────────────────── -->
@@ -298,63 +292,42 @@ const columns: { key: SortKey; label: string }[] = [
         <!-- Search -->
         <div class="relative flex-1 max-w-sm">
           <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-          <input
+          <Input
             v-model="search"
             type="text"
             placeholder="Search by name or email…"
-            class="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            class="pl-9"
           />
         </div>
 
         <!-- Status filter -->
-        <div class="relative">
-          <button
-            :class="[
-              'flex items-center gap-2 px-3.5 py-2 text-sm font-medium border rounded-lg transition-colors',
-              statusFilter !== 'all'
-                ? 'bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800'
-                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700',
-            ]"
-            @click.stop="filterOpen = !filterOpen"
-          >
-            <span>{{ statusOptions.find(o => o.value === statusFilter)?.label }}</span>
-            <ChevronDownIcon class="w-3.5 h-3.5 text-slate-400" />
-          </button>
-
-          <Transition
-            enter-active-class="transition duration-100 ease-out"
-            enter-from-class="opacity-0 scale-95 translate-y-1"
-            enter-to-class="opacity-100 scale-100 translate-y-0"
-            leave-active-class="transition duration-75 ease-in"
-            leave-from-class="opacity-100"
-            leave-to-class="opacity-0"
-          >
-            <div
-              v-if="filterOpen"
-              class="absolute right-0 top-full mt-1.5 z-20 w-40 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden"
-              @click.stop
+        <DropdownMenu>
+          <DropdownMenuTrigger as-child>
+            <Button
+              variant="outline"
+              :class="statusFilter !== 'all' ? 'bg-primary/10 text-primary border-primary/30' : ''"
             >
-              <button
-                v-for="opt in statusOptions"
-                :key="opt.value"
-                :class="[
-                  'w-full text-left px-3.5 py-2 text-sm transition-colors flex items-center gap-2',
-                  statusFilter === opt.value
-                    ? 'bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 font-medium'
-                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700',
-                ]"
-                @click="statusFilter = opt.value; filterOpen = false"
-              >
-                <span
-                  v-if="opt.value !== 'all'"
-                  :class="['w-2 h-2 rounded-full shrink-0', statusMeta[opt.value as PatientStatus].dot]"
-                />
-                <span v-else class="w-2 h-2 rounded-full shrink-0 bg-slate-200" />
-                {{ opt.label }}
-              </button>
-            </div>
-          </Transition>
-        </div>
+              {{ statusOptions.find(o => o.value === statusFilter)?.label }}
+              <ChevronDown class="w-3.5 h-3.5 ml-1" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" class="w-40">
+            <DropdownMenuItem
+              v-for="opt in statusOptions"
+              :key="opt.value"
+              class="gap-2 cursor-pointer"
+              :class="statusFilter === opt.value ? 'text-primary font-medium' : ''"
+              @click="statusFilter = opt.value"
+            >
+              <span
+                v-if="opt.value !== 'all'"
+                :class="['w-2 h-2 rounded-full shrink-0', statusMeta[opt.value as PatientStatus].dot]"
+              />
+              <span v-else class="w-2 h-2 rounded-full shrink-0 bg-slate-200" />
+              {{ opt.label }}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         <!-- Count -->
         <p class="text-sm text-slate-400 ml-auto">
@@ -378,8 +351,8 @@ const columns: { key: SortKey; label: string }[] = [
                   <div class="flex items-center gap-1">
                     {{ col.label }}
                     <span class="text-slate-300">
-                      <ChevronUp      v-if="sortKey === col.key && sortDir === 'asc'"  class="w-3.5 h-3.5 text-indigo-500" />
-                      <ChevronDown    v-else-if="sortKey === col.key && sortDir === 'desc'" class="w-3.5 h-3.5 text-indigo-500" />
+                      <ChevronUp      v-if="sortKey === col.key && sortDir === 'asc'"  class="w-3.5 h-3.5 text-primary" />
+                      <ChevronDown    v-else-if="sortKey === col.key && sortDir === 'desc'" class="w-3.5 h-3.5 text-primary" />
                       <ChevronsUpDown v-else class="w-3.5 h-3.5" />
                     </span>
                   </div>
@@ -410,14 +383,10 @@ const columns: { key: SortKey; label: string }[] = [
                         {{ search || statusFilter !== 'all' ? 'Try adjusting your search or filter' : 'Start by adding your first patient.' }}
                       </p>
                     </div>
-                    <button
-                      v-if="!search && statusFilter === 'all'"
-                      class="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white text-sm font-medium rounded-lg hover:bg-slate-800 transition-colors mt-1"
-                      @click="newPatientModalOpen = true"
-                    >
+                    <Button v-if="!search && statusFilter === 'all'" size="sm" @click="newPatientModalOpen = true">
                       <Plus class="w-4 h-4" />
                       New Patient
-                    </button>
+                    </Button>
                   </div>
                 </TableCell>
               </TableRow>
@@ -433,8 +402,8 @@ const columns: { key: SortKey; label: string }[] = [
                 <TableCell class="whitespace-nowrap">
                   <div class="flex items-center gap-3">
                     <div class="relative shrink-0">
-                      <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center">
-                        <span class="text-indigo-700 text-[11px] font-bold">{{ p.initials }}</span>
+                      <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                        <span class="text-primary text-[11px] font-bold">{{ p.initials }}</span>
                       </div>
                       <!-- Status dot -->
                       <span
@@ -457,9 +426,9 @@ const columns: { key: SortKey; label: string }[] = [
                 <TableCell class="whitespace-nowrap">
                   <a
                     :href="`mailto:${p.email}`"
-                    class="flex items-center gap-1.5 text-slate-600 hover:text-indigo-600 transition-colors group"
+                    class="flex items-center gap-1.5 text-slate-600 hover:text-primary transition-colors group"
                   >
-                    <Mail class="w-3.5 h-3.5 text-slate-300 group-hover:text-indigo-400 transition-colors" />
+                    <Mail class="w-3.5 h-3.5 text-slate-300 group-hover:text-primary transition-colors" />
                     <span class="text-sm">{{ p.email }}</span>
                   </a>
                 </TableCell>
@@ -468,9 +437,9 @@ const columns: { key: SortKey; label: string }[] = [
                 <TableCell class="whitespace-nowrap">
                   <a
                     :href="`tel:${p.phone}`"
-                    class="flex items-center gap-1.5 text-slate-600 hover:text-indigo-600 transition-colors group"
+                    class="flex items-center gap-1.5 text-slate-600 hover:text-primary transition-colors group"
                   >
-                    <Phone class="w-3.5 h-3.5 text-slate-300 group-hover:text-indigo-400 transition-colors" />
+                    <Phone class="w-3.5 h-3.5 text-slate-300 group-hover:text-primary transition-colors" />
                     <span class="text-sm tabular-nums">{{ p.phone }}</span>
                   </a>
                 </TableCell>
@@ -488,15 +457,10 @@ const columns: { key: SortKey; label: string }[] = [
 
                 <!-- Status badge -->
                 <TableCell class="whitespace-nowrap">
-                  <span
-                    :class="[
-                      'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ring-1',
-                      statusMeta[p.status].badge,
-                    ]"
-                  >
+                  <Badge variant="outline" :class="['gap-1.5', statusMeta[p.status].badge]">
                     <span :class="['w-1.5 h-1.5 rounded-full', statusMeta[p.status].dot]" />
                     {{ statusMeta[p.status].label }}
-                  </span>
+                  </Badge>
                 </TableCell>
 
                 <!-- Related -->
@@ -520,40 +484,38 @@ const columns: { key: SortKey; label: string }[] = [
                   <div class="flex items-center gap-1 justify-end">
 
                     <!-- Quick: schedule session -->
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
                       title="Schedule session"
-                      class="p-1.5 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
                       @click="scheduleSession(p)"
                     >
                       <CalendarPlus class="w-4 h-4" />
-                    </button>
+                    </Button>
 
                     <!-- Overflow menu -->
                     <DropdownMenu>
                       <DropdownMenuTrigger as-child>
-                        <button class="p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
+                        <Button variant="ghost" size="icon-sm">
                           <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                             <circle cx="10" cy="4" r="1.5" /><circle cx="10" cy="10" r="1.5" /><circle cx="10" cy="16" r="1.5" />
                           </svg>
-                        </button>
+                        </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" class="w-44">
                         <DropdownMenuLabel class="text-xs text-slate-400 font-normal">Patient actions</DropdownMenuLabel>
                         <DropdownMenuSeparator />
 
-                        <!-- View profile -->
                         <DropdownMenuItem class="gap-2 cursor-pointer">
                           <Eye class="w-3.5 h-3.5 text-slate-400" />
                           View profile
                         </DropdownMenuItem>
 
-                        <!-- Edit -->
                         <DropdownMenuItem class="gap-2 cursor-pointer">
                           <Pencil class="w-3.5 h-3.5 text-slate-400" />
                           Edit details
                         </DropdownMenuItem>
 
-                        <!-- Schedule -->
                         <DropdownMenuItem class="gap-2 cursor-pointer" @click="scheduleSession(p)">
                           <CalendarPlus class="w-3.5 h-3.5 text-slate-400" />
                           Schedule session
@@ -561,14 +523,13 @@ const columns: { key: SortKey; label: string }[] = [
 
                         <DropdownMenuSeparator />
 
-                        <!-- Status transitions -->
                         <template v-if="p.status === 'active'">
                           <DropdownMenuItem class="gap-2 cursor-pointer text-amber-600 focus:text-amber-600 focus:bg-amber-50" @click="setInactive(p.id)">
-                            <UserX class="w-3.5 h-3.5" />
+                            <UserRound class="w-3.5 h-3.5" />
                             Set inactive
                           </DropdownMenuItem>
                           <DropdownMenuItem class="gap-2 cursor-pointer text-rose-500 focus:text-rose-500 focus:bg-rose-50" @click="discharge(p.id)">
-                            <UserX class="w-3.5 h-3.5" />
+                            <UserRound class="w-3.5 h-3.5" />
                             Discharge
                           </DropdownMenuItem>
                         </template>
@@ -581,7 +542,6 @@ const columns: { key: SortKey; label: string }[] = [
 
                         <DropdownMenuSeparator />
 
-                        <!-- Delete -->
                         <DropdownMenuItem
                           class="gap-2 cursor-pointer text-red-500 focus:text-red-500 focus:bg-red-50"
                           @click="removePatient(p.id)"

@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import {
   Download, Plus, Search, ChevronDown, Eye, EyeOff,
-  Info, FileText, X, Check, Send, Printer, AlertCircle,
-  ChevronsUpDown, ChevronUp, SlidersHorizontal, MoreHorizontal,
+  Info, FileText, X, Check, Send, AlertCircle,
+  ChevronsUpDown, ChevronUp, SlidersHorizontal,
 } from 'lucide-vue-next'
-import { format, parseISO, startOfMonth, endOfMonth } from 'date-fns'
+import { format, parseISO } from 'date-fns'
 import { Line } from 'vue-chartjs'
 import {
   Chart as ChartJS, LineElement, PointElement, LinearScale,
@@ -16,6 +16,15 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '~/components/ui/dialog'
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '~/components/ui/dropdown-menu'
+import { Button } from '~/components/ui/button'
+import { Input } from '~/components/ui/input'
+import { Badge } from '~/components/ui/badge'
+import { Checkbox } from '~/components/ui/checkbox'
+import { Card, CardContent } from '~/components/ui/card'
 
 ChartJS.register(LineElement, PointElement, LinearScale, CategoryScale, Filler, Tooltip)
 
@@ -42,7 +51,7 @@ interface BillingRow {
   clinicPct: number
   billStatus: BillStatus
   notes: string
-  duration: number // minutes
+  duration: number
 }
 
 // ── Seed data ──────────────────────────────────────────────────────────────
@@ -72,7 +81,6 @@ const totalPending = computed(() => rows.value.filter(r => r.paymentStatus === '
 
 const showValues = ref(true)
 
-// Sparkline data (7 days trend mock)
 const sparkDays = ['3', '5', '7', '10', '12', '14', '17', '19', '20', '21']
 const sparklineBilled  = { labels: sparkDays, datasets: [{ data: [170, 120, 85, 85, 95, 85, 85, 180, 85, 235], fill: true, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.08)', borderWidth: 2, pointRadius: 0, tension: 0.4 }] }
 const sparklinePaid    = { labels: sparkDays, datasets: [{ data: [170, 120, 85, 0, 95, 0, 85, 85, 0, 0], fill: true, borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,0.08)', borderWidth: 2, pointRadius: 0, tension: 0.4 }] }
@@ -87,10 +95,6 @@ const search       = ref('')
 const patientFilter  = ref('all')
 const typeFilter     = ref('all')
 const statusFilter   = ref('all')
-
-const patientFilter2Open = ref(false)
-const typeFilter2Open    = ref(false)
-const statusFilter2Open  = ref(false)
 
 const uniquePatients = computed(() => [...new Set(rows.value.map(r => r.patient))].sort())
 const uniqueTypes    = computed(() => [...new Set(rows.value.map(r => r.type))].sort())
@@ -190,25 +194,25 @@ function markPaid() {
 
 // ── Meta helpers ───────────────────────────────────────────────────────────
 
-const sessionStatusMeta: Record<SessionStatus, { label: string; classes: string }> = {
-  completed: { label: 'Completed', classes: 'bg-green-50 text-green-700 ring-green-200' },
-  scheduled: { label: 'Scheduled', classes: 'bg-blue-50 text-blue-700 ring-blue-200'   },
-  cancelled: { label: 'Cancelled', classes: 'bg-red-50 text-red-600 ring-red-200'      },
-  'no-show': { label: 'No-show',   classes: 'bg-amber-50 text-amber-700 ring-amber-200'},
+const sessionStatusMeta: Record<SessionStatus, { label: string; badge: string }> = {
+  completed: { label: 'Completed', badge: 'bg-green-50 text-green-700 border-green-200' },
+  scheduled: { label: 'Scheduled', badge: 'bg-blue-50 text-blue-700 border-blue-200'   },
+  cancelled: { label: 'Cancelled', badge: 'bg-red-50 text-red-600 border-red-200'      },
+  'no-show': { label: 'No-show',   badge: 'bg-amber-50 text-amber-700 border-amber-200'},
 }
 
-const paymentStatusMeta: Record<PaymentStatus, { label: string; classes: string }> = {
-  paid:    { label: 'Paid',    classes: 'bg-green-50 text-green-700 ring-green-200'  },
-  pending: { label: 'Pending', classes: 'bg-amber-50 text-amber-700 ring-amber-200' },
-  overdue: { label: 'Overdue', classes: 'bg-red-50 text-red-600 ring-red-200'        },
-  waived:  { label: 'Waived',  classes: 'bg-slate-50 text-slate-500 ring-slate-200' },
+const paymentStatusMeta: Record<PaymentStatus, { label: string; badge: string }> = {
+  paid:    { label: 'Paid',    badge: 'bg-green-50 text-green-700 border-green-200'  },
+  pending: { label: 'Pending', badge: 'bg-amber-50 text-amber-700 border-amber-200' },
+  overdue: { label: 'Overdue', badge: 'bg-red-50 text-red-600 border-red-200'        },
+  waived:  { label: 'Waived',  badge: 'bg-slate-50 text-slate-500 border-slate-200' },
 }
 
-const billStatusMeta: Record<BillStatus, { label: string; classes: string }> = {
-  draft:   { label: 'Draft',   classes: 'bg-slate-50 text-slate-500 ring-slate-200'  },
-  sent:    { label: 'Sent',    classes: 'bg-blue-50 text-blue-600 ring-blue-200'      },
-  paid:    { label: 'Paid',    classes: 'bg-green-50 text-green-700 ring-green-200'   },
-  overdue: { label: 'Overdue', classes: 'bg-red-50 text-red-600 ring-red-200'         },
+const billStatusMeta: Record<BillStatus, { label: string; badge: string }> = {
+  draft:   { label: 'Draft',   badge: 'bg-slate-50 text-slate-500 border-slate-200'  },
+  sent:    { label: 'Sent',    badge: 'bg-blue-50 text-blue-600 border-blue-200'      },
+  paid:    { label: 'Paid',    badge: 'bg-green-50 text-green-700 border-green-200'   },
+  overdue: { label: 'Overdue', badge: 'bg-red-50 text-red-600 border-red-200'         },
 }
 
 function fmtCurrency(n: number) { return `€${n.toFixed(2)}` }
@@ -240,47 +244,45 @@ const therapistShare = computed(() => editorRow.value ? editorRow.value.amount -
           <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Manage your sessions and billing for this month.</p>
         </div>
         <div class="flex items-center gap-2">
-          <button class="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-sm font-medium rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm whitespace-nowrap">
+          <Button variant="outline">
             <Download class="w-4 h-4" />
             Download All
-          </button>
-          <button
-            class="flex items-center gap-2 px-4 py-2.5 bg-slate-900 dark:bg-slate-700 text-white text-sm font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-slate-600 transition-colors shadow-sm whitespace-nowrap"
-            @click="openConsolidated"
-          >
+          </Button>
+          <Button @click="openConsolidated">
             <Plus class="w-4 h-4" />
             Create Consolidated Bill
-          </button>
+          </Button>
         </div>
       </div>
 
       <!-- ── Summary cards ───────────────────────────────────────────────── -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div
+        <Card
           v-for="card in [
-            { label: 'Total Billed (Month)', value: totalBilled, data: sparklineBilled, color: 'text-blue-600', accent: 'bg-blue-50' },
-            { label: 'Paid',                 value: totalPaid,   data: sparklinePaid,   color: 'text-green-600', accent: 'bg-green-50' },
-            { label: 'Pending',              value: totalPending, data: sparklinePending, color: 'text-orange-500', accent: 'bg-orange-50' },
+            { label: 'Total Billed (Month)', value: totalBilled, data: sparklineBilled, color: 'text-blue-600' },
+            { label: 'Paid',                 value: totalPaid,   data: sparklinePaid,   color: 'text-green-600' },
+            { label: 'Pending',              value: totalPending, data: sparklinePending, color: 'text-orange-500' },
           ]"
           :key="card.label"
-          class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 flex gap-4"
         >
-          <div class="flex-1 min-w-0">
-            <p class="text-xs text-slate-500 dark:text-slate-400 font-medium mb-1">{{ card.label }}</p>
-            <div class="flex items-center gap-2">
-              <p :class="['text-2xl font-bold tabular-nums', card.color]">
-                {{ showValues ? fmtCurrency(card.value) : '€ ···' }}
-              </p>
-              <button @click="showValues = !showValues">
-                <component :is="showValues ? Eye : EyeOff" class="w-4 h-4 text-slate-400 hover:text-slate-600 transition-colors" />
-              </button>
+          <CardContent class="flex gap-4 p-4">
+            <div class="flex-1 min-w-0">
+              <p class="text-xs text-slate-500 dark:text-slate-400 font-medium mb-1">{{ card.label }}</p>
+              <div class="flex items-center gap-2">
+                <p :class="['text-2xl font-bold tabular-nums', card.color]">
+                  {{ showValues ? fmtCurrency(card.value) : '€ ···' }}
+                </p>
+                <Button variant="ghost" size="icon-sm" @click="showValues = !showValues">
+                  <component :is="showValues ? Eye : EyeOff" class="w-4 h-4 text-slate-400" />
+                </Button>
+              </div>
             </div>
-          </div>
-          <!-- Sparkline -->
-          <div class="w-24 h-12">
-            <Line :data="card.data" :options="sparklineOpts" />
-          </div>
-        </div>
+            <!-- Sparkline -->
+            <div class="w-24 h-12">
+              <Line :data="card.data" :options="sparklineOpts" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <!-- ── Filters ─────────────────────────────────────────────────────── -->
@@ -290,73 +292,68 @@ const therapistShare = computed(() => editorRow.value ? editorRow.value.amount -
           <!-- Search -->
           <div class="relative flex-1 min-w-[180px] max-w-xs">
             <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-            <input v-model="search" type="text" placeholder="Search patient..." class="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+            <Input v-model="search" type="text" placeholder="Search patient..." class="pl-9" />
           </div>
 
           <!-- Patient filter -->
-          <div class="relative">
-            <button
-              :class="['flex items-center gap-1.5 px-3 py-2 text-sm border rounded-lg transition-colors', patientFilter !== 'all' ? 'bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700']"
-              @click.stop="patientFilter2Open = !patientFilter2Open"
-            >
-              {{ patientFilter === 'all' ? 'All Patients' : patientFilter }}
-              <ChevronDown class="w-3.5 h-3.5 text-slate-400" />
-            </button>
-            <Transition enter-active-class="transition duration-100 ease-out" enter-from-class="opacity-0 scale-95" enter-to-class="opacity-100 scale-100" leave-active-class="transition duration-75 ease-in" leave-from-class="opacity-100" leave-to-class="opacity-0">
-              <div v-if="patientFilter2Open" class="absolute left-0 top-full mt-1.5 z-20 w-52 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden max-h-60 overflow-y-auto" @click.stop>
-                <button class="w-full text-left px-3.5 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700" :class="patientFilter === 'all' ? 'text-indigo-700 dark:text-indigo-400 font-medium' : 'text-slate-700 dark:text-slate-300'" @click="patientFilter = 'all'; patientFilter2Open = false">All Patients</button>
-                <button v-for="p in uniquePatients" :key="p" class="w-full text-left px-3.5 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700" :class="patientFilter === p ? 'text-indigo-700 dark:text-indigo-400 font-medium' : 'text-slate-700 dark:text-slate-300'" @click="patientFilter = p; patientFilter2Open = false">{{ p }}</button>
-              </div>
-            </Transition>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger as-child>
+              <Button variant="outline" :class="patientFilter !== 'all' ? 'bg-primary/10 text-primary border-primary/30' : ''">
+                {{ patientFilter === 'all' ? 'All Patients' : patientFilter }}
+                <ChevronDown class="w-3.5 h-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" class="w-52 max-h-60 overflow-y-auto">
+              <DropdownMenuItem :class="patientFilter === 'all' ? 'text-primary font-medium' : ''" @click="patientFilter = 'all'">All Patients</DropdownMenuItem>
+              <DropdownMenuItem v-for="p in uniquePatients" :key="p" :class="patientFilter === p ? 'text-primary font-medium' : ''" @click="patientFilter = p">{{ p }}</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <!-- Type filter -->
-          <div class="relative">
-            <button
-              :class="['flex items-center gap-1.5 px-3 py-2 text-sm border rounded-lg transition-colors', typeFilter !== 'all' ? 'bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700']"
-              @click.stop="typeFilter2Open = !typeFilter2Open"
-            >
-              {{ typeFilter === 'all' ? 'All Types' : typeFilter }}
-              <ChevronDown class="w-3.5 h-3.5 text-slate-400" />
-            </button>
-            <Transition enter-active-class="transition duration-100 ease-out" enter-from-class="opacity-0 scale-95" enter-to-class="opacity-100 scale-100" leave-active-class="transition duration-75 ease-in" leave-from-class="opacity-100" leave-to-class="opacity-0">
-              <div v-if="typeFilter2Open" class="absolute left-0 top-full mt-1.5 z-20 w-40 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden" @click.stop>
-                <button class="w-full text-left px-3.5 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700" :class="typeFilter === 'all' ? 'text-indigo-700 dark:text-indigo-400 font-medium' : 'text-slate-700 dark:text-slate-300'" @click="typeFilter = 'all'; typeFilter2Open = false">All Types</button>
-                <button v-for="t in uniqueTypes" :key="t" class="w-full text-left px-3.5 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700" :class="typeFilter === t ? 'text-indigo-700 dark:text-indigo-400 font-medium' : 'text-slate-700 dark:text-slate-300'" @click="typeFilter = t; typeFilter2Open = false">{{ t }}</button>
-              </div>
-            </Transition>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger as-child>
+              <Button variant="outline" :class="typeFilter !== 'all' ? 'bg-primary/10 text-primary border-primary/30' : ''">
+                {{ typeFilter === 'all' ? 'All Types' : typeFilter }}
+                <ChevronDown class="w-3.5 h-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" class="w-40">
+              <DropdownMenuItem :class="typeFilter === 'all' ? 'text-primary font-medium' : ''" @click="typeFilter = 'all'">All Types</DropdownMenuItem>
+              <DropdownMenuItem v-for="t in uniqueTypes" :key="t" :class="typeFilter === t ? 'text-primary font-medium' : ''" @click="typeFilter = t">{{ t }}</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <!-- Status filter -->
-          <div class="relative">
-            <button
-              :class="['flex items-center gap-1.5 px-3 py-2 text-sm border rounded-lg transition-colors', statusFilter !== 'all' ? 'bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700']"
-              @click.stop="statusFilter2Open = !statusFilter2Open"
-            >
-              {{ statusFilter === 'all' ? 'All Statuses' : statusFilter }}
-              <ChevronDown class="w-3.5 h-3.5 text-slate-400" />
-            </button>
-            <Transition enter-active-class="transition duration-100 ease-out" enter-from-class="opacity-0 scale-95" enter-to-class="opacity-100 scale-100" leave-active-class="transition duration-75 ease-in" leave-from-class="opacity-100" leave-to-class="opacity-0">
-              <div v-if="statusFilter2Open" class="absolute left-0 top-full mt-1.5 z-20 w-40 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden" @click.stop>
-                <button v-for="s in ['all','paid','pending','overdue','completed','scheduled','no-show']" :key="s" class="w-full text-left px-3.5 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 capitalize" :class="statusFilter === s ? 'text-indigo-700 dark:text-indigo-400 font-medium' : 'text-slate-700 dark:text-slate-300'" @click="statusFilter = s; statusFilter2Open = false">
-                  {{ s === 'all' ? 'All Statuses' : s }}
-                </button>
-              </div>
-            </Transition>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger as-child>
+              <Button variant="outline" :class="statusFilter !== 'all' ? 'bg-primary/10 text-primary border-primary/30' : ''">
+                {{ statusFilter === 'all' ? 'All Statuses' : statusFilter }}
+                <ChevronDown class="w-3.5 h-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" class="w-40">
+              <DropdownMenuItem
+                v-for="s in ['all','paid','pending','overdue','completed','scheduled','no-show']"
+                :key="s"
+                class="capitalize"
+                :class="statusFilter === s ? 'text-primary font-medium' : ''"
+                @click="statusFilter = s"
+              >
+                {{ s === 'all' ? 'All Statuses' : s }}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <!-- Columns toggle -->
           <div class="relative ml-auto">
-            <button class="flex items-center gap-1.5 px-3 py-2 text-sm bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors" @click.stop="colsOpen = !colsOpen">
+            <Button variant="outline" @click.stop="colsOpen = !colsOpen">
               <SlidersHorizontal class="w-3.5 h-3.5" />
               Columns
-            </button>
+            </Button>
             <Transition enter-active-class="transition duration-100 ease-out" enter-from-class="opacity-0 scale-95" enter-to-class="opacity-100 scale-100" leave-active-class="transition duration-75 ease-in" leave-from-class="opacity-100" leave-to-class="opacity-0">
               <div v-if="colsOpen" class="absolute right-0 top-full mt-1.5 z-20 w-44 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden p-2" @click.stop>
                 <label v-for="(val, key) in visibleCols" :key="key" class="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer">
-                  <div :class="['w-4 h-4 rounded border-2 flex items-center justify-center transition-colors', visibleCols[key] ? 'bg-indigo-600 border-indigo-600' : 'border-slate-300']" @click="visibleCols[key] = !visibleCols[key]">
-                    <Check v-if="visibleCols[key]" class="w-2.5 h-2.5 text-white" />
-                  </div>
+                  <Checkbox :checked="visibleCols[key]" @update:checked="(v) => visibleCols[key] = !!v" />
                   <span class="text-sm text-slate-700 dark:text-slate-300 capitalize">{{ key === 'clinicPct' ? 'Clinic %' : key === 'billStatus' ? 'Billing' : key }}</span>
                 </label>
               </div>
@@ -371,21 +368,21 @@ const therapistShare = computed(() => editorRow.value ? editorRow.value.amount -
         <div class="flex flex-wrap items-center gap-2.5">
           <div class="flex items-center gap-2 text-sm text-slate-600">
             <label class="text-xs text-slate-500">From</label>
-            <input v-model="dateFrom" type="date" class="px-3 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            <Input v-model="dateFrom" type="date" class="h-8 text-sm" />
             <label class="text-xs text-slate-500 dark:text-slate-400">To</label>
-            <input v-model="dateTo" type="date" class="px-3 py-1.5 text-sm border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            <Input v-model="dateTo" type="date" class="h-8 text-sm" />
           </div>
           <!-- Bulk actions -->
           <div v-if="selected.size > 0" class="flex items-center gap-2 ml-2">
             <span class="text-xs text-slate-500">{{ selected.size }} selected</span>
-            <button class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors" @click="openConsolidated">
+            <Button size="sm" @click="openConsolidated">
               <FileText class="w-3.5 h-3.5" />
               Create Consolidated Bill
-            </button>
-            <button class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-white text-slate-700 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
+            </Button>
+            <Button variant="outline" size="sm">
               <Download class="w-3.5 h-3.5" />
               Download Selected
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -398,12 +395,7 @@ const therapistShare = computed(() => editorRow.value ? editorRow.value.amount -
               <TableRow class="bg-slate-50/60 dark:bg-slate-700/50 hover:bg-slate-50/60 dark:hover:bg-slate-700/50">
                 <!-- Checkbox -->
                 <TableHead class="w-10">
-                  <div
-                    :class="['w-4 h-4 rounded border-2 flex items-center justify-center cursor-pointer transition-colors mx-auto', allSelected ? 'bg-indigo-600 border-indigo-600' : 'border-slate-300 hover:border-indigo-400']"
-                    @click="toggleAll"
-                  >
-                    <Check v-if="allSelected" class="w-2.5 h-2.5 text-white" />
-                  </div>
+                  <Checkbox :checked="allSelected" class="mx-auto" @update:checked="toggleAll" />
                 </TableHead>
 
                 <!-- Sortable columns -->
@@ -415,16 +407,15 @@ const therapistShare = computed(() => editorRow.value ? editorRow.value.amount -
                 >
                   <div class="flex items-center gap-1">
                     {{ col.label }}
-                    <!-- Clinic % tooltip -->
                     <span v-if="col.key === 'billStatus'" class="relative group">
                       <Info class="w-3 h-3 text-slate-400 hover:text-slate-600" />
                     </span>
-                    <ChevronUp v-if="sortKey === col.key && sortDir === 'asc'" class="w-3.5 h-3.5 text-indigo-500" />
-                    <ChevronDown v-else-if="sortKey === col.key && sortDir === 'desc'" class="w-3.5 h-3.5 text-indigo-500" />
+                    <ChevronUp v-if="sortKey === col.key && sortDir === 'asc'" class="w-3.5 h-3.5 text-primary" />
+                    <ChevronDown v-else-if="sortKey === col.key && sortDir === 'desc'" class="w-3.5 h-3.5 text-primary" />
                     <ChevronsUpDown v-else class="w-3.5 h-3.5 text-slate-300" />
                   </div>
                 </TableHead>
-                <!-- Clinic % header with tooltip -->
+                <!-- Clinic % header -->
                 <TableHead v-if="visibleCols.clinicPct" class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
                   <div class="flex items-center gap-1 group relative">
                     Clinic %
@@ -454,25 +445,20 @@ const therapistShare = computed(() => editorRow.value ? editorRow.value.amount -
               <TableRow
                 v-for="row in filtered"
                 :key="row.id"
-                :class="['hover:bg-slate-50/70 dark:hover:bg-slate-700/30 transition-colors cursor-pointer', selected.has(row.id) ? 'bg-indigo-50/50 dark:bg-indigo-950/30' : '']"
+                :class="['hover:bg-slate-50/70 dark:hover:bg-slate-700/30 transition-colors cursor-pointer', selected.has(row.id) ? 'bg-primary/5' : '']"
                 @click="openEditor(row)"
               >
                 <!-- Checkbox -->
                 <TableCell @click.stop>
-                  <div
-                    :class="['w-4 h-4 rounded border-2 flex items-center justify-center cursor-pointer transition-colors mx-auto', selected.has(row.id) ? 'bg-indigo-600 border-indigo-600' : 'border-slate-300 hover:border-indigo-400']"
-                    @click.stop="toggleRow(row.id)"
-                  >
-                    <Check v-if="selected.has(row.id)" class="w-2.5 h-2.5 text-white" />
-                  </div>
+                  <Checkbox :checked="selected.has(row.id)" class="mx-auto" @update:checked="toggleRow(row.id)" />
                 </TableCell>
 
                 <TableCell v-if="visibleCols.id" class="font-mono text-xs text-slate-500 whitespace-nowrap">{{ row.id }}</TableCell>
                 <TableCell v-if="visibleCols.date" class="whitespace-nowrap text-slate-600 dark:text-slate-300 text-sm">{{ fmtDate(row.date) }}</TableCell>
                 <TableCell v-if="visibleCols.patient" class="whitespace-nowrap">
                   <div class="flex items-center gap-2">
-                    <div class="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
-                      <span class="text-indigo-700 text-[9px] font-bold">{{ row.patientInitials }}</span>
+                    <div class="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <span class="text-primary text-[9px] font-bold">{{ row.patientInitials }}</span>
                     </div>
                     <span class="text-sm font-medium text-slate-800 dark:text-slate-100">{{ row.patient }}</span>
                   </div>
@@ -480,14 +466,14 @@ const therapistShare = computed(() => editorRow.value ? editorRow.value.amount -
                 <TableCell v-if="visibleCols.professional" class="whitespace-nowrap text-sm text-slate-600">{{ row.professional }}</TableCell>
                 <TableCell v-if="visibleCols.type" class="whitespace-nowrap text-sm text-slate-600">{{ row.type }}</TableCell>
                 <TableCell v-if="visibleCols.sessionStatus" class="whitespace-nowrap">
-                  <span :class="['inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ring-1', sessionStatusMeta[row.sessionStatus].classes]">
+                  <Badge variant="outline" :class="sessionStatusMeta[row.sessionStatus].badge">
                     {{ sessionStatusMeta[row.sessionStatus].label }}
-                  </span>
+                  </Badge>
                 </TableCell>
                 <TableCell v-if="visibleCols.payment" class="whitespace-nowrap">
-                  <span :class="['inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ring-1', paymentStatusMeta[row.paymentStatus].classes]">
+                  <Badge variant="outline" :class="paymentStatusMeta[row.paymentStatus].badge">
                     {{ paymentStatusMeta[row.paymentStatus].label }}
-                  </span>
+                  </Badge>
                 </TableCell>
                 <TableCell v-if="visibleCols.amount" class="whitespace-nowrap font-semibold text-slate-800 dark:text-slate-100 tabular-nums">
                   {{ fmtCurrency(row.amount) }}
@@ -496,16 +482,16 @@ const therapistShare = computed(() => editorRow.value ? editorRow.value.amount -
                   {{ row.clinicPct }}%
                 </TableCell>
                 <TableCell v-if="visibleCols.billStatus" class="whitespace-nowrap">
-                  <span :class="['inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ring-1', billStatusMeta[row.billStatus].classes]">
+                  <Badge variant="outline" :class="billStatusMeta[row.billStatus].badge">
                     {{ billStatusMeta[row.billStatus].label }}
-                  </span>
+                  </Badge>
                 </TableCell>
 
                 <!-- Row actions -->
                 <TableCell class="whitespace-nowrap" @click.stop>
-                  <button class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors" @click.stop="openEditor(row)">
+                  <Button variant="ghost" size="icon-sm" @click.stop="openEditor(row)">
                     <FileText class="w-4 h-4" />
-                  </button>
+                  </Button>
                 </TableCell>
               </TableRow>
             </TableBody>
@@ -527,12 +513,12 @@ const therapistShare = computed(() => editorRow.value ? editorRow.value.amount -
             <div>
               <DialogTitle class="text-lg font-bold text-slate-900 dark:text-white">Bill {{ editorRow.id }}</DialogTitle>
               <div class="flex items-center gap-2 mt-1">
-                <span :class="['inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ring-1', billStatusMeta[editorRow.billStatus].classes]">
+                <Badge variant="outline" :class="billStatusMeta[editorRow.billStatus].badge">
                   {{ billStatusMeta[editorRow.billStatus].label }}
-                </span>
-                <span v-if="editorRow.id === 'CONSOLIDATED'" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200">
+                </Badge>
+                <Badge v-if="editorRow.id === 'CONSOLIDATED'" variant="outline" class="bg-primary/10 text-primary border-primary/30">
                   Consolidated · {{ selected.size }} sessions
-                </span>
+                </Badge>
               </div>
             </div>
           </div>
@@ -544,8 +530,8 @@ const therapistShare = computed(() => editorRow.value ? editorRow.value.amount -
           <div class="flex items-start justify-between mb-6">
             <div>
               <div class="flex items-center gap-2 mb-1">
-                <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
-                  <span class="text-white text-sm font-bold">N</span>
+                <div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+                  <span class="text-primary-foreground text-sm font-bold">N</span>
                 </div>
                 <span class="font-bold text-slate-800 dark:text-slate-100 text-lg">Noeia Clinic</span>
               </div>
@@ -563,7 +549,7 @@ const therapistShare = computed(() => editorRow.value ? editorRow.value.amount -
           <!-- Patient info -->
           <div class="mb-5 p-3 bg-white dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700">
             <p class="text-xs text-slate-400 font-semibold uppercase tracking-wider mb-1">Bill to</p>
-            <input v-model="editorRow.patient" class="text-sm font-semibold text-slate-800 bg-transparent focus:outline-none focus:ring-1 focus:ring-indigo-400 rounded px-1 -mx-1 w-full" />
+            <Input v-model="editorRow.patient" class="text-sm font-semibold bg-transparent border-0 shadow-none focus-visible:ring-0 px-0 h-auto" />
           </div>
 
           <!-- Line items -->
@@ -574,7 +560,7 @@ const therapistShare = computed(() => editorRow.value ? editorRow.value.amount -
             <div class="bg-white dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-700">
               <div class="grid grid-cols-[1fr_80px_80px_80px] gap-2 px-3 py-2.5 items-center">
                 <div>
-                  <input v-model="editorRow.notes" class="text-sm text-slate-800 bg-transparent focus:outline-none focus:ring-1 focus:ring-indigo-400 rounded px-1 -mx-1 w-full" />
+                  <Input v-model="editorRow.notes" class="text-sm bg-transparent border-0 shadow-none focus-visible:ring-0 px-0 h-auto" />
                   <p class="text-xs text-slate-400 mt-0.5">{{ fmtDate(editorRow.date) }}</p>
                 </div>
                 <p class="text-sm text-slate-600 text-right">{{ editorRow.duration }}min</p>
@@ -611,15 +597,10 @@ const therapistShare = computed(() => editorRow.value ? editorRow.value.amount -
         <!-- Modal footer actions -->
         <div class="flex items-center justify-between px-6 pb-6 gap-3">
           <div class="flex items-center gap-2">
-            <!-- Mark as paid -->
-            <button
-              v-if="!editorIsPaid"
-              class="flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-              @click="markPaid"
-            >
+            <Button v-if="!editorIsPaid" class="bg-green-600 hover:bg-green-700 text-white" @click="markPaid">
               <Check class="w-3.5 h-3.5" />
               Mark as Paid
-            </button>
+            </Button>
             <span v-else class="flex items-center gap-1.5 text-sm font-medium text-green-600">
               <Check class="w-4 h-4" />
               Paid
@@ -627,14 +608,14 @@ const therapistShare = computed(() => editorRow.value ? editorRow.value.amount -
           </div>
 
           <div class="flex items-center gap-2">
-            <button class="flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
+            <Button variant="outline">
               <Send class="w-3.5 h-3.5 text-slate-400" />
               Send to patient
-            </button>
-            <button class="flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors">
+            </Button>
+            <Button>
               <Download class="w-3.5 h-3.5" />
               Download PDF
-            </button>
+            </Button>
           </div>
         </div>
 

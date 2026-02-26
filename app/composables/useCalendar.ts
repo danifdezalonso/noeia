@@ -208,9 +208,7 @@ export const useCalendar = () => {
     }
     modalOpen.value      = false
     quickModalOpen.value = false
-    if (data.category === 'session') {
-      setTimeout(async () => { try { await useSessionsDb().upsertSession(saved) } catch {} }, 0)
-    }
+    setTimeout(async () => { try { await useEventsDb().upsertEvent(saved) } catch {} }, 0)
     if (data.category === 'meeting') console.log('→ Notification: org members notified')
     if (data.patientId)              console.log('→ Patient record: event appended')
   }
@@ -219,9 +217,9 @@ export const useCalendar = () => {
     const toDelete = events.value.filter((e) => ids.includes(e.id))
     events.value = events.value.filter((e) => !ids.includes(e.id))
     setTimeout(async () => {
-      const db = useSessionsDb()
+      const db = useEventsDb()
       for (const ev of toDelete) {
-        if (ev.category === 'session') try { await db.removeSession(ev.id) } catch {}
+        try { await db.removeEvent(ev.id) } catch {}
       }
     }, 0)
   }
@@ -231,7 +229,7 @@ export const useCalendar = () => {
     if (idx !== -1) {
       const updated = { ...events.value[idx]!, start, end }
       events.value = [...events.value.slice(0, idx), updated, ...events.value.slice(idx + 1)]
-      if (updated.category === 'session') setTimeout(async () => { try { await useSessionsDb().upsertSession(updated) } catch {} }, 0)
+      setTimeout(async () => { try { await useEventsDb().upsertEvent(updated) } catch {} }, 0)
     }
   }
 
@@ -239,20 +237,16 @@ export const useCalendar = () => {
     const ev = events.value.find((e) => e.id === id)
     events.value = events.value.filter((e) => e.id !== id)
     modalOpen.value = false
-    if (ev?.category === 'session') setTimeout(async () => { try { await useSessionsDb().removeSession(id) } catch {} }, 0)
+    setTimeout(async () => { try { await useEventsDb().removeEvent(id) } catch {} }, 0)
   }
 
   // ── Load from Supabase ───────────────────────────────────────────────────────
-  async function initSessions() {
+  async function initEvents() {
     if (!import.meta.client) return
     try {
-      const sessions = await useSessionsDb().fetchSessions()
-      if (sessions.length > 0) {
-        // Replace in-memory session events with DB records; keep non-session seed events
-        events.value = [
-          ...events.value.filter((e) => e.category !== 'session'),
-          ...sessions,
-        ]
+      const dbEvents = await useEventsDb().fetchEvents()
+      if (dbEvents.length > 0) {
+        events.value = dbEvents
       }
     } catch {
       // Supabase not configured – silently keep seed data
@@ -308,6 +302,6 @@ export const useCalendar = () => {
     saveEvent, moveEvent, deleteEvent, deleteEvents, checkConflict, getConflictingEvents,
     toggleTaskDone,
     openContextMenu, closeContextMenu, setEventColor, toggleEventLabel, duplicateEvent,
-    initSessions,
+    initEvents,
   }
 }

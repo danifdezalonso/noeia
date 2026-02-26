@@ -1,7 +1,16 @@
 <script setup lang="ts">
-import { X, EyeOff, Hash, Clock, Briefcase } from 'lucide-vue-next'
+import { X, EyeOff, Clock, Briefcase } from 'lucide-vue-next'
+import { Button } from '~/components/ui/button'
+import { Switch } from '~/components/ui/switch'
+import { Label } from '~/components/ui/label'
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '~/components/ui/select'
+import { ToggleGroup, ToggleGroupItem } from '~/components/ui/toggle-group'
 
-const { hideWeekends, showWeekNums, slotDuration, workStart, workEnd } = useCalendar()
+import type { WorkDayHours } from '~/composables/useCalendar'
+
+const { hideWeekends, slotDuration, workHours } = useCalendar()
 
 defineProps<{ open: boolean }>()
 const emit = defineEmits<{ close: [] }>()
@@ -12,14 +21,28 @@ const slotOptions = [
   { value: '01:00:00', label: '1 hr'   },
 ]
 
+const DAYS = [
+  { dow: 1, label: 'Mon' },
+  { dow: 2, label: 'Tue' },
+  { dow: 3, label: 'Wed' },
+  { dow: 4, label: 'Thu' },
+  { dow: 5, label: 'Fri' },
+  { dow: 6, label: 'Sat' },
+  { dow: 0, label: 'Sun' },
+]
+
 const hourOptions = Array.from({ length: 24 }, (_, i) => {
   const h = String(i).padStart(2, '0')
-  const label = i === 0 ? '12:00 AM'
-    : i < 12 ? `${i}:00 AM`
-    : i === 12 ? '12:00 PM'
-    : `${i - 12}:00 PM`
+  const label = i === 0 ? '12am'
+    : i < 12 ? `${i}am`
+    : i === 12 ? '12pm'
+    : `${i - 12}pm`
   return { value: `${h}:00`, label }
 })
+
+function setWorkHours(dow: number, update: Partial<WorkDayHours>) {
+  workHours.value = { ...workHours.value, [dow]: { ...workHours.value[dow]!, ...update } }
+}
 </script>
 
 <template>
@@ -39,12 +62,9 @@ const hourOptions = Array.from({ length: 24 }, (_, i) => {
       <!-- Header -->
       <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-slate-700">
         <h3 class="text-sm font-semibold text-gray-800 dark:text-slate-100">Calendar settings</h3>
-        <button
-          class="p-1 rounded-md text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
-          @click="emit('close')"
-        >
+        <Button variant="ghost" size="icon-sm" @click="emit('close')">
           <X class="w-4 h-4" />
-        </button>
+        </Button>
       </div>
 
       <div class="px-4 py-3 space-y-5">
@@ -55,56 +75,16 @@ const hourOptions = Array.from({ length: 24 }, (_, i) => {
           <div class="space-y-1">
 
             <!-- Hide weekends -->
-            <label class="flex items-center justify-between py-1.5 cursor-pointer group">
+            <div class="flex items-center justify-between py-1.5">
               <div class="flex items-center gap-2.5">
-                <div class="w-7 h-7 rounded-lg bg-gray-50 dark:bg-slate-700 flex items-center justify-center group-hover:bg-indigo-50 dark:group-hover:bg-indigo-900/50 transition-colors">
-                  <EyeOff class="w-3.5 h-3.5 text-gray-400 dark:text-slate-500 group-hover:text-indigo-500 dark:group-hover:text-indigo-400 transition-colors" />
+                <div class="w-7 h-7 rounded-lg bg-gray-50 dark:bg-slate-700 flex items-center justify-center">
+                  <EyeOff class="w-3.5 h-3.5 text-gray-400 dark:text-slate-500" />
                 </div>
-                <span class="text-sm text-gray-700 dark:text-slate-200">Hide weekends</span>
+                <Label class="text-sm text-gray-700 dark:text-slate-200 cursor-pointer">Hide weekends</Label>
               </div>
-              <button
-                role="switch"
-                :aria-checked="hideWeekends"
-                :class="[
-                  'relative w-9 h-5 rounded-full transition-colors duration-200',
-                  hideWeekends ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-slate-600',
-                ]"
-                @click="hideWeekends = !hideWeekends"
-              >
-                <span
-                  :class="[
-                    'absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200',
-                    hideWeekends ? 'translate-x-4' : 'translate-x-0',
-                  ]"
-                />
-              </button>
-            </label>
+              <Switch v-model:checked="hideWeekends" />
+            </div>
 
-            <!-- Week numbers -->
-            <label class="flex items-center justify-between py-1.5 cursor-pointer group">
-              <div class="flex items-center gap-2.5">
-                <div class="w-7 h-7 rounded-lg bg-gray-50 dark:bg-slate-700 flex items-center justify-center group-hover:bg-indigo-50 dark:group-hover:bg-indigo-900/50 transition-colors">
-                  <Hash class="w-3.5 h-3.5 text-gray-400 dark:text-slate-500 group-hover:text-indigo-500 dark:group-hover:text-indigo-400 transition-colors" />
-                </div>
-                <span class="text-sm text-gray-700 dark:text-slate-200">Show week numbers</span>
-              </div>
-              <button
-                role="switch"
-                :aria-checked="showWeekNums"
-                :class="[
-                  'relative w-9 h-5 rounded-full transition-colors duration-200',
-                  showWeekNums ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-slate-600',
-                ]"
-                @click="showWeekNums = !showWeekNums"
-              >
-                <span
-                  :class="[
-                    'absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200',
-                    showWeekNums ? 'translate-x-4' : 'translate-x-0',
-                  ]"
-                />
-              </button>
-            </label>
           </div>
         </section>
 
@@ -115,21 +95,22 @@ const hourOptions = Array.from({ length: 24 }, (_, i) => {
             <div class="w-7 h-7 rounded-lg bg-gray-50 dark:bg-slate-700 flex items-center justify-center shrink-0">
               <Clock class="w-3.5 h-3.5 text-gray-400 dark:text-slate-500" />
             </div>
-            <div class="flex rounded-lg border border-gray-200 dark:border-slate-600 overflow-hidden flex-1">
-              <button
+            <ToggleGroup
+              type="single"
+              :model-value="slotDuration"
+              variant="outline"
+              class="flex-1 h-8"
+              @update:model-value="(v) => v && (slotDuration = v)"
+            >
+              <ToggleGroupItem
                 v-for="opt in slotOptions"
                 :key="opt.value"
-                :class="[
-                  'flex-1 py-1.5 text-xs font-medium transition-colors border-r border-gray-200 dark:border-slate-600 last:border-r-0',
-                  slotDuration === opt.value
-                    ? 'bg-indigo-600 text-white'
-                    : 'text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700',
-                ]"
-                @click="slotDuration = opt.value"
+                :value="opt.value"
+                class="flex-1 text-xs h-8 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
               >
                 {{ opt.label }}
-              </button>
-            </div>
+              </ToggleGroupItem>
+            </ToggleGroup>
           </div>
         </section>
 
@@ -147,36 +128,51 @@ const hourOptions = Array.from({ length: 24 }, (_, i) => {
               </p>
             </div>
           </div>
-          <div class="grid grid-cols-2 gap-2">
-            <div>
-              <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">Start</label>
-              <select
-                v-model="workStart"
-                class="w-full text-xs border border-gray-200 dark:border-slate-600 rounded-lg px-2.5 py-1.5 bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option
-                  v-for="h in hourOptions.slice(0, hourOptions.findIndex(o => o.value === workEnd) || 23)"
-                  :key="h.value"
-                  :value="h.value"
-                >
-                  {{ h.label }}
-                </option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-xs text-gray-500 dark:text-slate-400 mb-1">End</label>
-              <select
-                v-model="workEnd"
-                class="w-full text-xs border border-gray-200 dark:border-slate-600 rounded-lg px-2.5 py-1.5 bg-white dark:bg-slate-700 text-gray-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option
-                  v-for="h in hourOptions.slice((hourOptions.findIndex(o => o.value === workStart) || 0) + 1)"
-                  :key="h.value"
-                  :value="h.value"
-                >
-                  {{ h.label }}
-                </option>
-              </select>
+          <div class="space-y-0.5">
+            <div
+              v-for="d in DAYS" :key="d.dow"
+              class="flex items-center gap-1.5 h-8"
+            >
+              <span class="w-7 text-xs font-medium text-gray-500 dark:text-slate-400 shrink-0">{{ d.label }}</span>
+              <Switch
+                :checked="workHours[d.dow].enabled"
+                @update:checked="setWorkHours(d.dow, { enabled: $event })"
+                class="shrink-0"
+              />
+              <template v-if="workHours[d.dow].enabled">
+                <div class="flex-1 min-w-0">
+                  <Select
+                    :model-value="workHours[d.dow].start"
+                    @update:model-value="setWorkHours(d.dow, { start: $event })"
+                  >
+                    <SelectTrigger class="h-7 w-full text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem v-for="h in hourOptions" :key="h.value" :value="h.value">
+                        {{ h.label }}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <span class="text-gray-300 dark:text-slate-600 text-xs shrink-0">–</span>
+                <div class="flex-1 min-w-0">
+                  <Select
+                    :model-value="workHours[d.dow].end"
+                    @update:model-value="setWorkHours(d.dow, { end: $event })"
+                  >
+                    <SelectTrigger class="h-7 w-full text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem v-for="h in hourOptions" :key="h.value" :value="h.value">
+                        {{ h.label }}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </template>
+              <span v-else class="text-xs text-gray-300 dark:text-slate-600 ml-1">Closed</span>
             </div>
           </div>
         </section>

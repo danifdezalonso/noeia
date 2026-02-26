@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import { X } from 'lucide-vue-next'
 import { mockPatients } from '~/composables/useCalendar'
+import { Button } from '~/components/ui/button'
+import { Input } from '~/components/ui/input'
+import { Label } from '~/components/ui/label'
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '~/components/ui/select'
+import { Textarea } from '~/components/ui/textarea'
 
 const emit = defineEmits<{ close: []; save: [] }>()
 
@@ -69,12 +76,9 @@ function save() {
             <h2 class="text-lg font-semibold text-slate-900 dark:text-white">New Bill</h2>
             <p class="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Create a billing entry or send an invoice</p>
           </div>
-          <button
-            class="p-2 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-            @click="emit('close')"
-          >
+          <Button variant="ghost" size="icon" class="rounded-full" @click="emit('close')">
             <X class="w-4 h-4" />
-          </button>
+          </Button>
         </div>
 
         <!-- Body -->
@@ -82,12 +86,10 @@ function save() {
 
           <!-- Patient -->
           <div class="relative">
-            <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Patient</label>
-            <input
+            <Label class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 block">Patient</Label>
+            <Input
               v-model="patientSearch"
-              type="text"
               placeholder="Search patient…"
-              class="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               @focus="patientDropOpen = true"
               @input="patient = null; patientDropOpen = true"
             />
@@ -98,7 +100,7 @@ function save() {
               <button
                 v-for="p in filteredPatients"
                 :key="p.id"
-                class="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-indigo-50 dark:hover:bg-indigo-900/40 transition-colors"
+                class="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-primary/10 transition-colors"
                 @click="selectPatient(p)"
               >
                 {{ p.name }}
@@ -109,23 +111,25 @@ function save() {
           <!-- Session type + modality -->
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Session type</label>
-              <select
-                v-model="sessionType"
-                class="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option v-for="t in SESSION_TYPES" :key="t" :value="t">{{ t }}</option>
-              </select>
+              <Label class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 block">Session type</Label>
+              <Select v-model="sessionType">
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem v-for="t in SESSION_TYPES" :key="t" :value="t">{{ t }}</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div>
-              <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Modality</label>
-              <div class="flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden h-[38px]">
+              <Label class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 block">Modality</Label>
+              <div class="flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden h-9">
                 <button
-                  :class="['flex-1 text-sm font-medium transition-colors', modality === 'online' ? 'bg-indigo-600 text-white' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700']"
+                  :class="['flex-1 text-sm font-medium transition-colors', modality === 'online' ? 'bg-primary text-primary-foreground' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700']"
                   @click="modality = 'online'"
                 >Online</button>
                 <button
-                  :class="['flex-1 text-sm font-medium border-l border-slate-200 dark:border-slate-700 transition-colors', modality === 'inperson' ? 'bg-indigo-600 text-white border-l-indigo-600' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700']"
+                  :class="['flex-1 text-sm font-medium border-l border-slate-200 dark:border-slate-700 transition-colors', modality === 'inperson' ? 'bg-primary text-primary-foreground border-l-primary' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700']"
                   @click="modality = 'inperson'"
                 >In-person</button>
               </div>
@@ -135,34 +139,26 @@ function save() {
           <!-- Date + time -->
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Date</label>
-              <input
-                v-model="date"
-                type="date"
-                class="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
+              <Label class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 block">Date</Label>
+              <Input v-model="date" type="date" />
             </div>
             <div>
-              <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Start time</label>
-              <input
-                v-model="startTime"
-                type="time"
-                class="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
+              <Label class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 block">Start time</Label>
+              <Input v-model="startTime" type="time" />
             </div>
           </div>
 
           <!-- Duration -->
           <div>
-            <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">
+            <Label class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 block">
               Duration
               <span v-if="endTime" class="normal-case font-normal text-slate-400 ml-1">— ends {{ endTime }}</span>
-            </label>
+            </Label>
             <div class="flex gap-2 flex-wrap">
               <button
                 v-for="d in DURATIONS"
                 :key="d"
-                :class="['px-3 py-1.5 text-sm rounded-lg border transition-colors', duration === d ? 'bg-indigo-600 text-white border-indigo-600' : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700']"
+                :class="['px-3 py-1.5 text-sm rounded-lg border transition-colors', duration === d ? 'bg-primary text-primary-foreground border-primary' : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700']"
                 @click="duration = d"
               >{{ d }}m</button>
             </div>
@@ -170,25 +166,18 @@ function save() {
 
           <!-- Amount -->
           <div>
-            <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Amount (€)</label>
-            <input
-              v-model.number="amount"
-              type="number"
-              min="0"
-              step="5"
-              placeholder="0"
-              class="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
+            <Label class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 block">Amount (€)</Label>
+            <Input v-model.number="amount" type="number" min="0" step="5" placeholder="0" />
           </div>
 
           <!-- Notes -->
           <div>
-            <label class="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Notes</label>
-            <textarea
+            <Label class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 block">Notes</Label>
+            <Textarea
               v-model="notes"
-              rows="2"
+              :rows="2"
               placeholder="Optional session or billing notes…"
-              class="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+              class="resize-none"
             />
           </div>
 
@@ -209,15 +198,10 @@ function save() {
           </div>
 
           <div class="flex items-center gap-2">
-            <button
-              class="px-4 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-              @click="emit('close')"
-            >Cancel</button>
-            <button
-              :disabled="!canSave"
-              :class="['px-4 py-2 text-sm font-semibold rounded-lg transition-colors', canSave ? 'bg-indigo-600 hover:bg-indigo-500 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-400 cursor-not-allowed']"
-              @click="save"
-            >{{ invoiceStatus === 'send' ? 'Send' : 'Save' }}</button>
+            <Button variant="ghost" @click="emit('close')">Cancel</Button>
+            <Button :disabled="!canSave" @click="save">
+              {{ invoiceStatus === 'send' ? 'Send' : 'Save' }}
+            </Button>
           </div>
         </div>
 

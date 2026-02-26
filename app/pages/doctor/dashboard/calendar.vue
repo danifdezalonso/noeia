@@ -5,8 +5,8 @@ import { ToggleGroup, ToggleGroupItem } from '~/components/ui/toggle-group'
 
 definePageMeta({ layout: 'dashboard' })
 
-const { viewMode, currentTitle, openCreate, initSessions } = useCalendar()
-onMounted(initSessions)
+const { viewMode, currentTitle, openCreate, initEvents } = useCalendar()
+onMounted(initEvents)
 
 const calendarViewRef = ref<{
   prev: () => void

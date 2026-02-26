@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import { X, Search, Video, MapPin, Link2, Copy, Check } from 'lucide-vue-next'
 import { mockPatients, type MockPatient } from '~/composables/useCalendar'
+import { Button } from '~/components/ui/button'
+import { Input } from '~/components/ui/input'
+import { Label } from '~/components/ui/label'
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '~/components/ui/select'
+import { Textarea } from '~/components/ui/textarea'
 
 export interface NewSession {
   title: string
@@ -162,9 +169,9 @@ function save() {
         <!-- Header -->
         <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 shrink-0">
           <h2 class="text-base font-semibold text-slate-800 dark:text-slate-100">Schedule Session</h2>
-          <button class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" @click="emit('close')">
+          <Button variant="ghost" size="icon" class="rounded-full" @click="emit('close')">
             <X class="w-4 h-4" />
-          </button>
+          </Button>
         </div>
 
         <!-- Body -->
@@ -172,17 +179,16 @@ function save() {
 
           <!-- ── Client ──────────────────────────────────────────────────── -->
           <div>
-            <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Client <span class="text-red-500">*</span></label>
+            <Label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Client <span class="text-red-500">*</span></Label>
             <div ref="patientWrapRef" class="relative">
               <div class="relative">
-                <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
-                <input
+                <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none z-10" />
+                <Input
                   v-model="patientQuery"
-                  type="text"
                   placeholder="Search patient…"
                   :class="[
-                    'w-full pl-9 pr-9 py-2.5 text-sm border rounded-xl bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 transition-colors',
-                    errPatient ? 'border-red-400 focus:ring-red-200 dark:focus:ring-red-900' : 'border-slate-200 dark:border-slate-700 focus:ring-indigo-500/30 focus:border-indigo-400',
+                    'pl-9 pr-9',
+                    errPatient ? 'border-red-400 focus-visible:ring-red-200' : '',
                   ]"
                   @focus="showPatients = true"
                   @input="showPatients = true; errPatient = false"
@@ -202,8 +208,8 @@ function save() {
                     class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-left hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
                     @click="selectPatient(p)"
                   >
-                    <div class="w-7 h-7 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center shrink-0">
-                      <span class="text-indigo-700 dark:text-indigo-300 text-[10px] font-bold">{{ p.name.split(' ').map(w => w[0]).join('').slice(0, 2) }}</span>
+                    <div class="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <span class="text-primary text-[10px] font-bold">{{ p.name.split(' ').map(w => w[0]).join('').slice(0, 2) }}</span>
                     </div>
                     <span class="text-slate-700 dark:text-slate-200 font-medium">{{ p.name }}</span>
                   </button>
@@ -214,39 +220,39 @@ function save() {
 
           <!-- ── Title ───────────────────────────────────────────────────── -->
           <div>
-            <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Title</label>
-            <input
+            <Label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Title</Label>
+            <Input
               v-model="form.title"
-              type="text"
               placeholder="Session title…"
-              class="w-full px-3.5 py-2.5 text-sm border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-colors"
               @input="titleEdited = true"
             />
           </div>
 
           <!-- ── Type ────────────────────────────────────────────────────── -->
           <div>
-            <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Session type</label>
-            <select
-              v-model="form.type"
-              class="w-full px-3.5 py-2.5 text-sm border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-colors appearance-none cursor-pointer"
-            >
-              <option v-for="t in SESSION_TYPES" :key="t.value" :value="t.value">{{ t.label }}</option>
-            </select>
+            <Label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Session type</Label>
+            <Select v-model="form.type">
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="t in SESSION_TYPES" :key="t.value" :value="t.value">{{ t.label }}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <!-- ── Modality toggle ─────────────────────────────────────────── -->
           <div>
-            <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Format</label>
+            <Label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Format</Label>
             <div class="flex rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
               <button
-                :class="['flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors', form.modality === 'online' ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700']"
+                :class="['flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium transition-colors', form.modality === 'online' ? 'bg-primary text-primary-foreground' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700']"
                 @click="form.modality = 'online'"
               >
                 <Video class="w-3.5 h-3.5" /> Online
               </button>
               <button
-                :class="['flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium border-l border-slate-200 dark:border-slate-700 transition-colors', form.modality === 'inperson' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700']"
+                :class="['flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium border-l border-slate-200 dark:border-slate-700 transition-colors', form.modality === 'inperson' ? 'bg-primary text-primary-foreground border-primary' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700']"
                 @click="form.modality = 'inperson'"
               >
                 <MapPin class="w-3.5 h-3.5" /> In-person
@@ -257,20 +263,17 @@ function save() {
             <div v-if="form.modality === 'online'" class="mt-2.5">
               <div class="flex gap-2 items-center">
                 <div class="relative flex-1">
-                  <Link2 class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
-                  <input
+                  <Link2 class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none z-10" />
+                  <Input
                     v-model="form.meetingLink"
                     type="url"
-                    class="w-full pl-9 pr-3 py-2 text-xs border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-colors"
+                    class="pl-9 text-xs bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
                   />
                 </div>
-                <button
-                  class="flex items-center gap-1.5 px-3 py-2 text-xs font-medium border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors whitespace-nowrap"
-                  @click="copyLink"
-                >
+                <Button variant="outline" size="sm" class="text-xs whitespace-nowrap" @click="copyLink">
                   <component :is="copied ? Check : Copy" class="w-3.5 h-3.5" :class="copied ? 'text-green-500' : ''" />
                   {{ copied ? 'Copied' : 'Copy' }}
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -280,24 +283,22 @@ function save() {
                 <button
                   v-for="loc in PRESET_LOCATIONS"
                   :key="loc"
-                  :class="['px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors', !form.locationIsCustom && form.location === loc ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700']"
+                  :class="['px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors', !form.locationIsCustom && form.location === loc ? 'bg-primary text-primary-foreground border-primary' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700']"
                   @click="form.location = loc; form.locationIsCustom = false"
                 >
                   {{ loc }}
                 </button>
                 <button
-                  :class="['px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors', form.locationIsCustom ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700']"
+                  :class="['px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors', form.locationIsCustom ? 'bg-primary text-primary-foreground border-primary' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700']"
                   @click="form.locationIsCustom = true"
                 >
                   Other…
                 </button>
               </div>
-              <input
+              <Input
                 v-if="form.locationIsCustom"
                 v-model="form.locationCustom"
-                type="text"
                 placeholder="Enter location…"
-                class="w-full px-3.5 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-colors"
               />
             </div>
           </div>
@@ -305,20 +306,20 @@ function save() {
           <!-- ── Date & Time ──────────────────────────────────────────────── -->
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Date <span class="text-red-500">*</span></label>
-              <input
+              <Label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Date <span class="text-red-500">*</span></Label>
+              <Input
                 v-model="form.date"
                 type="date"
-                :class="['w-full px-3.5 py-2.5 text-sm border rounded-xl bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 transition-colors', errDate ? 'border-red-400 focus:ring-red-200' : 'border-slate-200 dark:border-slate-700 focus:ring-indigo-500/30 focus:border-indigo-400']"
+                :class="errDate ? 'border-red-400 focus-visible:ring-red-200' : ''"
                 @input="errDate = false"
               />
             </div>
             <div>
-              <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Start time <span class="text-red-500">*</span></label>
-              <input
+              <Label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Start time <span class="text-red-500">*</span></Label>
+              <Input
                 v-model="form.time"
                 type="time"
-                :class="['w-full px-3.5 py-2.5 text-sm border rounded-xl bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 transition-colors', errTime ? 'border-red-400 focus:ring-red-200' : 'border-slate-200 dark:border-slate-700 focus:ring-indigo-500/30 focus:border-indigo-400']"
+                :class="errTime ? 'border-red-400 focus-visible:ring-red-200' : ''"
                 @input="errTime = false"
               />
             </div>
@@ -326,12 +327,12 @@ function save() {
 
           <!-- ── Duration ────────────────────────────────────────────────── -->
           <div>
-            <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Duration</label>
+            <Label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Duration</Label>
             <div class="flex gap-1.5 flex-wrap">
               <button
                 v-for="d in DURATIONS"
                 :key="d.value"
-                :class="['px-3.5 py-2 text-sm font-medium rounded-xl border transition-colors', form.duration === d.value ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700']"
+                :class="['px-3.5 py-2 text-sm font-medium rounded-xl border transition-colors', form.duration === d.value ? 'bg-primary text-primary-foreground border-primary' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700']"
                 @click="form.duration = d.value"
               >
                 {{ d.label }}
@@ -344,12 +345,12 @@ function save() {
 
           <!-- ── Notes ───────────────────────────────────────────────────── -->
           <div>
-            <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Notes</label>
-            <textarea
+            <Label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Notes</Label>
+            <Textarea
               v-model="form.notes"
-              rows="3"
+              :rows="3"
               placeholder="Session notes, agenda, reminders…"
-              class="w-full px-3.5 py-2.5 text-sm border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-colors"
+              class="resize-none"
             />
           </div>
 
@@ -357,18 +358,8 @@ function save() {
 
         <!-- Footer -->
         <div class="flex items-center justify-end gap-2.5 px-6 py-4 border-t border-slate-100 dark:border-slate-800 shrink-0">
-          <button
-            class="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
-            @click="emit('close')"
-          >
-            Cancel
-          </button>
-          <button
-            class="px-5 py-2 text-sm font-semibold bg-slate-900 dark:bg-indigo-600 text-white rounded-xl hover:bg-slate-800 dark:hover:bg-indigo-500 transition-colors shadow-sm"
-            @click="save"
-          >
-            Schedule Session
-          </button>
+          <Button variant="ghost" @click="emit('close')">Cancel</Button>
+          <Button @click="save">Schedule Session</Button>
         </div>
 
       </div>

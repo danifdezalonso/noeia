@@ -4,6 +4,8 @@ import {
   Check, CheckCheck, Circle,
 } from 'lucide-vue-next'
 import { format, isToday, isYesterday, parseISO } from 'date-fns'
+import { Button } from '~/components/ui/button'
+import { Input } from '~/components/ui/input'
 
 definePageMeta({ layout: 'dashboard' })
 
@@ -46,8 +48,8 @@ const conversations = ref<Conversation[]>([
     id: 'c1',
     contactName: 'Dr. Elena Voss',
     initials: 'EV',
-    avatarBg: 'bg-indigo-100',
-    avatarText: 'text-indigo-700',
+    avatarBg: 'bg-primary/10',
+    avatarText: 'text-primary',
     online: true,
     lastMessage: 'I\'ll send over the session notes shortly.',
     lastTime: t(10, 30),
@@ -144,7 +146,6 @@ function fmtMsgTime(d: Date) {
   return format(d, 'HH:mm')
 }
 
-// Group messages by date for the chat divider
 type MessageGroup = { dateLabel: string; messages: Message[] }
 const groupedMessages = computed<MessageGroup[]>(() => {
   const msgs = selected.value?.messages ?? []
@@ -165,7 +166,6 @@ const groupedMessages = computed<MessageGroup[]>(() => {
   return groups
 })
 
-// Auto-scroll on mount and when messages change
 onMounted(() => messagesEnd.value?.scrollIntoView())
 watch(() => selected.value?.messages.length, () => {
   nextTick(() => messagesEnd.value?.scrollIntoView({ behavior: 'smooth' }))
@@ -181,20 +181,20 @@ watch(() => selected.value?.messages.length, () => {
       <!-- Header -->
       <div class="flex items-center justify-between px-4 py-4 border-b border-slate-100 dark:border-slate-800 shrink-0">
         <h2 class="text-base font-bold text-slate-900 dark:text-white">Messages</h2>
-        <button class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
+        <Button variant="ghost" size="icon">
           <MoreHorizontal class="w-4 h-4" />
-        </button>
+        </Button>
       </div>
 
       <!-- Search -->
       <div class="px-4 py-3 border-b border-slate-100 dark:border-slate-800 shrink-0">
         <div class="relative">
           <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-          <input
+          <Input
             v-model="search"
             type="text"
             placeholder="Search messages..."
-            class="w-full pl-9 pr-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-xl placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            class="pl-9"
           />
         </div>
       </div>
@@ -206,7 +206,7 @@ watch(() => selected.value?.messages.length, () => {
           :key="conv.id"
           :class="[
             'w-full flex items-center gap-3 px-4 py-3.5 text-left transition-colors border-b border-slate-50',
-            selectedId === conv.id ? 'bg-indigo-50 dark:bg-indigo-950' : 'hover:bg-slate-50 dark:hover:bg-slate-800',
+            selectedId === conv.id ? 'bg-primary/10 dark:bg-primary/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800',
           ]"
           @click="selectConversation(conv.id)"
         >
@@ -226,7 +226,7 @@ watch(() => selected.value?.messages.length, () => {
           <!-- Name + preview -->
           <div class="flex-1 min-w-0">
             <div class="flex items-center justify-between gap-2">
-              <p :class="['text-sm font-semibold truncate', selectedId === conv.id ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-800 dark:text-slate-100']">
+              <p :class="['text-sm font-semibold truncate', selectedId === conv.id ? 'text-primary' : 'text-slate-800 dark:text-slate-100']">
                 {{ conv.contactName }}
               </p>
               <span class="text-[11px] text-slate-400 shrink-0">{{ fmtTime(conv.lastTime) }}</span>
@@ -235,7 +235,7 @@ watch(() => selected.value?.messages.length, () => {
               <p class="text-xs text-slate-500 truncate">{{ conv.lastMessage }}</p>
               <span
                 v-if="conv.unread > 0"
-                class="shrink-0 min-w-4 h-4 px-1 rounded-full bg-indigo-600 text-white text-[10px] font-bold flex items-center justify-center"
+                class="shrink-0 min-w-4 h-4 px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center"
               >
                 {{ conv.unread }}
               </span>
@@ -243,7 +243,6 @@ watch(() => selected.value?.messages.length, () => {
           </div>
         </button>
 
-        <!-- Empty search state -->
         <div v-if="filteredConversations.length === 0" class="py-12 text-center">
           <Search class="w-8 h-8 text-slate-300 mx-auto mb-2" />
           <p class="text-sm text-slate-400">No conversations found</p>
@@ -257,15 +256,12 @@ watch(() => selected.value?.messages.length, () => {
       <!-- Chat header -->
       <header class="shrink-0 flex items-center justify-between px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
         <div class="flex items-center gap-3">
-          <!-- Avatar -->
           <div class="relative">
             <div :class="['w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold', selected.avatarBg, selected.avatarText]">
               {{ selected.initials }}
             </div>
             <span :class="['absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white', selected.online ? 'bg-green-500' : 'bg-slate-300']" />
           </div>
-
-          <!-- Name + status -->
           <div>
             <p class="text-sm font-semibold text-slate-800 dark:text-slate-100 leading-tight">{{ selected.contactName }}</p>
             <p :class="['text-xs leading-tight', selected.online ? 'text-green-600' : 'text-slate-400']">
@@ -274,17 +270,16 @@ watch(() => selected.value?.messages.length, () => {
           </div>
         </div>
 
-        <!-- Actions -->
         <div class="flex items-center gap-1">
-          <button class="p-2 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors" title="Voice call">
+          <Button variant="ghost" size="icon" title="Voice call" class="hover:text-primary hover:bg-primary/10">
             <Phone class="w-4 h-4" />
-          </button>
-          <button class="p-2 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors" title="Video call">
+          </Button>
+          <Button variant="ghost" size="icon" title="Video call" class="hover:text-primary hover:bg-primary/10">
             <Video class="w-4 h-4" />
-          </button>
-          <button class="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors" title="More options">
+          </Button>
+          <Button variant="ghost" size="icon" title="More options">
             <MoreHorizontal class="w-4 h-4" />
-          </button>
+          </Button>
         </div>
       </header>
 
@@ -292,21 +287,18 @@ watch(() => selected.value?.messages.length, () => {
       <div class="flex-1 overflow-y-auto px-5 py-4 space-y-6 min-h-0 bg-slate-50/40 dark:bg-slate-950/40">
         <template v-for="group in groupedMessages" :key="group.dateLabel">
 
-          <!-- Date divider -->
           <div class="flex items-center gap-3">
             <div class="flex-1 h-px bg-slate-200" />
             <span class="text-xs text-slate-400 font-medium px-2">{{ group.dateLabel }}</span>
             <div class="flex-1 h-px bg-slate-200" />
           </div>
 
-          <!-- Messages in group -->
           <div class="space-y-2">
             <div
               v-for="msg in group.messages"
               :key="msg.id"
               :class="['flex gap-2.5', msg.from === 'admin' ? 'flex-row-reverse' : '']"
             >
-              <!-- Contact avatar (only for contact messages) -->
               <div
                 v-if="msg.from === 'contact'"
                 :class="['w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 self-end', selected.avatarBg, selected.avatarText]"
@@ -314,13 +306,12 @@ watch(() => selected.value?.messages.length, () => {
                 {{ selected.initials }}
               </div>
 
-              <!-- Bubble + time -->
               <div :class="['flex flex-col gap-1 max-w-[70%]', msg.from === 'admin' ? 'items-end' : 'items-start']">
                 <div
                   :class="[
                     'px-4 py-2.5 rounded-2xl text-sm leading-relaxed',
                     msg.from === 'admin'
-                      ? 'bg-indigo-600 text-white rounded-br-sm'
+                      ? 'bg-primary text-primary-foreground rounded-br-sm'
                       : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-bl-sm shadow-sm',
                   ]"
                 >
@@ -328,9 +319,8 @@ watch(() => selected.value?.messages.length, () => {
                 </div>
                 <div class="flex items-center gap-1">
                   <span class="text-[11px] text-slate-400">{{ fmtMsgTime(msg.timestamp) }}</span>
-                  <!-- Read receipt for admin messages -->
                   <template v-if="msg.from === 'admin'">
-                    <CheckCheck v-if="msg.status === 'read'" class="w-3.5 h-3.5 text-indigo-400" />
+                    <CheckCheck v-if="msg.status === 'read'" class="w-3.5 h-3.5 text-primary/60" />
                     <CheckCheck v-else-if="msg.status === 'delivered'" class="w-3.5 h-3.5 text-slate-400" />
                     <Check v-else class="w-3.5 h-3.5 text-slate-300" />
                   </template>
@@ -340,19 +330,16 @@ watch(() => selected.value?.messages.length, () => {
           </div>
         </template>
 
-        <!-- Scroll anchor -->
         <div ref="messagesEnd" />
       </div>
 
       <!-- Compose bar -->
       <footer class="shrink-0 px-5 py-3.5 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
-        <div class="flex items-center gap-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-2.5 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-transparent transition-all">
-          <!-- Attach -->
+        <div class="flex items-center gap-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-2.5 focus-within:ring-2 focus-within:ring-primary focus-within:border-transparent transition-all">
           <button class="text-slate-400 hover:text-slate-600 transition-colors shrink-0" title="Attach file">
             <Paperclip class="w-4.5 h-4.5" />
           </button>
 
-          <!-- Input -->
           <input
             v-model="compose"
             type="text"
@@ -361,17 +348,15 @@ watch(() => selected.value?.messages.length, () => {
             @keydown.enter="sendMessage"
           />
 
-          <!-- Emoji -->
           <button class="text-slate-400 hover:text-slate-600 transition-colors shrink-0" title="Emoji">
             <Smile class="w-4.5 h-4.5" />
           </button>
 
-          <!-- Send -->
           <button
             :class="[
               'w-8 h-8 rounded-xl flex items-center justify-center transition-colors shrink-0',
               compose.trim()
-                ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
                 : 'bg-slate-200 text-slate-400 cursor-default',
             ]"
             :disabled="!compose.trim()"

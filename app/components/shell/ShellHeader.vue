@@ -6,6 +6,7 @@ import {
   CalendarPlus, UserPlus, ReceiptText, Stethoscope,
 } from 'lucide-vue-next'
 import { SHELL_KEY } from '~/composables/useDashboard'
+import { Button } from '~/components/ui/button'
 
 const shell = inject(SHELL_KEY)!
 const { persona } = usePersona()
@@ -123,18 +124,18 @@ const notifications = [
               :key="org.id"
               type="button"
               class="w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-              :class="org.active ? 'text-indigo-700 dark:text-indigo-400 font-medium' : 'text-slate-700 dark:text-slate-300'"
+              :class="org.active ? 'text-primary font-medium' : 'text-slate-700 dark:text-slate-300'"
             >
               <div class="flex items-center gap-2">
                 <div
                   class="w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-bold"
-                  :class="org.active ? 'bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-400' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'"
+                  :class="org.active ? 'bg-primary/10 text-primary' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'"
                 >
                   {{ org.name[0] }}
                 </div>
                 {{ org.name }}
               </div>
-              <Check v-if="org.active" class="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+              <Check v-if="org.active" class="w-3.5 h-3.5 text-primary" />
             </button>
             <div class="border-t border-slate-100 dark:border-slate-700 mt-1 pt-1">
               <button type="button"
@@ -155,7 +156,7 @@ const notifications = [
         <input
           type="text"
           placeholder="Search patients, sessions, bills…"
-          class="w-full pl-9 pr-4 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-sm text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none focus:bg-white dark:focus:bg-slate-800 focus:border-indigo-300 focus:ring-2 focus:ring-indigo-50 dark:focus:ring-indigo-900 transition-all"
+          class="w-full pl-9 pr-4 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-sm text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 outline-none focus:bg-white dark:focus:bg-slate-800 focus:border-primary/40 focus:ring-2 focus:ring-primary/10 dark:focus:ring-primary/20 transition-all"
         />
         <kbd class="absolute right-3 top-1/2 -translate-y-1/2 hidden lg:flex items-center gap-1 text-[10px] text-slate-400 dark:text-slate-500 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 px-1.5 py-0.5 rounded font-mono">
           ⌘K
@@ -168,15 +169,14 @@ const notifications = [
 
       <!-- + New dropdown CTA -->
       <div class="relative">
-        <button
-          type="button"
+        <Button
+          class="gap-1.5 px-3 sm:px-3.5 py-1.5 h-auto text-sm font-semibold rounded-lg"
           @click.stop="toggleCta"
-          class="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white text-sm font-semibold px-3 sm:px-3.5 py-1.5 rounded-lg transition-colors shadow-sm shadow-indigo-200 dark:shadow-none"
         >
           <Plus class="w-4 h-4" />
           <span class="hidden sm:inline">New</span>
           <ChevronDown class="hidden sm:block w-3.5 h-3.5 opacity-70 transition-transform duration-150" :class="{ 'rotate-180': ctaOpen }" />
-        </button>
+        </Button>
 
         <Transition
           enter-active-class="transition duration-100 ease-out"
@@ -189,8 +189,8 @@ const notifications = [
             class="absolute top-full right-0 mt-2 w-44 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-lg z-50 py-1.5 overflow-hidden"
           >
             <button type="button" class="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors" @click="sessionModalOpen = true; ctaOpen = false">
-              <div class="w-7 h-7 rounded-lg bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center flex-shrink-0">
-                <CalendarPlus class="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+              <div class="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <CalendarPlus class="w-3.5 h-3.5 text-primary" />
               </div>
               <div class="text-left">
                 <p class="font-medium leading-none">Session</p>
@@ -255,7 +255,7 @@ const notifications = [
           >
             <div class="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-700">
               <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">Notifications</p>
-              <button type="button" class="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-medium">
+              <button type="button" class="text-xs text-primary hover:text-primary/80 font-medium">
                 Mark all read
               </button>
             </div>
@@ -265,7 +265,7 @@ const notifications = [
                 class="flex items-start gap-3 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
               >
                 <div class="mt-0.5 w-2 h-2 rounded-full flex-shrink-0"
-                  :class="n.unread ? 'bg-indigo-500' : 'bg-transparent'" />
+                  :class="n.unread ? 'bg-primary' : 'bg-transparent'" />
                 <div class="flex-1 min-w-0">
                   <p class="text-sm text-slate-700 dark:text-slate-200 leading-snug">{{ n.text }}</p>
                   <p class="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{{ n.time }} ago</p>
@@ -302,7 +302,7 @@ const notifications = [
           @click.stop="toggleProfile"
           class="flex items-center gap-1.5 sm:gap-2 pl-1 pr-1 sm:pr-2 py-1 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
         >
-          <div class="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center ring-2 ring-white dark:ring-slate-900">
+          <div class="w-7 h-7 rounded-full bg-primary flex items-center justify-center ring-2 ring-white dark:ring-slate-900">
             <span class="text-white text-xs font-bold">{{ persona.avatarInitials }}</span>
           </div>
           <ChevronDown class="hidden sm:block w-3 h-3 text-slate-400 dark:text-slate-500 transition-transform duration-150"

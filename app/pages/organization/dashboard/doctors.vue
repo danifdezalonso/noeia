@@ -13,6 +13,15 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '~/components/ui/dialog'
+import { Button } from '~/components/ui/button'
+import { Input } from '~/components/ui/input'
+import { Label } from '~/components/ui/label'
+import { Badge } from '~/components/ui/badge'
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '~/components/ui/select'
+import { Switch } from '~/components/ui/switch'
+import { Textarea } from '~/components/ui/textarea'
 
 definePageMeta({ layout: 'dashboard' })
 
@@ -51,7 +60,6 @@ const doctors = ref<Doctor[]>([
 
 const search       = ref('')
 const statusFilter = ref<DoctorStatus | 'all'>('all')
-const filterOpen   = ref(false)
 const sortKey      = ref<SortKey>('name')
 const sortDir      = ref<SortDir>('asc')
 
@@ -61,8 +69,6 @@ const statusOptions: { value: DoctorStatus | 'all'; label: string }[] = [
   { value: 'inactive', label: 'Inactive'   },
   { value: 'on-leave', label: 'On leave'   },
 ]
-
-onMounted(() => { document.addEventListener('click', () => { filterOpen.value = false }) })
 
 function toggleSort(key: SortKey) {
   if (sortKey.value === key) sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
@@ -259,9 +265,9 @@ function remove(id: string) {
 // ── Meta helpers ───────────────────────────────────────────────────────────
 
 const statusMeta: Record<DoctorStatus, { label: string; dot: string; badge: string }> = {
-  active:    { label: 'Active',   dot: 'bg-green-500', badge: 'bg-green-50 text-green-700 ring-green-200'  },
-  inactive:  { label: 'Inactive', dot: 'bg-slate-400', badge: 'bg-slate-50 text-slate-600 ring-slate-200'  },
-  'on-leave':{ label: 'On leave', dot: 'bg-amber-400', badge: 'bg-amber-50 text-amber-700 ring-amber-200'  },
+  active:    { label: 'Active',   dot: 'bg-green-500', badge: 'border-green-200 bg-green-50 text-green-700'  },
+  inactive:  { label: 'Inactive', dot: 'bg-slate-400', badge: 'border-slate-200 bg-slate-50 text-slate-600'  },
+  'on-leave':{ label: 'On leave', dot: 'bg-amber-400', badge: 'border-amber-200 bg-amber-50 text-amber-700'  },
 }
 
 const columns: { key: SortKey; label: string }[] = [
@@ -282,49 +288,46 @@ const columns: { key: SortKey; label: string }[] = [
           <h1 class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Doctors</h1>
           <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Manage your clinic's medical staff.</p>
         </div>
-        <button
-          class="flex items-center gap-2 px-4 py-2.5 bg-slate-900 dark:bg-slate-700 text-white text-sm font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-slate-600 transition-colors shadow-sm whitespace-nowrap"
-          @click="openAdd"
-        >
+        <Button @click="openAdd">
           <Plus class="w-4 h-4" />
           Add Doctor
-        </button>
+        </Button>
       </div>
 
       <!-- Search & filter bar -->
       <div class="flex flex-wrap items-center gap-2.5">
         <div class="relative flex-1 max-w-sm">
-          <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-          <input
+          <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none z-10" />
+          <Input
             v-model="search"
-            type="text"
             placeholder="Search by name, email or specialty…"
-            class="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            class="pl-9"
           />
         </div>
 
-        <div class="relative">
-          <button
-            :class="['flex items-center gap-2 px-3.5 py-2 text-sm font-medium border rounded-lg transition-colors', statusFilter !== 'all' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50']"
-            @click.stop="filterOpen = !filterOpen"
-          >
-            <span>{{ statusOptions.find(o => o.value === statusFilter)?.label }}</span>
-            <ChevronDownIcon class="w-3.5 h-3.5 text-slate-400" />
-          </button>
-          <Transition enter-active-class="transition duration-100 ease-out" enter-from-class="opacity-0 scale-95 translate-y-1" enter-to-class="opacity-100 scale-100 translate-y-0" leave-active-class="transition duration-75 ease-in" leave-from-class="opacity-100" leave-to-class="opacity-0">
-            <div v-if="filterOpen" class="absolute right-0 top-full mt-1.5 z-20 w-40 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden" @click.stop>
-              <button
-                v-for="opt in statusOptions" :key="opt.value"
-                :class="['w-full text-left px-3.5 py-2 text-sm transition-colors flex items-center gap-2', statusFilter === opt.value ? 'bg-indigo-50 text-indigo-700 font-medium' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700']"
-                @click="statusFilter = opt.value; filterOpen = false"
-              >
-                <span v-if="opt.value !== 'all'" :class="['w-2 h-2 rounded-full shrink-0', statusMeta[opt.value as DoctorStatus].dot]" />
-                <span v-else class="w-2 h-2 rounded-full shrink-0 bg-slate-200" />
-                {{ opt.label }}
-              </button>
-            </div>
-          </Transition>
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger as-child>
+            <Button
+              variant="outline"
+              :class="statusFilter !== 'all' ? 'bg-primary/10 text-primary border-primary/30' : ''"
+            >
+              {{ statusOptions.find(o => o.value === statusFilter)?.label }}
+              <ChevronDownIcon class="w-3.5 h-3.5 ml-1 text-slate-400" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" class="w-40">
+            <DropdownMenuItem
+              v-for="opt in statusOptions" :key="opt.value"
+              :class="statusFilter === opt.value ? 'text-primary font-medium' : ''"
+              class="flex items-center gap-2 cursor-pointer"
+              @click="statusFilter = opt.value"
+            >
+              <span v-if="opt.value !== 'all'" :class="['w-2 h-2 rounded-full shrink-0', statusMeta[opt.value as DoctorStatus].dot]" />
+              <span v-else class="w-2 h-2 rounded-full shrink-0 bg-slate-200" />
+              {{ opt.label }}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         <p class="text-sm text-slate-400 ml-auto">{{ filtered.length }} doctor{{ filtered.length !== 1 ? 's' : '' }}</p>
       </div>
@@ -342,8 +345,8 @@ const columns: { key: SortKey; label: string }[] = [
                 >
                   <div class="flex items-center gap-1">
                     {{ col.label }}
-                    <ChevronUp      v-if="sortKey === col.key && sortDir === 'asc'"   class="w-3.5 h-3.5 text-indigo-500" />
-                    <ChevronDown    v-else-if="sortKey === col.key && sortDir === 'desc'" class="w-3.5 h-3.5 text-indigo-500" />
+                    <ChevronUp      v-if="sortKey === col.key && sortDir === 'asc'"       class="w-3.5 h-3.5 text-primary" />
+                    <ChevronDown    v-else-if="sortKey === col.key && sortDir === 'desc'" class="w-3.5 h-3.5 text-primary" />
                     <ChevronsUpDown v-else class="w-3.5 h-3.5 text-slate-300" />
                   </div>
                 </TableHead>
@@ -360,8 +363,8 @@ const columns: { key: SortKey; label: string }[] = [
                 <TableCell class="whitespace-nowrap">
                   <div class="flex items-center gap-3">
                     <div class="relative shrink-0">
-                      <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center">
-                        <span class="text-indigo-700 text-[11px] font-bold">{{ d.initials }}</span>
+                      <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                        <span class="text-primary text-[11px] font-bold">{{ d.initials }}</span>
                       </div>
                       <span :class="['absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white', statusMeta[d.status].dot]" />
                     </div>
@@ -373,21 +376,21 @@ const columns: { key: SortKey; label: string }[] = [
                 </TableCell>
                 <TableCell class="whitespace-nowrap text-sm text-slate-600 dark:text-slate-300">{{ d.specialty }}</TableCell>
                 <TableCell class="whitespace-nowrap">
-                  <span :class="['inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ring-1', statusMeta[d.status].badge]">
+                  <Badge variant="outline" :class="['gap-1.5', statusMeta[d.status].badge]">
                     <span :class="['w-1.5 h-1.5 rounded-full', statusMeta[d.status].dot]" />
                     {{ statusMeta[d.status].label }}
-                  </span>
+                  </Badge>
                 </TableCell>
                 <TableCell class="whitespace-nowrap text-sm text-slate-600 dark:text-slate-300 tabular-nums">{{ d.patientCount }}</TableCell>
                 <TableCell class="whitespace-nowrap">
                   <div class="flex items-center gap-1 justify-end">
                     <DropdownMenu>
                       <DropdownMenuTrigger as-child>
-                        <button class="p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
+                        <Button variant="ghost" size="icon" class="w-8 h-8">
                           <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                             <circle cx="10" cy="4" r="1.5" /><circle cx="10" cy="10" r="1.5" /><circle cx="10" cy="16" r="1.5" />
                           </svg>
-                        </button>
+                        </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" class="w-44">
                         <DropdownMenuLabel class="text-xs text-slate-400 font-normal">Doctor actions</DropdownMenuLabel>
@@ -435,7 +438,7 @@ const columns: { key: SortKey; label: string }[] = [
           :class="[
             'relative flex items-center gap-2 px-4 py-3 text-sm whitespace-nowrap transition-colors border-b-2 -mb-px',
             activeTab === tab.key
-              ? 'border-indigo-600 text-indigo-700 dark:text-indigo-400 font-semibold'
+              ? 'border-primary text-primary font-semibold'
               : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
           ]"
         >
@@ -454,22 +457,20 @@ const columns: { key: SortKey; label: string }[] = [
         <div v-if="activeTab === 'identity'" class="space-y-5">
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">First name <span class="text-rose-500">*</span></label>
-              <input
+              <Label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">First name <span class="text-rose-500">*</span></Label>
+              <Input
                 v-model="addForm.firstName"
-                type="text"
                 placeholder="Elena"
-                :class="['w-full px-3 py-2 rounded-lg border text-sm outline-none transition-all dark:bg-slate-800 dark:text-slate-100', addErrors.firstName ? 'border-rose-300 bg-rose-50' : 'border-slate-200 dark:border-slate-600 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50']"
+                :class="addErrors.firstName ? 'border-rose-300 bg-rose-50' : ''"
               />
               <p v-if="addErrors.firstName" class="text-rose-500 text-xs mt-1">{{ addErrors.firstName }}</p>
             </div>
             <div>
-              <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Last name <span class="text-rose-500">*</span></label>
-              <input
+              <Label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Last name <span class="text-rose-500">*</span></Label>
+              <Input
                 v-model="addForm.lastName"
-                type="text"
                 placeholder="Voss"
-                :class="['w-full px-3 py-2 rounded-lg border text-sm outline-none transition-all dark:bg-slate-800 dark:text-slate-100', addErrors.lastName ? 'border-rose-300 bg-rose-50' : 'border-slate-200 dark:border-slate-600 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50']"
+                :class="addErrors.lastName ? 'border-rose-300 bg-rose-50' : ''"
               />
               <p v-if="addErrors.lastName" class="text-rose-500 text-xs mt-1">{{ addErrors.lastName }}</p>
             </div>
@@ -477,23 +478,18 @@ const columns: { key: SortKey; label: string }[] = [
 
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Email address <span class="text-rose-500">*</span></label>
-              <input
+              <Label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Email address <span class="text-rose-500">*</span></Label>
+              <Input
                 v-model="addForm.email"
                 type="email"
                 placeholder="elena.voss@clinic.com"
-                :class="['w-full px-3 py-2 rounded-lg border text-sm outline-none transition-all dark:bg-slate-800 dark:text-slate-100', addErrors.email ? 'border-rose-300 bg-rose-50' : 'border-slate-200 dark:border-slate-600 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50']"
+                :class="addErrors.email ? 'border-rose-300 bg-rose-50' : ''"
               />
               <p v-if="addErrors.email" class="text-rose-500 text-xs mt-1">{{ addErrors.email }}</p>
             </div>
             <div>
-              <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Phone number</label>
-              <input
-                v-model="addForm.phone"
-                type="tel"
-                placeholder="+1 (555) 000-0000"
-                class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 text-sm outline-none transition-all dark:bg-slate-800 dark:text-slate-100 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50"
-              />
+              <Label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Phone number</Label>
+              <Input v-model="addForm.phone" type="tel" placeholder="+1 (555) 000-0000" />
             </div>
           </div>
         </div>
@@ -502,20 +498,21 @@ const columns: { key: SortKey; label: string }[] = [
         <div v-if="activeTab === 'professional'" class="space-y-5">
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Professional type <span class="text-rose-500">*</span></label>
-              <select
-                v-model="addForm.professionalType"
-                :class="['w-full px-3 py-2 rounded-lg border text-sm outline-none transition-all bg-white dark:bg-slate-800 dark:text-slate-100', addErrors.professionalType ? 'border-rose-300' : 'border-slate-200 dark:border-slate-600 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50']"
-              >
-                <option value="">Select type</option>
-                <option v-for="t in PROFESSIONAL_TYPES" :key="t" :value="t">{{ t }}</option>
-              </select>
+              <Label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Professional type <span class="text-rose-500">*</span></Label>
+              <Select v-model="addForm.professionalType">
+                <SelectTrigger :class="addErrors.professionalType ? 'border-rose-300' : ''">
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem v-for="t in PROFESSIONAL_TYPES" :key="t" :value="t">{{ t }}</SelectItem>
+                </SelectContent>
+              </Select>
               <p v-if="addErrors.professionalType" class="text-rose-500 text-xs mt-1">{{ addErrors.professionalType }}</p>
             </div>
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">System role</label>
+            <Label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">System role</Label>
             <div class="grid grid-cols-2 gap-2">
               <button
                 v-for="role in SYSTEM_ROLES" :key="role.value"
@@ -524,18 +521,18 @@ const columns: { key: SortKey; label: string }[] = [
                 :class="[
                   'text-left px-3 py-2.5 rounded-xl border transition-all',
                   addForm.systemRole === role.value
-                    ? 'border-indigo-400 bg-indigo-50 dark:bg-indigo-950 ring-2 ring-indigo-100 dark:ring-indigo-900'
+                    ? 'border-primary bg-primary/10 dark:bg-primary/20 ring-2 ring-primary/20'
                     : 'border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-slate-300',
                 ]"
               >
-                <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">{{ role.label }}</p>
+                <p :class="['text-sm font-semibold', addForm.systemRole === role.value ? 'text-primary' : 'text-slate-800 dark:text-slate-100']">{{ role.label }}</p>
                 <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">{{ role.desc }}</p>
               </button>
             </div>
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Specialties</label>
+            <Label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Specialties</Label>
             <div class="flex flex-wrap gap-1.5">
               <button
                 v-for="s in SPECIALTIES" :key="s"
@@ -544,7 +541,7 @@ const columns: { key: SortKey; label: string }[] = [
                 :class="[
                   'px-2.5 py-1 rounded-full text-xs font-medium border transition-colors',
                   addForm.specialties.includes(s)
-                    ? 'bg-indigo-600 text-white border-indigo-600'
+                    ? 'bg-primary text-primary-foreground border-primary'
                     : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:border-slate-300',
                 ]"
               >{{ s }}</button>
@@ -552,7 +549,7 @@ const columns: { key: SortKey; label: string }[] = [
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Client groups</label>
+            <Label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Client groups</Label>
             <div class="flex flex-wrap gap-1.5">
               <button
                 v-for="g in CLIENT_GROUPS" :key="g"
@@ -569,7 +566,7 @@ const columns: { key: SortKey; label: string }[] = [
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Languages</label>
+            <Label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Languages</Label>
             <div class="flex flex-wrap gap-1.5">
               <button
                 v-for="l in LANGUAGES" :key="l"
@@ -586,7 +583,7 @@ const columns: { key: SortKey; label: string }[] = [
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Modalities</label>
+            <Label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Modalities</Label>
             <div class="flex gap-2">
               <button
                 v-for="m in MODALITIES" :key="m"
@@ -607,55 +604,46 @@ const columns: { key: SortKey; label: string }[] = [
         <div v-if="activeTab === 'licensing'" class="space-y-5">
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">License number</label>
-              <input
-                v-model="addForm.licenseNumber"
-                type="text"
-                placeholder="PSY-1234567"
-                class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 text-sm outline-none transition-all dark:bg-slate-800 dark:text-slate-100 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50"
-              />
+              <Label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">License number</Label>
+              <Input v-model="addForm.licenseNumber" placeholder="PSY-1234567" />
             </div>
             <div>
-              <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Issuing authority</label>
-              <input
-                v-model="addForm.issuingAuthority"
-                type="text"
-                placeholder="State Board of Psychology"
-                class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 text-sm outline-none transition-all dark:bg-slate-800 dark:text-slate-100 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50"
-              />
+              <Label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Issuing authority</Label>
+              <Input v-model="addForm.issuingAuthority" placeholder="State Board of Psychology" />
             </div>
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">License country / region</label>
-            <select
-              v-model="addForm.licenseRegion"
-              class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 dark:text-slate-100 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50 transition-all"
-            >
-              <option value="">Select region</option>
-              <option v-for="r in REGIONS" :key="r" :value="r">{{ r }}</option>
-            </select>
+            <Label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">License country / region</Label>
+            <Select v-model="addForm.licenseRegion">
+              <SelectTrigger>
+                <SelectValue placeholder="Select region" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="r in REGIONS" :key="r" :value="r">{{ r }}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div class="grid grid-cols-2 gap-6">
             <div>
-              <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Default location</label>
+              <Label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Default location</Label>
               <div class="grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   @click="addForm.defaultLocation = 'online'"
-                  :class="['py-2 rounded-lg text-sm font-medium border transition-colors', addForm.defaultLocation === 'online' ? 'bg-indigo-50 dark:bg-indigo-950 border-indigo-400 text-indigo-700 dark:text-indigo-300' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:border-slate-300']"
+                  :class="['py-2 rounded-lg text-sm font-medium border transition-colors', addForm.defaultLocation === 'online' ? 'bg-primary/10 dark:bg-primary/20 border-primary text-primary' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:border-slate-300']"
                 >Online</button>
                 <button
                   type="button"
                   @click="addForm.defaultLocation = 'inperson'"
-                  :class="['py-2 rounded-lg text-sm font-medium border transition-colors', addForm.defaultLocation === 'inperson' ? 'bg-indigo-50 dark:bg-indigo-950 border-indigo-400 text-indigo-700 dark:text-indigo-300' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:border-slate-300']"
+                  :class="['py-2 rounded-lg text-sm font-medium border transition-colors', addForm.defaultLocation === 'inperson' ? 'bg-primary/10 dark:bg-primary/20 border-primary text-primary' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:border-slate-300']"
                 >In-person</button>
               </div>
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Session default length</label>
+              <Label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Session default length</Label>
               <div class="flex flex-wrap gap-1.5">
                 <button
                   v-for="len in SESSION_LENGTHS" :key="len"
@@ -664,7 +652,7 @@ const columns: { key: SortKey; label: string }[] = [
                   :class="[
                     'px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors',
                     addForm.sessionLength === len
-                      ? 'bg-indigo-600 text-white border-indigo-600'
+                      ? 'bg-primary text-primary-foreground border-primary'
                       : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-600 hover:border-slate-300',
                   ]"
                 >{{ len }} min</button>
@@ -686,17 +674,7 @@ const columns: { key: SortKey; label: string }[] = [
                   <p class="text-sm font-medium text-slate-800 dark:text-slate-100">Allow direct booking</p>
                   <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">Clients can find and schedule appointments with this doctor directly via the platform</p>
                 </div>
-                <button
-                  type="button"
-                  @click="addForm.allowDirectBooking = !addForm.allowDirectBooking"
-                  :class="addForm.allowDirectBooking ? 'bg-indigo-600' : 'bg-slate-200 dark:bg-slate-600'"
-                  class="relative mt-0.5 w-10 h-[22px] rounded-full transition-colors flex-shrink-0"
-                >
-                  <span
-                    :class="addForm.allowDirectBooking ? 'translate-x-[20px]' : 'translate-x-[2px]'"
-                    class="absolute top-[3px] w-4 h-4 rounded-full bg-white shadow transition-transform"
-                  />
-                </button>
+                <Switch v-model:checked="addForm.allowDirectBooking" class="mt-0.5 flex-shrink-0" />
               </div>
 
               <div class="flex items-start justify-between gap-4 px-4 py-3.5 bg-white dark:bg-slate-800">
@@ -704,17 +682,7 @@ const columns: { key: SortKey; label: string }[] = [
                   <p class="text-sm font-medium text-slate-800 dark:text-slate-100">Notify existing clients</p>
                   <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">Automatically send a notification to current clients when this doctor joins the clinic</p>
                 </div>
-                <button
-                  type="button"
-                  @click="addForm.inviteClients = !addForm.inviteClients"
-                  :class="addForm.inviteClients ? 'bg-indigo-600' : 'bg-slate-200 dark:bg-slate-600'"
-                  class="relative mt-0.5 w-10 h-[22px] rounded-full transition-colors flex-shrink-0"
-                >
-                  <span
-                    :class="addForm.inviteClients ? 'translate-x-[20px]' : 'translate-x-[2px]'"
-                    class="absolute top-[3px] w-4 h-4 rounded-full bg-white shadow transition-transform"
-                  />
-                </button>
+                <Switch v-model:checked="addForm.inviteClients" class="mt-0.5 flex-shrink-0" />
               </div>
             </div>
           </div>
@@ -736,43 +704,41 @@ const columns: { key: SortKey; label: string }[] = [
                 :class="[
                   'py-3 px-2 rounded-xl border text-center transition-all',
                   addForm.sendInvitation === opt.v
-                    ? 'border-indigo-400 bg-indigo-50 dark:bg-indigo-950 ring-2 ring-indigo-100 dark:ring-indigo-900'
+                    ? 'border-primary bg-primary/10 dark:bg-primary/20 ring-2 ring-primary/20'
                     : 'border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-slate-300',
                 ]"
               >
-                <p :class="['text-sm font-semibold', addForm.sendInvitation === opt.v ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-800 dark:text-slate-100']">{{ opt.title }}</p>
+                <p :class="['text-sm font-semibold', addForm.sendInvitation === opt.v ? 'text-primary' : 'text-slate-800 dark:text-slate-100']">{{ opt.title }}</p>
                 <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{{ opt.sub }}</p>
               </button>
             </div>
 
             <!-- Scheduled date -->
             <div v-if="addForm.sendInvitation === 'schedule'" class="mb-4">
-              <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Send on</label>
-              <input
-                v-model="addForm.scheduledDate"
-                type="datetime-local"
-                class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 dark:text-slate-100 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50 transition-all"
-              />
+              <Label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Send on</Label>
+              <Input v-model="addForm.scheduledDate" type="datetime-local" />
             </div>
 
             <!-- Language + message (if sending) -->
             <template v-if="addForm.sendInvitation !== 'none'">
               <div class="mb-4">
-                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Onboarding language</label>
-                <select
-                  v-model="addForm.onboardingLanguage"
-                  class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 dark:text-slate-100 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50 transition-all"
-                >
-                  <option v-for="l in ONBOARDING_LANGS" :key="l.value" :value="l.value">{{ l.label }}</option>
-                </select>
+                <Label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Onboarding language</Label>
+                <Select v-model="addForm.onboardingLanguage">
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem v-for="l in ONBOARDING_LANGS" :key="l.value" :value="l.value">{{ l.label }}</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div>
-                <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Custom message <span class="text-slate-400 font-normal">(optional)</span></label>
-                <textarea
+                <Label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Custom message <span class="text-slate-400 font-normal">(optional)</span></Label>
+                <Textarea
                   v-model="addForm.customMessage"
                   placeholder="Welcome to our clinic! We're excited to have you on board. Please complete your profile setup using the link below."
-                  rows="3"
-                  class="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 dark:text-slate-100 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-50 transition-all resize-none placeholder:text-slate-300 dark:placeholder:text-slate-500"
+                  :rows="3"
+                  class="resize-none"
                 />
                 <p class="text-xs text-slate-400 mt-1">{{ addForm.customMessage.length }}/300 characters</p>
               </div>
@@ -784,13 +750,7 @@ const columns: { key: SortKey; label: string }[] = [
 
       <!-- Footer -->
       <div class="px-6 py-4 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between shrink-0">
-        <button
-          type="button"
-          @click="addModalOpen = false"
-          class="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-        >
-          Cancel
-        </button>
+        <Button variant="outline" type="button" @click="addModalOpen = false">Cancel</Button>
         <div class="flex items-center gap-2">
           <!-- Tab indicators -->
           <div class="flex gap-1 mr-2">
@@ -798,16 +758,12 @@ const columns: { key: SortKey; label: string }[] = [
               v-for="tab in TABS" :key="tab.key"
               type="button"
               @click="activeTab = tab.key"
-              :class="['w-1.5 h-1.5 rounded-full transition-colors', activeTab === tab.key ? 'bg-indigo-600' : 'bg-slate-200 dark:bg-slate-600 hover:bg-slate-300']"
+              :class="['w-1.5 h-1.5 rounded-full transition-colors', activeTab === tab.key ? 'bg-primary' : 'bg-slate-200 dark:bg-slate-600 hover:bg-slate-300']"
             />
           </div>
-          <button
-            type="button"
-            @click="saveDoctor"
-            class="px-5 py-2 text-sm font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 transition-colors shadow-sm"
-          >
+          <Button type="button" @click="saveDoctor">
             {{ editDoctor ? 'Save changes' : 'Add Doctor' }}
-          </button>
+          </Button>
         </div>
       </div>
 

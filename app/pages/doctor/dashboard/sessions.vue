@@ -17,6 +17,10 @@ import {
   Popover, PopoverContent, PopoverTrigger,
 } from '~/components/ui/popover'
 import { Slider } from '~/components/ui/slider'
+import { Button } from '~/components/ui/button'
+import { Input } from '~/components/ui/input'
+import { Badge } from '~/components/ui/badge'
+import { Checkbox } from '~/components/ui/checkbox'
 
 definePageMeta({ layout: 'dashboard' })
 
@@ -218,7 +222,6 @@ function toggleSort(key: SortKey) {
 const filtered = computed(() => {
   let list = [...sessions.value]
 
-  // Text search
   if (search.value.trim()) {
     const q = search.value.toLowerCase()
     list = list.filter(s =>
@@ -227,7 +230,6 @@ const filtered = computed(() => {
     )
   }
 
-  // Date range
   if (dateFrom.value || dateTo.value) {
     list = list.filter((s) => {
       const start = parseISO(s.start)
@@ -243,26 +245,21 @@ const filtered = computed(() => {
     })
   }
 
-  // Status
   if (statusFilter.value.size > 0) {
     list = list.filter(s => statusFilter.value.has(s.status))
   }
 
-  // Modality
   if (modalityFilter.value.size > 0) {
     list = list.filter(s => modalityFilter.value.has(s.modality))
   }
 
-  // Fee range
   if (feeRange.value[0] !== FEE_MIN || feeRange.value[1] !== FEE_MAX) {
     list = list.filter(s => s.fee >= feeRange.value[0] && s.fee <= feeRange.value[1])
   }
 
-  // Has notes / uploads
   if (hasWithNotes.value)   list = list.filter(s => s.notes > 0)
   if (hasWithUploads.value) list = list.filter(s => s.uploads > 0)
 
-  // Sort
   list.sort((a, b) => {
     let va: string | number = ''
     let vb: string | number = ''
@@ -313,11 +310,11 @@ function reschedule(id: string) {
 function fmtDateTime(isoStr: string) { return format(parseISO(isoStr), 'MMM d, HH:mm') }
 function fmtTime(isoStr: string)     { return format(parseISO(isoStr), 'HH:mm') }
 
-const statusMeta: Record<SessionStatus, { label: string; classes: string; icon: Component }> = {
-  scheduled: { label: 'Scheduled', classes: 'bg-blue-50 text-blue-700 ring-blue-200',    icon: Clock        },
-  completed: { label: 'Completed', classes: 'bg-green-50 text-green-700 ring-green-200', icon: CheckCircle2 },
-  cancelled: { label: 'Cancelled', classes: 'bg-red-50 text-red-600 ring-red-200',        icon: XCircle      },
-  'no-show': { label: 'No-show',   classes: 'bg-amber-50 text-amber-700 ring-amber-200', icon: AlertCircle  },
+const statusMeta: Record<SessionStatus, { label: string; badge: string; icon: Component }> = {
+  scheduled: { label: 'Scheduled', badge: 'bg-blue-50 text-blue-700 border-blue-200',    icon: Clock        },
+  completed: { label: 'Completed', badge: 'bg-green-50 text-green-700 border-green-200', icon: CheckCircle2 },
+  cancelled: { label: 'Cancelled', badge: 'bg-red-50 text-red-600 border-red-200',        icon: XCircle      },
+  'no-show': { label: 'No-show',   badge: 'bg-amber-50 text-amber-700 border-amber-200', icon: AlertCircle  },
 }
 
 const columns: { key: SortKey; label: string; sortable: boolean }[] = [
@@ -328,8 +325,6 @@ const columns: { key: SortKey; label: string; sortable: boolean }[] = [
   { key: 'status',  label: 'Status',  sortable: true  },
   { key: 'fee',     label: 'Fee',     sortable: true  },
 ]
-
-// ── Toggle helpers ─────────────────────────────────────────────────────────
 
 function toggleStatus(s: SessionStatus) {
   const next = new Set(statusFilter.value)
@@ -376,13 +371,10 @@ function onSessionSaved(s: import('~/components/ScheduleSessionModal.vue').NewSe
           <h1 class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Sessions</h1>
           <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Manage your schedule and appointments.</p>
         </div>
-        <button
-          class="flex items-center gap-2 px-4 py-2.5 bg-slate-900 dark:bg-slate-700 text-white text-sm font-medium rounded-xl hover:bg-slate-800 dark:hover:bg-slate-600 transition-colors shadow-sm whitespace-nowrap"
-          @click="scheduleModalOpen = true"
-        >
+        <Button @click="scheduleModalOpen = true">
           <Plus class="w-4 h-4" />
           Schedule Session
-        </button>
+        </Button>
       </div>
 
       <!-- ── Toolbar: search + filter popover ───────────────────────────── -->
@@ -391,47 +383,45 @@ function onSessionSaved(s: import('~/components/ScheduleSessionModal.vue').NewSe
         <!-- Search -->
         <div class="relative flex-1 max-w-sm">
           <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-          <input
+          <Input
             v-model="search"
             type="text"
             placeholder="Search by title or patient…"
-            class="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            class="pl-9"
           />
         </div>
 
         <!-- Filter popover ─────────────────────────────────────────────── -->
         <Popover>
           <PopoverTrigger as-child>
-            <button
-              :class="[
-                'relative flex items-center gap-2 px-3.5 py-2 text-sm font-medium border rounded-lg transition-colors',
-                activeCount > 0
-                  ? 'bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800'
-                  : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700',
-              ]"
+            <Button
+              variant="outline"
+              :class="activeCount > 0 ? 'bg-primary/10 text-primary border-primary/30' : ''"
             >
               <SlidersHorizontal class="w-4 h-4" />
               Filters
               <span
                 v-if="activeCount > 0"
-                class="ml-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-indigo-600 text-[10px] font-bold text-white"
+                class="ml-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground"
               >
                 {{ activeCount }}
               </span>
-            </button>
+            </Button>
           </PopoverTrigger>
 
           <PopoverContent align="start" class="w-80 p-0 overflow-hidden" :side-offset="6">
             <!-- Panel header -->
             <div class="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-700">
               <span class="text-sm font-semibold text-slate-800 dark:text-slate-100">Filters</span>
-              <button
+              <Button
                 v-if="activeCount > 0"
-                class="text-xs text-indigo-600 hover:text-indigo-800 font-medium transition-colors"
+                variant="link"
+                size="sm"
+                class="h-auto p-0 text-xs"
                 @click="clearAllFilters"
               >
                 Clear all
-              </button>
+              </Button>
             </div>
 
             <div class="px-4 py-4 space-y-5 max-h-[70vh] overflow-y-auto">
@@ -442,20 +432,20 @@ function onSessionSaved(s: import('~/components/ScheduleSessionModal.vue').NewSe
                 <div class="grid grid-cols-2 gap-2">
                   <div>
                     <label class="block text-xs text-slate-500 dark:text-slate-400 mb-1">From</label>
-                    <input
+                    <Input
                       v-model="dateFrom"
                       type="date"
                       :max="dateTo || undefined"
-                      class="w-full text-xs border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      class="text-xs h-8"
                     />
                   </div>
                   <div>
                     <label class="block text-xs text-slate-500 dark:text-slate-400 mb-1">To</label>
-                    <input
+                    <Input
                       v-model="dateTo"
                       type="date"
                       :min="dateFrom || undefined"
-                      class="w-full text-xs border border-slate-200 dark:border-slate-700 rounded-lg px-2.5 py-1.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      class="text-xs h-8"
                     />
                   </div>
                 </div>
@@ -481,34 +471,20 @@ function onSessionSaved(s: import('~/components/ScheduleSessionModal.vue').NewSe
               <!-- Status -->
               <section>
                 <p class="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Status</p>
-                <div class="space-y-1.5">
+                <div class="space-y-2">
                   <label
                     v-for="(meta, key) in statusMeta"
                     :key="key"
-                    class="flex items-center gap-2.5 cursor-pointer group"
+                    class="flex items-center gap-2.5 cursor-pointer"
                   >
-                    <div
-                      :class="[
-                        'w-4 h-4 rounded border-2 flex items-center justify-center transition-colors',
-                        statusFilter.has(key as SessionStatus)
-                          ? 'bg-indigo-600 border-indigo-600'
-                          : 'border-slate-300 group-hover:border-indigo-400',
-                      ]"
-                      @click="toggleStatus(key as SessionStatus)"
-                    >
-                      <svg v-if="statusFilter.has(key as SessionStatus)" class="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 12 12">
-                        <path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-                      </svg>
-                    </div>
-                    <span
-                      :class="[
-                        'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ring-1',
-                        meta.classes,
-                      ]"
-                    >
+                    <Checkbox
+                      :checked="statusFilter.has(key as SessionStatus)"
+                      @update:checked="toggleStatus(key as SessionStatus)"
+                    />
+                    <Badge variant="outline" :class="['gap-1.5', meta.badge]">
                       <component :is="meta.icon" class="w-3 h-3" />
                       {{ meta.label }}
-                    </span>
+                    </Badge>
                   </label>
                 </div>
               </section>
@@ -518,28 +494,19 @@ function onSessionSaved(s: import('~/components/ScheduleSessionModal.vue').NewSe
               <!-- Modality -->
               <section>
                 <p class="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Modality</p>
-                <div class="space-y-1.5">
+                <div class="space-y-2">
                   <label
                     v-for="opt in [
-                      { value: 'online' as Modality, label: 'Online', icon: Video, color: 'text-indigo-500' },
+                      { value: 'online' as Modality, label: 'Online', icon: Video, color: 'text-primary' },
                       { value: 'inperson' as Modality, label: 'In-person', icon: MapPin, color: 'text-slate-500' },
                     ]"
                     :key="opt.value"
-                    class="flex items-center gap-2.5 cursor-pointer group"
+                    class="flex items-center gap-2.5 cursor-pointer"
                   >
-                    <div
-                      :class="[
-                        'w-4 h-4 rounded border-2 flex items-center justify-center transition-colors',
-                        modalityFilter.has(opt.value)
-                          ? 'bg-indigo-600 border-indigo-600'
-                          : 'border-slate-300 group-hover:border-indigo-400',
-                      ]"
-                      @click="toggleModality(opt.value)"
-                    >
-                      <svg v-if="modalityFilter.has(opt.value)" class="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 12 12">
-                        <path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-                      </svg>
-                    </div>
+                    <Checkbox
+                      :checked="modalityFilter.has(opt.value)"
+                      @update:checked="toggleModality(opt.value)"
+                    />
                     <div class="flex items-center gap-1.5">
                       <component :is="opt.icon" :class="['w-3.5 h-3.5', opt.color]" />
                       <span class="text-sm text-slate-700 dark:text-slate-200">{{ opt.label }}</span>
@@ -577,40 +544,16 @@ function onSessionSaved(s: import('~/components/ScheduleSessionModal.vue').NewSe
               <!-- Content flags -->
               <section>
                 <p class="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Content</p>
-                <div class="space-y-1.5">
-                  <label class="flex items-center gap-2.5 cursor-pointer group">
-                    <div
-                      :class="[
-                        'w-4 h-4 rounded border-2 flex items-center justify-center transition-colors',
-                        hasWithNotes
-                          ? 'bg-indigo-600 border-indigo-600'
-                          : 'border-slate-300 group-hover:border-indigo-400',
-                      ]"
-                      @click="hasWithNotes = !hasWithNotes"
-                    >
-                      <svg v-if="hasWithNotes" class="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 12 12">
-                        <path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-                      </svg>
-                    </div>
+                <div class="space-y-2">
+                  <label class="flex items-center gap-2.5 cursor-pointer">
+                    <Checkbox :checked="hasWithNotes" @update:checked="(v) => hasWithNotes = !!v" />
                     <div class="flex items-center gap-1.5">
                       <FileText class="w-3.5 h-3.5 text-slate-400" />
                       <span class="text-sm text-slate-700 dark:text-slate-200">Has notes</span>
                     </div>
                   </label>
-                  <label class="flex items-center gap-2.5 cursor-pointer group">
-                    <div
-                      :class="[
-                        'w-4 h-4 rounded border-2 flex items-center justify-center transition-colors',
-                        hasWithUploads
-                          ? 'bg-indigo-600 border-indigo-600'
-                          : 'border-slate-300 group-hover:border-indigo-400',
-                      ]"
-                      @click="hasWithUploads = !hasWithUploads"
-                    >
-                      <svg v-if="hasWithUploads" class="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 12 12">
-                        <path d="M2 6l3 3 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
-                      </svg>
-                    </div>
+                  <label class="flex items-center gap-2.5 cursor-pointer">
+                    <Checkbox :checked="hasWithUploads" @update:checked="(v) => hasWithUploads = !!v" />
                     <div class="flex items-center gap-1.5">
                       <svg class="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
@@ -636,11 +579,11 @@ function onSessionSaved(s: import('~/components/ScheduleSessionModal.vue').NewSe
         <span
           v-for="chip in activeFilters"
           :key="chip.id"
-          class="inline-flex items-center gap-1 pl-2.5 pr-1.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 text-xs font-medium border border-indigo-100 dark:border-indigo-900"
+          class="inline-flex items-center gap-1 pl-2.5 pr-1.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium border border-primary/20"
         >
           {{ chip.label }}
           <button
-            class="ml-0.5 rounded-full hover:bg-indigo-100 p-0.5 transition-colors"
+            class="ml-0.5 rounded-full hover:bg-primary/20 p-0.5 transition-colors"
             @click="chip.clear()"
           >
             <X class="w-3 h-3" />
@@ -672,8 +615,8 @@ function onSessionSaved(s: import('~/components/ScheduleSessionModal.vue').NewSe
                   <div class="flex items-center gap-1">
                     {{ col.label }}
                     <span v-if="col.sortable" class="text-slate-300">
-                      <ChevronUp    v-if="sortKey === col.key && sortDir === 'asc'"  class="w-3.5 h-3.5 text-indigo-500" />
-                      <ChevronDown  v-else-if="sortKey === col.key && sortDir === 'desc'" class="w-3.5 h-3.5 text-indigo-500" />
+                      <ChevronUp    v-if="sortKey === col.key && sortDir === 'asc'"  class="w-3.5 h-3.5 text-primary" />
+                      <ChevronDown  v-else-if="sortKey === col.key && sortDir === 'desc'" class="w-3.5 h-3.5 text-primary" />
                       <ChevronsUpDown v-else class="w-3.5 h-3.5" />
                     </span>
                   </div>
@@ -712,7 +655,7 @@ function onSessionSaved(s: import('~/components/ScheduleSessionModal.vue').NewSe
                   <div class="flex items-center gap-2">
                     <component
                       :is="s.modality === 'online' ? Video : MapPin"
-                      :class="['w-3.5 h-3.5 shrink-0', s.modality === 'online' ? 'text-indigo-400' : 'text-slate-400']"
+                      :class="['w-3.5 h-3.5 shrink-0', s.modality === 'online' ? 'text-primary' : 'text-slate-400']"
                     />
                     <span class="font-medium text-slate-800 dark:text-slate-100">{{ s.title }}</span>
                   </div>
@@ -722,8 +665,8 @@ function onSessionSaved(s: import('~/components/ScheduleSessionModal.vue').NewSe
                 <!-- Patient -->
                 <TableCell class="whitespace-nowrap">
                   <div class="flex items-center gap-2.5">
-                    <div class="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
-                      <span class="text-indigo-700 text-[10px] font-bold">{{ s.patient.initials }}</span>
+                    <div class="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <span class="text-primary text-[10px] font-bold">{{ s.patient.initials }}</span>
                     </div>
                     <span class="text-slate-700 dark:text-slate-200 font-medium">{{ s.patient.name }}</span>
                   </div>
@@ -741,10 +684,10 @@ function onSessionSaved(s: import('~/components/ScheduleSessionModal.vue').NewSe
 
                 <!-- Status -->
                 <TableCell class="whitespace-nowrap">
-                  <span :class="['inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ring-1', statusMeta[s.status].classes]">
+                  <Badge variant="outline" :class="['gap-1.5', statusMeta[s.status].badge]">
                     <component :is="statusMeta[s.status].icon" class="w-3 h-3" />
                     {{ statusMeta[s.status].label }}
-                  </span>
+                  </Badge>
                 </TableCell>
 
                 <!-- Fee -->
@@ -775,30 +718,30 @@ function onSessionSaved(s: import('~/components/ScheduleSessionModal.vue').NewSe
                   <div class="flex items-center gap-1">
 
                     <template v-if="s.status === 'scheduled'">
-                      <button title="Mark as completed" class="p-1.5 rounded-md text-slate-400 hover:text-green-600 hover:bg-green-50 transition-colors" @click="markComplete(s.id)">
-                        <CheckCircle2 class="w-4 h-4" />
-                      </button>
-                      <button title="Mark as no-show" class="p-1.5 rounded-md text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-colors" @click="markNoShow(s.id)">
-                        <AlertCircle class="w-4 h-4" />
-                      </button>
-                      <button title="Cancel session" class="p-1.5 rounded-md text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors" @click="cancelSession(s.id)">
-                        <Ban class="w-4 h-4" />
-                      </button>
+                      <Button variant="ghost" size="icon-sm" title="Mark as completed" @click="markComplete(s.id)">
+                        <CheckCircle2 class="w-4 h-4 text-green-600" />
+                      </Button>
+                      <Button variant="ghost" size="icon-sm" title="Mark as no-show" @click="markNoShow(s.id)">
+                        <AlertCircle class="w-4 h-4 text-amber-600" />
+                      </Button>
+                      <Button variant="ghost" size="icon-sm" title="Cancel session" @click="cancelSession(s.id)">
+                        <Ban class="w-4 h-4 text-red-500" />
+                      </Button>
                     </template>
 
                     <template v-else-if="s.status === 'cancelled' || s.status === 'no-show'">
-                      <button title="Reschedule" class="p-1.5 rounded-md text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors" @click="reschedule(s.id)">
-                        <CalendarDays class="w-4 h-4" />
-                      </button>
+                      <Button variant="ghost" size="icon-sm" title="Reschedule" @click="reschedule(s.id)">
+                        <CalendarDays class="w-4 h-4 text-primary" />
+                      </Button>
                     </template>
 
                     <DropdownMenu>
                       <DropdownMenuTrigger as-child>
-                        <button class="p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
+                        <Button variant="ghost" size="icon-sm">
                           <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                             <circle cx="10" cy="4" r="1.5" /><circle cx="10" cy="10" r="1.5" /><circle cx="10" cy="16" r="1.5" />
                           </svg>
-                        </button>
+                        </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" class="w-44">
                         <DropdownMenuLabel class="text-xs text-slate-400 font-normal">Session actions</DropdownMenuLabel>
@@ -813,7 +756,7 @@ function onSessionSaved(s: import('~/components/ScheduleSessionModal.vue').NewSe
                         </template>
                         <template v-else-if="s.status === 'cancelled' || s.status === 'no-show'">
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem class="gap-2 cursor-pointer text-indigo-600 focus:text-indigo-600 focus:bg-indigo-50" @click="reschedule(s.id)"><CalendarDays class="w-3.5 h-3.5" />Reschedule</DropdownMenuItem>
+                          <DropdownMenuItem class="gap-2 cursor-pointer text-primary focus:text-primary focus:bg-primary/10" @click="reschedule(s.id)"><CalendarDays class="w-3.5 h-3.5" />Reschedule</DropdownMenuItem>
                         </template>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem class="gap-2 cursor-pointer" @click="reschedule(s.id)"><RotateCcw class="w-3.5 h-3.5 text-slate-400" />Book again</DropdownMenuItem>
