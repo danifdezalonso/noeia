@@ -50,12 +50,14 @@ const fcEvents = computed(() =>
       backgroundColor: bg,
       textColor: style.text,
       borderColor: 'transparent',
-      classNames: [
-        `fc-ev-${ev.category}`,
-        ...(ev.done      ? ['fc-ev-done']      : []),
-        ...(ev.allDay    ? ['fc-ev-allday']    : []),
-        ...(ev.cancelled ? ['fc-ev-cancelled'] : []),
-      ],
+      // category/done/cancelled classes are applied via the eventClassNames
+      // callback (below) so FullCalendar always re-evaluates them on re-render
+      extendedProps: {
+        category:  ev.category,
+        done:      !!ev.done,
+        cancelled: !!ev.cancelled,
+        allDay:    !!ev.allDay,
+      },
     }
   }),
 )
@@ -109,6 +111,19 @@ const calendarOptions = computed(() => ({
   events: fcEvents.value,
   dayHeaderContent,
 
+  // Called by FC every time an event is rendered — guarantees classes are
+  // always in sync with the latest extendedProps (unlike per-event classNames
+  // which FC may cache when doing efficient partial updates).
+  eventClassNames: (info: any) => {
+    const p = info.event.extendedProps
+    return [
+      `fc-ev-${p.category}`,
+      ...(p.done      ? ['fc-ev-done']      : []),
+      ...(p.allDay    ? ['fc-ev-allday']    : []),
+      ...(p.cancelled ? ['fc-ev-cancelled'] : []),
+    ]
+  },
+
   select: (info: any) => {
     openQuickCreate(
       toLocalIso(info.start),
@@ -141,8 +156,7 @@ const calendarOptions = computed(() => ({
     // We inject a <span class="fc-task-check"> into FullCalendar's default
     // rendered structure so the title + time remain visible.
     // The done/undone appearance is driven purely by the .fc-ev-done CSS class.
-    const ev = activeEvents.value.find((e) => e.id === info.event.id)
-    if (ev?.category === 'task') {
+    if (info.event.extendedProps.category === 'task') {
       const mainEl = info.el.querySelector('.fc-event-main') as HTMLElement | null
       if (mainEl && !mainEl.querySelector('.fc-task-check')) {
         mainEl.style.display       = 'flex'
