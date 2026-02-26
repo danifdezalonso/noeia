@@ -56,7 +56,7 @@ function fromRow(row: Record<string, unknown>): CalendarEvent {
 export const useSessionsDb = () => {
   async function upsertSession(event: CalendarEvent): Promise<void> {
     const client = useSupabase()
-    if (!client) return
+    if (!client) { console.warn('[sessions] skipping upsert – Supabase client not available'); return }
     const { error } = await client.from('sessions').upsert(toRow(event))
     if (error) console.error('[sessions] upsert error:', error.message)
   }
