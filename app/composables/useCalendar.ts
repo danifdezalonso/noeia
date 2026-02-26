@@ -209,8 +209,7 @@ export const useCalendar = () => {
     modalOpen.value      = false
     quickModalOpen.value = false
     if (data.category === 'session') {
-      const db = useSessionsDb()
-      db.upsertSession(saved)
+      setTimeout(async () => { try { await useSessionsDb().upsertSession(saved) } catch {} }, 0)
     }
     if (data.category === 'meeting') console.log('→ Notification: org members notified')
     if (data.patientId)              console.log('→ Patient record: event appended')
@@ -219,10 +218,12 @@ export const useCalendar = () => {
   function deleteEvents(ids: string[]) {
     const toDelete = events.value.filter((e) => ids.includes(e.id))
     events.value = events.value.filter((e) => !ids.includes(e.id))
-    const db = useSessionsDb()
-    for (const ev of toDelete) {
-      if (ev.category === 'session') db.removeSession(ev.id)
-    }
+    setTimeout(async () => {
+      const db = useSessionsDb()
+      for (const ev of toDelete) {
+        if (ev.category === 'session') try { await db.removeSession(ev.id) } catch {}
+      }
+    }, 0)
   }
 
   function moveEvent(id: string, start: string, end: string) {
@@ -230,7 +231,7 @@ export const useCalendar = () => {
     if (idx !== -1) {
       const updated = { ...events.value[idx]!, start, end }
       events.value = [...events.value.slice(0, idx), updated, ...events.value.slice(idx + 1)]
-      if (updated.category === 'session') useSessionsDb().upsertSession(updated)
+      if (updated.category === 'session') setTimeout(async () => { try { await useSessionsDb().upsertSession(updated) } catch {} }, 0)
     }
   }
 
@@ -238,7 +239,7 @@ export const useCalendar = () => {
     const ev = events.value.find((e) => e.id === id)
     events.value = events.value.filter((e) => e.id !== id)
     modalOpen.value = false
-    if (ev?.category === 'session') useSessionsDb().removeSession(id)
+    if (ev?.category === 'session') setTimeout(async () => { try { await useSessionsDb().removeSession(id) } catch {} }, 0)
   }
 
   // ── Load from Supabase ───────────────────────────────────────────────────────

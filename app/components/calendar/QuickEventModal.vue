@@ -184,13 +184,24 @@ function confirmDiscard() {
   close()
 }
 
-// ── Escape key ────────────────────────────────────────────────────────────────
+// ── Keyboard shortcuts ─────────────────────────────────────────────────────────
 useEventListener(document, 'keydown', (e: KeyboardEvent) => {
   if (!quickModalOpen.value) return
-  if (e.key !== 'Escape') return
-  e.preventDefault()
-  if (showDiscardConfirm.value) { showDiscardConfirm.value = false; return }
-  tryClose()
+  if (e.key === 'Escape') {
+    e.preventDefault()
+    if (showDiscardConfirm.value) { showDiscardConfirm.value = false; return }
+    tryClose()
+    return
+  }
+  if (e.key === 'Enter') {
+    // Allow normal Enter in textarea unless modifier held
+    if ((e.target as HTMLElement)?.tagName === 'TEXTAREA' && !e.metaKey && !e.ctrlKey) return
+    // Let Select dropdowns handle their own Enter
+    if (document.querySelector('[role="listbox"]')) return
+    e.preventDefault()
+    if (showDiscardConfirm.value) { confirmDiscard(); return }
+    handleSave()
+  }
 })
 
 // ── Save ──────────────────────────────────────────────────────────────────────
@@ -255,7 +266,6 @@ function handleMoreOptions() {
           class="fixed z-50 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl ring-1 ring-slate-900/5 dark:ring-slate-700/50 overflow-hidden"
           :style="popoverStyle"
           @click.stop
-          @mousedown.stop
         >
           <!-- Drag handle + close -->
           <div class="flex items-center justify-between px-4 pt-3 pb-1">
