@@ -261,18 +261,24 @@ function handleMoreOptions() {
       leave-to-class="opacity-0 scale-95 translate-y-1"
     >
       <div v-if="quickModalOpen" class="fixed inset-0 z-50" @mousedown.self="tryClose">
-        <!-- Card -->
+        <!-- Card — @mousedown.stop keeps card clicks from reaching the backdrop -->
         <div
           class="fixed z-50 bg-white dark:bg-slate-800 rounded-2xl shadow-2xl ring-1 ring-slate-900/5 dark:ring-slate-700/50 overflow-hidden"
           :style="popoverStyle"
-          @click.stop
+          @mousedown.stop
         >
           <!-- Drag handle + close -->
           <div class="flex items-center justify-between px-4 pt-3 pb-1">
             <div class="w-6 h-0.5 rounded-full bg-slate-200 dark:bg-slate-600" />
-            <Button variant="ghost" size="icon-sm" @click.stop="tryClose">
+            <!-- Native button: avoids Reka-UI wrapper; mousedown fires before
+                 Select's pointerdown capture can suppress click events -->
+            <button
+              type="button"
+              class="rounded-full p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+              @mousedown.stop="tryClose"
+            >
               <X class="w-4 h-4" />
-            </Button>
+            </button>
           </div>
 
           <!-- Category tabs -->
