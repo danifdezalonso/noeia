@@ -195,11 +195,12 @@ const heardFromOptions = [
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-50 flex flex-col">
+  <div class="min-h-screen bg-background flex flex-col">
 
     <!-- Top bar -->
-    <header class="bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
-      <img src="/Noeia_logo.svg" alt="Noeia" class="h-7" />
+    <header class="bg-card border-b border-border px-6 py-4 flex items-center justify-between">
+      <img src="/Noeia_logo.svg" alt="Noeia" class="h-7 dark:hidden" />
+      <img src="/Noeia_logo_white.svg" alt="Noeia" class="h-7 hidden dark:block" />
       <div class="flex items-center gap-3">
         <button
           type="button"
@@ -209,7 +210,7 @@ const heardFromOptions = [
         >
           [DEV] Skip
         </button>
-        <span class="text-slate-400 text-sm">Organization Onboarding</span>
+        <span class="text-muted-foreground text-sm">Organization Onboarding</span>
       </div>
     </header>
 
@@ -218,15 +219,15 @@ const heardFromOptions = [
       <!-- ── Success ── -->
       <Transition name="fade">
         <div v-if="isComplete" class="text-center max-w-sm mx-auto">
-          <div class="w-20 h-20 rounded-full bg-teal-100 border-2 border-teal-300 flex items-center justify-center mx-auto mb-6 animate-bounce-once">
-            <svg class="w-10 h-10 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div class="w-20 h-20 rounded-full bg-primary/10 border-2 border-primary/30 flex items-center justify-center mx-auto mb-6 animate-bounce-once">
+            <svg class="w-10 h-10 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
             </svg>
           </div>
-          <h2 class="text-2xl font-bold text-slate-900 mb-2">
+          <h2 class="text-2xl font-bold text-foreground mb-2">
             Welcome to Noeia{{ form.clinicName ? ', ' + form.clinicName : '' }}!
           </h2>
-          <p class="text-slate-500 text-sm mb-8 leading-relaxed">
+          <p class="text-muted-foreground text-sm mb-8 leading-relaxed">
             Your clinic dashboard is ready. Manage your doctors, patients, and billing all in one place.
           </p>
           <Button class="w-full h-auto py-3 rounded-xl text-base font-semibold" @click="goToDashboard">
@@ -248,8 +249,8 @@ const heardFromOptions = [
                   :class="currentStep > step.n
                     ? 'bg-primary border-primary text-white'
                     : currentStep === step.n
-                      ? 'bg-white border-primary text-primary'
-                      : 'bg-white border-slate-200 text-slate-400'"
+                      ? 'bg-background border-primary text-primary'
+                      : 'bg-background border-border text-muted-foreground'"
                 >
                   <svg v-if="currentStep > step.n" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
@@ -257,12 +258,12 @@ const heardFromOptions = [
                   <span v-else>{{ step.n }}</span>
                 </div>
                 <span class="text-xs hidden sm:block transition-colors duration-300"
-                  :class="currentStep === step.n ? 'text-primary font-medium' : currentStep > step.n ? 'text-slate-500' : 'text-slate-300'">
+                  :class="currentStep === step.n ? 'text-primary font-medium' : currentStep > step.n ? 'text-muted-foreground' : 'text-muted-foreground/40'">
                   {{ step.label }}
                 </span>
               </div>
               <div v-if="idx < steps.length - 1" class="flex-1 h-0.5 mx-2 transition-all duration-500"
-                :class="currentStep > step.n ? 'bg-primary' : 'bg-slate-200'" />
+                :class="currentStep > step.n ? 'bg-primary' : 'bg-border'" />
             </template>
           </div>
         </div>
@@ -270,18 +271,18 @@ const heardFromOptions = [
         <!-- Form card + nav -->
         <div class="w-full max-w-lg">
           <Transition :name="direction === 'forward' ? 'slide-left' : 'slide-right'" mode="out-in">
-            <div :key="currentStep" class="bg-white rounded-2xl shadow-sm border border-slate-100 p-8">
+            <div :key="currentStep" class="bg-card rounded-2xl shadow-sm border border-border p-8">
 
               <!-- ── Step 1: Credentials ── -->
               <template v-if="currentStep === 1">
                 <div class="mb-6">
-                  <h2 class="text-xl font-bold text-slate-900">Admin Credentials</h2>
-                  <p class="text-slate-500 text-sm mt-1">Create your admin account to manage the organization.</p>
+                  <h2 class="text-xl font-bold text-foreground">Admin Credentials</h2>
+                  <p class="text-muted-foreground text-sm mt-1">Create your admin account to manage the organization.</p>
                 </div>
                 <div class="space-y-5">
 
                   <div>
-                    <Label class="block text-sm font-medium text-slate-700 mb-1.5">
+                    <Label class="block text-sm font-medium text-foreground mb-1.5">
                       Admin name <span class="text-rose-500">*</span>
                     </Label>
                     <Input
@@ -290,14 +291,14 @@ const heardFromOptions = [
                       placeholder="Your full name"
                       class="rounded-xl"
                       :class="errors.adminName
-                        ? 'border-rose-300 bg-rose-50 focus-visible:ring-rose-200'
+                        ? 'border-destructive/50 bg-destructive/5 focus-visible:ring-destructive/20'
                         : form.adminName.length >= 2
-                          ? 'border-emerald-300 focus-visible:ring-emerald-200'
+                          ? 'border-primary/50 focus-visible:ring-primary/20'
                           : ''"
                       @input="clearError('adminName')"
                     />
                     <Transition name="err">
-                      <p v-if="errors.adminName" class="flex items-center gap-1.5 text-rose-500 text-xs mt-1.5">
+                      <p v-if="errors.adminName" class="flex items-center gap-1.5 text-destructive text-xs mt-1.5">
                         <svg class="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
                         {{ errors.adminName }}
                       </p>
@@ -305,7 +306,7 @@ const heardFromOptions = [
                   </div>
 
                   <div>
-                    <Label class="block text-sm font-medium text-slate-700 mb-1.5">
+                    <Label class="block text-sm font-medium text-foreground mb-1.5">
                       Password <span class="text-rose-500">*</span>
                     </Label>
                     <div class="relative">
@@ -314,15 +315,15 @@ const heardFromOptions = [
                         :type="showPassword ? 'text' : 'password'"
                         placeholder="Min. 8 characters"
                         class="rounded-xl pr-10"
-                        :class="errors.password ? 'border-rose-300 bg-rose-50 focus-visible:ring-rose-200' : ''"
+                        :class="errors.password ? 'border-destructive/50 bg-destructive/5 focus-visible:ring-destructive/20' : ''"
                         @input="clearError('password')"
                       />
-                      <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors" @click="showPassword = !showPassword">
+                      <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors" @click="showPassword = !showPassword">
                         <component :is="showPassword ? EyeOff : Eye" class="w-4 h-4" />
                       </button>
                     </div>
                     <Transition name="err">
-                      <p v-if="errors.password" class="flex items-center gap-1.5 text-rose-500 text-xs mt-1.5">
+                      <p v-if="errors.password" class="flex items-center gap-1.5 text-destructive text-xs mt-1.5">
                         <svg class="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
                         {{ errors.password }}
                       </p>
@@ -330,7 +331,7 @@ const heardFromOptions = [
                   </div>
 
                   <div>
-                    <Label class="block text-sm font-medium text-slate-700 mb-1.5">
+                    <Label class="block text-sm font-medium text-foreground mb-1.5">
                       Confirm password <span class="text-rose-500">*</span>
                     </Label>
                     <div class="relative">
@@ -340,18 +341,18 @@ const heardFromOptions = [
                         placeholder="Repeat your password"
                         class="rounded-xl pr-10"
                         :class="errors.confirmPassword
-                          ? 'border-rose-300 bg-rose-50 focus-visible:ring-rose-200'
+                          ? 'border-destructive/50 bg-destructive/5 focus-visible:ring-destructive/20'
                           : form.confirmPassword && form.confirmPassword === form.password
-                            ? 'border-emerald-300 focus-visible:ring-emerald-200'
+                            ? 'border-primary/50 focus-visible:ring-primary/20'
                             : ''"
                         @input="clearError('confirmPassword')"
                       />
-                      <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors" @click="showConfirm = !showConfirm">
+                      <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors" @click="showConfirm = !showConfirm">
                         <component :is="showConfirm ? EyeOff : Eye" class="w-4 h-4" />
                       </button>
                     </div>
                     <Transition name="err">
-                      <p v-if="errors.confirmPassword" class="flex items-center gap-1.5 text-rose-500 text-xs mt-1.5">
+                      <p v-if="errors.confirmPassword" class="flex items-center gap-1.5 text-destructive text-xs mt-1.5">
                         <svg class="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
                         {{ errors.confirmPassword }}
                       </p>
@@ -359,8 +360,8 @@ const heardFromOptions = [
                   </div>
 
                   <div>
-                    <Label class="block text-sm font-medium text-slate-700 mb-1.5">
-                      Where did you hear about us? <span class="text-slate-400 text-xs font-normal">(optional)</span>
+                    <Label class="block text-sm font-medium text-foreground mb-1.5">
+                      Where did you hear about us? <span class="text-muted-foreground text-xs font-normal">(optional)</span>
                     </Label>
                     <Select v-model="form.heardFrom">
                       <SelectTrigger class="rounded-xl">
@@ -378,14 +379,14 @@ const heardFromOptions = [
               <!-- ── Step 2: Clinic Profile ── -->
               <template v-else-if="currentStep === 2">
                 <div class="mb-6">
-                  <h2 class="text-xl font-bold text-slate-900">Clinic Profile</h2>
-                  <p class="text-slate-500 text-sm mt-1">Set up your clinic's identity. This will appear across the platform.</p>
+                  <h2 class="text-xl font-bold text-foreground">Clinic Profile</h2>
+                  <p class="text-muted-foreground text-sm mt-1">Set up your clinic's identity. This will appear across the platform.</p>
                 </div>
                 <div class="space-y-6">
 
                   <div>
-                    <Label class="block text-sm font-medium text-slate-700 mb-3">
-                      Clinic logo <span class="text-slate-400 text-xs font-normal">(optional)</span>
+                    <Label class="block text-sm font-medium text-foreground mb-3">
+                      Clinic logo <span class="text-muted-foreground text-xs font-normal">(optional)</span>
                     </Label>
                     <div class="flex items-center gap-5">
                       <div
@@ -394,23 +395,23 @@ const heardFromOptions = [
                         @dragleave="isDragging = false"
                         @drop.prevent="onDrop"
                         class="w-24 h-24 rounded-full border-2 border-dashed cursor-pointer overflow-hidden flex items-center justify-center flex-shrink-0 transition-all"
-                        :class="isDragging ? 'border-primary bg-primary/5' : form.logoPreview ? 'border-transparent' : 'border-slate-200 hover:border-primary/50 hover:bg-slate-50'"
+                        :class="isDragging ? 'border-primary bg-primary/5' : form.logoPreview ? 'border-transparent' : 'border-border hover:border-primary/50 hover:bg-muted/50'"
                       >
                         <img v-if="form.logoPreview" :src="form.logoPreview" class="w-full h-full object-cover" alt="Logo preview" />
                         <div v-else class="text-center px-2">
-                          <svg class="w-6 h-6 text-slate-300 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg class="w-6 h-6 text-muted-foreground/40 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
                           </svg>
-                          <p class="text-[10px] text-slate-400 leading-tight">Click or drop</p>
+                          <p class="text-[10px] text-muted-foreground/60 leading-tight">Click or drop</p>
                         </div>
                       </div>
                       <div>
                         <button type="button" @click="triggerLogoInput" class="text-sm text-primary hover:text-primary/80 font-medium transition-colors">
                           {{ form.logoPreview ? 'Change logo' : 'Upload logo' }}
                         </button>
-                        <p class="text-xs text-slate-400 mt-1">JPG, PNG or SVG · Max 5MB</p>
-                        <p class="text-xs text-slate-400">Shown in reports and portal</p>
-                        <button v-if="form.logoPreview" type="button" @click="form.logoPreview = null" class="text-xs text-slate-400 hover:text-rose-500 transition-colors mt-1">
+                        <p class="text-xs text-muted-foreground mt-1">JPG, PNG or SVG · Max 5MB</p>
+                        <p class="text-xs text-muted-foreground">Shown in reports and portal</p>
+                        <button v-if="form.logoPreview" type="button" @click="form.logoPreview = null" class="text-xs text-muted-foreground hover:text-destructive transition-colors mt-1">
                           Remove
                         </button>
                       </div>
@@ -419,7 +420,7 @@ const heardFromOptions = [
                   </div>
 
                   <div>
-                    <Label class="block text-sm font-medium text-slate-700 mb-1.5">
+                    <Label class="block text-sm font-medium text-foreground mb-1.5">
                       Clinic name <span class="text-rose-500">*</span>
                     </Label>
                     <Input
@@ -428,14 +429,14 @@ const heardFromOptions = [
                       placeholder="MindCare Clinics"
                       class="rounded-xl"
                       :class="errors.clinicName
-                        ? 'border-rose-300 bg-rose-50 focus-visible:ring-rose-200'
+                        ? 'border-destructive/50 bg-destructive/5 focus-visible:ring-destructive/20'
                         : form.clinicName
-                          ? 'border-emerald-300 focus-visible:ring-emerald-200'
+                          ? 'border-primary/50 focus-visible:ring-primary/20'
                           : ''"
                       @input="clearError('clinicName')"
                     />
                     <Transition name="err">
-                      <p v-if="errors.clinicName" class="flex items-center gap-1.5 text-rose-500 text-xs mt-1.5">
+                      <p v-if="errors.clinicName" class="flex items-center gap-1.5 text-destructive text-xs mt-1.5">
                         <svg class="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
                         {{ errors.clinicName }}
                       </p>
@@ -448,13 +449,13 @@ const heardFromOptions = [
               <!-- ── Step 3: Invite Doctors ── -->
               <template v-else-if="currentStep === 3">
                 <div class="mb-6">
-                  <h2 class="text-xl font-bold text-slate-900">Invite Doctors</h2>
-                  <p class="text-slate-500 text-sm mt-1">Add doctors to your clinic. They'll receive an invitation email.</p>
+                  <h2 class="text-xl font-bold text-foreground">Invite Doctors</h2>
+                  <p class="text-muted-foreground text-sm mt-1">Add doctors to your clinic. They'll receive an invitation email.</p>
                 </div>
                 <div class="space-y-4">
 
                   <div>
-                    <Label class="block text-sm font-medium text-slate-700 mb-1.5">Doctor email</Label>
+                    <Label class="block text-sm font-medium text-foreground mb-1.5">Doctor email</Label>
                     <div class="flex gap-2">
                       <Input
                         v-model="form.inviteInput"
@@ -465,7 +466,7 @@ const heardFromOptions = [
                       />
                       <Button class="rounded-xl" @click="addInvite">Add</Button>
                     </div>
-                    <p class="text-xs text-slate-400 mt-1.5">Press Enter or comma to add multiple</p>
+                    <p class="text-xs text-muted-foreground mt-1.5">Press Enter or comma to add multiple</p>
                   </div>
 
                   <!-- Email chips -->
@@ -484,9 +485,9 @@ const heardFromOptions = [
                     </div>
                   </div>
 
-                  <div v-if="form.inviteEmails.length === 0" class="rounded-xl border border-dashed border-slate-200 p-6 text-center">
-                    <p class="text-sm text-slate-400">No doctors added yet</p>
-                    <p class="text-xs text-slate-300 mt-1">Add emails above or skip for now</p>
+                  <div v-if="form.inviteEmails.length === 0" class="rounded-xl border border-dashed border-border p-6 text-center">
+                    <p class="text-sm text-muted-foreground">No doctors added yet</p>
+                    <p class="text-xs text-muted-foreground/50 mt-1">Add emails above or skip for now</p>
                   </div>
 
                 </div>
@@ -495,8 +496,8 @@ const heardFromOptions = [
               <!-- ── Step 4: Subscription ── -->
               <template v-else-if="currentStep === 4">
                 <div class="mb-6">
-                  <h2 class="text-xl font-bold text-slate-900">Choose a Plan</h2>
-                  <p class="text-slate-500 text-sm mt-1">Select the plan that fits your clinic's needs. You can change it later.</p>
+                  <h2 class="text-xl font-bold text-foreground">Choose a Plan</h2>
+                  <p class="text-muted-foreground text-sm mt-1">Select the plan that fits your clinic's needs. You can change it later.</p>
                 </div>
 
                 <div class="space-y-3">
@@ -507,7 +508,7 @@ const heardFromOptions = [
                     class="relative cursor-pointer rounded-xl border-2 p-4 transition-all"
                     :class="form.selectedPlan === plan.id
                       ? 'border-primary bg-primary/5'
-                      : 'border-slate-200 hover:border-slate-300 bg-white'"
+                      : 'border-border hover:border-border/80 bg-card'"
                   >
                     <!-- Recommended badge -->
                     <div v-if="plan.recommended" class="absolute -top-2.5 left-1/2 -translate-x-1/2">
@@ -519,20 +520,20 @@ const heardFromOptions = [
                     <div class="flex items-start justify-between gap-3">
                       <div class="flex-1">
                         <div class="flex items-center gap-2 mb-1">
-                          <p class="font-semibold text-slate-900">{{ plan.name }}</p>
-                          <span class="text-sm font-bold" :class="form.selectedPlan === plan.id ? 'text-primary' : 'text-slate-500'">
+                          <p class="font-semibold text-foreground">{{ plan.name }}</p>
+                          <span class="text-sm font-bold" :class="form.selectedPlan === plan.id ? 'text-primary' : 'text-muted-foreground'">
                             {{ plan.price }}
                           </span>
                         </div>
-                        <p class="text-xs text-slate-500 mb-2">{{ plan.desc }}</p>
+                        <p class="text-xs text-muted-foreground mb-2">{{ plan.desc }}</p>
                         <div class="flex flex-wrap gap-1.5">
-                          <span v-for="f in plan.features" :key="f" class="text-[10px] font-medium px-2 py-0.5 rounded-full" :class="form.selectedPlan === plan.id ? 'bg-primary/10 text-primary' : 'bg-slate-100 text-slate-500'">
+                          <span v-for="f in plan.features" :key="f" class="text-[10px] font-medium px-2 py-0.5 rounded-full" :class="form.selectedPlan === plan.id ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'">
                             {{ f }}
                           </span>
                         </div>
                       </div>
                       <!-- Radio indicator -->
-                      <div class="w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center mt-0.5" :class="form.selectedPlan === plan.id ? 'border-primary' : 'border-slate-300'">
+                      <div class="w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center mt-0.5" :class="form.selectedPlan === plan.id ? 'border-primary' : 'border-border'">
                         <div v-if="form.selectedPlan === plan.id" class="w-2.5 h-2.5 rounded-full bg-primary" />
                       </div>
                     </div>
@@ -540,7 +541,7 @@ const heardFromOptions = [
                 </div>
 
                 <Transition name="err">
-                  <p v-if="errors.selectedPlan" class="flex items-center gap-1.5 text-rose-500 text-xs mt-3">
+                  <p v-if="errors.selectedPlan" class="flex items-center gap-1.5 text-destructive text-xs mt-3">
                     <svg class="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
                     {{ errors.selectedPlan }}
                   </p>
@@ -572,7 +573,7 @@ const heardFromOptions = [
                 v-if="currentStep === 3"
                 type="button"
                 @click="skipInvites"
-                class="text-slate-400 hover:text-slate-600 text-sm transition-colors px-2"
+                class="text-muted-foreground hover:text-foreground text-sm transition-colors px-2"
               >
                 Skip for now
               </button>
@@ -603,7 +604,7 @@ const heardFromOptions = [
             </div>
           </div>
 
-          <p class="text-center text-slate-400 text-xs mt-5">Step {{ currentStep }} of {{ TOTAL }}</p>
+          <p class="text-center text-muted-foreground text-xs mt-5">Step {{ currentStep }} of {{ TOTAL }}</p>
         </div>
 
       </template>

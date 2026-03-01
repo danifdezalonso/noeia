@@ -114,21 +114,47 @@ const testimonials = [
             From session notes to clinical insights — handle the complexity and focus on healing.
           </p>
 
-          <div class="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
+          <p class="text-slate-400 text-sm mb-4">Get started — choose your role:</p>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-xl mx-auto lg:mx-0">
             <NuxtLink
               to="/login"
-              class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-6 py-3 rounded-xl transition-all hover:shadow-lg hover:shadow-indigo-500/25 flex items-center justify-center gap-2"
+              class="flex flex-col items-center gap-2.5 p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-indigo-500/30 transition-all text-center"
             >
-              Request early access
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+              <div class="w-9 h-9 rounded-lg bg-indigo-500/20 flex items-center justify-center">
+                <svg class="w-5 h-5 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                </svg>
+              </div>
+              <span class="text-sm font-semibold text-white">Doctor</span>
+              <span class="text-xs text-slate-400 leading-tight">Manage sessions, notes & patients</span>
             </NuxtLink>
-            <button class="border border-slate-700 hover:border-slate-500 text-slate-300 hover:text-white font-medium px-6 py-3 rounded-xl transition-colors flex items-center justify-center gap-2">
-              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-              Watch demo
-            </button>
+            <NuxtLink
+              to="/login"
+              class="flex flex-col items-center gap-2.5 p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-violet-500/30 transition-all text-center"
+            >
+              <div class="w-9 h-9 rounded-lg bg-violet-500/20 flex items-center justify-center">
+                <svg class="w-5 h-5 text-violet-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21"/>
+                </svg>
+              </div>
+              <span class="text-sm font-semibold text-white">Organization</span>
+              <span class="text-xs text-slate-400 leading-tight">Clinics, teams & billing</span>
+            </NuxtLink>
+            <NuxtLink
+              to="/login"
+              class="flex flex-col items-center gap-2.5 p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-teal-500/30 transition-all text-center"
+            >
+              <div class="w-9 h-9 rounded-lg bg-teal-500/20 flex items-center justify-center">
+                <svg class="w-5 h-5 text-teal-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"/>
+                </svg>
+              </div>
+              <span class="text-sm font-semibold text-white">Patient</span>
+              <span class="text-xs text-slate-400 leading-tight">Your health, your care</span>
+            </NuxtLink>
           </div>
 
-          <p class="text-slate-600 text-xs mt-6">No credit card required · HIPAA compliant · Free during beta</p>
+          <p class="text-slate-600 text-xs mt-5">No credit card required · HIPAA compliant · Free during beta</p>
         </div>
 
         <!-- Right: UI mockup -->

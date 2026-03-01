@@ -206,11 +206,12 @@ const steps = [
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-50 flex flex-col">
+  <div class="min-h-screen bg-background flex flex-col">
 
     <!-- Top bar -->
-    <header class="bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
-      <img src="/Noeia_logo.svg" alt="Noeia" class="h-7" />
+    <header class="bg-card border-b border-border px-6 py-4 flex items-center justify-between">
+      <img src="/Noeia_logo.svg" alt="Noeia" class="h-7 dark:hidden" />
+      <img src="/Noeia_logo_white.svg" alt="Noeia" class="h-7 hidden dark:block" />
       <div class="flex items-center gap-3">
         <button
           type="button"
@@ -220,7 +221,7 @@ const steps = [
         >
           [DEV] Skip
         </button>
-        <span class="text-slate-400 text-sm">Doctor Onboarding</span>
+        <span class="text-muted-foreground text-sm">Doctor Onboarding</span>
       </div>
     </header>
 
@@ -229,17 +230,17 @@ const steps = [
       <!-- ── Success ── -->
       <Transition name="fade">
         <div v-if="isComplete" class="text-center max-w-sm mx-auto">
-          <div class="w-20 h-20 rounded-full bg-teal-100 border-2 border-teal-300 flex items-center justify-center mx-auto mb-6 animate-bounce-once">
-            <svg class="w-10 h-10 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div class="w-20 h-20 rounded-full bg-primary/10 border-2 border-primary/30 flex items-center justify-center mx-auto mb-6 animate-bounce-once">
+            <svg class="w-10 h-10 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
             </svg>
           </div>
-          <h2 class="text-2xl font-bold text-slate-900 mb-2">
+          <h2 class="text-2xl font-bold text-foreground mb-2">
             Welcome to Noeia{{ form.full_name ? ', ' + form.full_name.split(' ')[0] : '' }}!
           </h2>
-          <p class="text-slate-500 text-sm mb-8 leading-relaxed">
+          <p class="text-muted-foreground text-sm mb-8 leading-relaxed">
             Your clinical profile is ready. NoeIA has been calibrated for
-            <span class="font-medium text-slate-700">{{ form.specialty || 'your specialization' }}</span>.
+            <span class="font-medium text-foreground">{{ form.specialty || 'your specialization' }}</span>.
           </p>
           <Button class="w-full h-auto py-3 rounded-xl text-base font-semibold" @click="goToDashboard">
             Go to Dashboard →
@@ -260,8 +261,8 @@ const steps = [
                   :class="currentStep > step.n
                     ? 'bg-primary border-primary text-white'
                     : currentStep === step.n
-                      ? 'bg-white border-primary text-primary'
-                      : 'bg-white border-slate-200 text-slate-400'"
+                      ? 'bg-background border-primary text-primary'
+                      : 'bg-background border-border text-muted-foreground'"
                 >
                   <svg v-if="currentStep > step.n" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
@@ -269,12 +270,12 @@ const steps = [
                   <span v-else>{{ step.n }}</span>
                 </div>
                 <span class="text-xs hidden sm:block transition-colors duration-300"
-                  :class="currentStep === step.n ? 'text-primary font-medium' : currentStep > step.n ? 'text-slate-500' : 'text-slate-300'">
+                  :class="currentStep === step.n ? 'text-primary font-medium' : currentStep > step.n ? 'text-muted-foreground' : 'text-muted-foreground/40'">
                   {{ step.label }}
                 </span>
               </div>
               <div v-if="idx < steps.length - 1" class="flex-1 h-0.5 mx-2 transition-all duration-500"
-                :class="currentStep > step.n ? 'bg-primary' : 'bg-slate-200'" />
+                :class="currentStep > step.n ? 'bg-primary' : 'bg-border'" />
             </template>
           </div>
         </div>
@@ -282,18 +283,18 @@ const steps = [
         <!-- Form card + nav -->
         <div class="w-full max-w-lg">
           <Transition :name="direction === 'forward' ? 'slide-left' : 'slide-right'" mode="out-in">
-            <div :key="currentStep" class="bg-white rounded-2xl shadow-sm border border-slate-100 p-8">
+            <div :key="currentStep" class="bg-card rounded-2xl shadow-sm border border-border p-8">
 
               <!-- ── Step 1: Identity ── -->
               <template v-if="currentStep === 1">
                 <div class="mb-6">
-                  <h2 class="text-xl font-bold text-slate-900">Core Identity</h2>
-                  <p class="text-slate-500 text-sm mt-1">Establishing your clinical record. Data is secure and HIPAA-compliant.</p>
+                  <h2 class="text-xl font-bold text-foreground">Core Identity</h2>
+                  <p class="text-muted-foreground text-sm mt-1">Establishing your clinical record. Data is secure and HIPAA-compliant.</p>
                 </div>
                 <div class="space-y-5">
 
                   <div>
-                    <Label class="block text-sm font-medium text-slate-700 mb-1.5">
+                    <Label class="block text-sm font-medium text-foreground mb-1.5">
                       Full name <span class="text-rose-500">*</span>
                     </Label>
                     <Input
@@ -302,14 +303,14 @@ const steps = [
                       placeholder="Dr. Ana Torres"
                       class="rounded-xl"
                       :class="errors.full_name
-                        ? 'border-rose-300 bg-rose-50 focus-visible:ring-rose-200'
+                        ? 'border-destructive/50 bg-destructive/5 focus-visible:ring-destructive/20'
                         : form.full_name.length >= 2
-                          ? 'border-emerald-300 focus-visible:ring-emerald-200'
+                          ? 'border-primary/50 focus-visible:ring-primary/20'
                           : ''"
                       @input="clearError('full_name')"
                     />
                     <Transition name="err">
-                      <p v-if="errors.full_name" class="flex items-center gap-1.5 text-rose-500 text-xs mt-1.5">
+                      <p v-if="errors.full_name" class="flex items-center gap-1.5 text-destructive text-xs mt-1.5">
                         <svg class="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                           <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
                         </svg>
@@ -319,7 +320,7 @@ const steps = [
                   </div>
 
                   <div>
-                    <Label class="block text-sm font-medium text-slate-700 mb-1.5">
+                    <Label class="block text-sm font-medium text-foreground mb-1.5">
                       Email address <span class="text-rose-500">*</span>
                       <span v-if="isEmailReadOnly" class="ml-2 text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-full font-normal">
                         Pre-filled from invite
@@ -332,14 +333,14 @@ const steps = [
                       :readonly="isEmailReadOnly"
                       class="rounded-xl"
                       :class="errors.email
-                        ? 'border-rose-300 bg-rose-50 focus-visible:ring-rose-200'
+                        ? 'border-destructive/50 bg-destructive/5 focus-visible:ring-destructive/20'
                         : isEmailReadOnly
-                          ? 'bg-slate-50 text-slate-500 cursor-not-allowed'
+                          ? 'bg-muted text-muted-foreground cursor-not-allowed'
                           : ''"
                       @input="clearError('email')"
                     />
                     <Transition name="err">
-                      <p v-if="errors.email" class="flex items-center gap-1.5 text-rose-500 text-xs mt-1.5">
+                      <p v-if="errors.email" class="flex items-center gap-1.5 text-destructive text-xs mt-1.5">
                         <svg class="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                           <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
                         </svg>
@@ -349,7 +350,7 @@ const steps = [
                   </div>
 
                   <div>
-                    <Label class="block text-sm font-medium text-slate-700 mb-1.5">
+                    <Label class="block text-sm font-medium text-foreground mb-1.5">
                       Date of birth <span class="text-rose-500">*</span>
                     </Label>
                     <Input
@@ -357,14 +358,14 @@ const steps = [
                       type="date"
                       class="rounded-xl"
                       :class="errors.dob
-                        ? 'border-rose-300 bg-rose-50 focus-visible:ring-rose-200'
+                        ? 'border-destructive/50 bg-destructive/5 focus-visible:ring-destructive/20'
                         : form.dob
-                          ? 'border-emerald-300 focus-visible:ring-emerald-200'
+                          ? 'border-primary/50 focus-visible:ring-primary/20'
                           : ''"
                       @change="clearError('dob')"
                     />
                     <Transition name="err">
-                      <p v-if="errors.dob" class="flex items-center gap-1.5 text-rose-500 text-xs mt-1.5">
+                      <p v-if="errors.dob" class="flex items-center gap-1.5 text-destructive text-xs mt-1.5">
                         <svg class="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                           <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
                         </svg>
@@ -379,14 +380,14 @@ const steps = [
               <!-- ── Step 2: Persona ── -->
               <template v-else-if="currentStep === 2">
                 <div class="mb-6">
-                  <h2 class="text-xl font-bold text-slate-900">Professional Persona</h2>
-                  <p class="text-slate-500 text-sm mt-1">Personalizes reports and patient communications. All optional.</p>
+                  <h2 class="text-xl font-bold text-foreground">Professional Persona</h2>
+                  <p class="text-muted-foreground text-sm mt-1">Personalizes reports and patient communications. All optional.</p>
                 </div>
                 <div class="space-y-6">
 
                   <div>
-                    <Label class="block text-sm font-medium text-slate-700 mb-3">
-                      Profile photo <span class="text-slate-400 text-xs font-normal">(optional)</span>
+                    <Label class="block text-sm font-medium text-foreground mb-3">
+                      Profile photo <span class="text-muted-foreground text-xs font-normal">(optional)</span>
                     </Label>
                     <div class="flex items-center gap-5">
                       <div
@@ -395,23 +396,23 @@ const steps = [
                         @dragleave="isDragging = false"
                         @drop.prevent="onDrop"
                         class="w-24 h-24 rounded-full border-2 border-dashed cursor-pointer overflow-hidden flex items-center justify-center flex-shrink-0 transition-all"
-                        :class="isDragging ? 'border-primary bg-primary/5' : photoPreview ? 'border-transparent' : 'border-slate-200 hover:border-primary/50 hover:bg-slate-50'"
+                        :class="isDragging ? 'border-primary bg-primary/5' : photoPreview ? 'border-transparent' : 'border-border hover:border-primary/50 hover:bg-muted/50'"
                       >
                         <img v-if="photoPreview" :src="photoPreview" class="w-full h-full object-cover" alt="Preview" />
                         <div v-else class="text-center px-2">
-                          <svg class="w-6 h-6 text-slate-300 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg class="w-6 h-6 text-muted-foreground/40 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
                           </svg>
-                          <p class="text-[10px] text-slate-400 leading-tight">Click or drop</p>
+                          <p class="text-[10px] text-muted-foreground/60 leading-tight">Click or drop</p>
                         </div>
                       </div>
                       <div>
                         <button type="button" @click="triggerFileInput" class="text-sm text-primary hover:text-primary/80 font-medium transition-colors">
                           {{ photoPreview ? 'Change photo' : 'Upload photo' }}
                         </button>
-                        <p class="text-xs text-slate-400 mt-1">JPG, PNG or GIF · Max 5MB</p>
-                        <p class="text-xs text-slate-400">Shown on reports &amp; messages</p>
-                        <button v-if="photoPreview" type="button" @click="photoPreview = null; form.profile_picture = null" class="text-xs text-slate-400 hover:text-rose-500 transition-colors mt-1">
+                        <p class="text-xs text-muted-foreground mt-1">JPG, PNG or GIF · Max 5MB</p>
+                        <p class="text-xs text-muted-foreground">Shown on reports &amp; messages</p>
+                        <button v-if="photoPreview" type="button" @click="photoPreview = null; form.profile_picture = null" class="text-xs text-muted-foreground hover:text-destructive transition-colors mt-1">
                           Remove
                         </button>
                       </div>
@@ -420,8 +421,8 @@ const steps = [
                   </div>
 
                   <div>
-                    <Label class="block text-sm font-medium text-slate-700 mb-1.5">
-                      Professional bio <span class="text-slate-400 text-xs font-normal">(optional)</span>
+                    <Label class="block text-sm font-medium text-foreground mb-1.5">
+                      Professional bio <span class="text-muted-foreground text-xs font-normal">(optional)</span>
                     </Label>
                     <Textarea
                       v-model="form.description"
@@ -429,7 +430,7 @@ const steps = [
                       placeholder="Your practice approach, areas of expertise, professional philosophy..."
                       class="rounded-xl resize-none"
                     />
-                    <p class="text-xs text-slate-400 mt-1 text-right">{{ form.description.length }} / 500</p>
+                    <p class="text-xs text-muted-foreground mt-1 text-right">{{ form.description.length }} / 500</p>
                   </div>
 
                 </div>
@@ -438,13 +439,13 @@ const steps = [
               <!-- ── Step 3: Specialty ── -->
               <template v-else-if="currentStep === 3">
                 <div class="mb-6">
-                  <h2 class="text-xl font-bold text-slate-900">Clinical Specialization</h2>
-                  <p class="text-slate-500 text-sm mt-1">Seeds NoeIA's clinical context — filters AI prompts and templates to your field.</p>
+                  <h2 class="text-xl font-bold text-foreground">Clinical Specialization</h2>
+                  <p class="text-muted-foreground text-sm mt-1">Seeds NoeIA's clinical context — filters AI prompts and templates to your field.</p>
                 </div>
                 <div class="space-y-5">
 
                   <div>
-                    <Label class="block text-sm font-medium text-slate-700 mb-1.5">
+                    <Label class="block text-sm font-medium text-foreground mb-1.5">
                       Your specialization <span class="text-rose-500">*</span>
                     </Label>
                     <div class="relative">
@@ -454,9 +455,9 @@ const steps = [
                         placeholder="Search or select..."
                         class="rounded-xl pr-10"
                         :class="errors.specialty
-                          ? 'border-rose-300 bg-rose-50 focus-visible:ring-rose-200'
+                          ? 'border-destructive/50 bg-destructive/5 focus-visible:ring-destructive/20'
                           : form.specialty
-                            ? 'border-emerald-300 focus-visible:ring-emerald-200'
+                            ? 'border-primary/50 focus-visible:ring-primary/20'
                             : ''"
                         @focus="onSpecialtyFocus"
                         @blur="onSpecialtyBlur"
@@ -466,18 +467,18 @@ const steps = [
                         <svg v-if="form.specialty" class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                         </svg>
-                        <svg v-else class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg v-else class="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                         </svg>
                       </div>
                       <Transition name="dropdown">
                         <div v-if="showSpecialtyDropdown && filteredSpecialties.length > 0"
-                          class="absolute top-full left-0 right-0 mt-1.5 bg-white border border-slate-200 rounded-xl shadow-lg z-20 max-h-52 overflow-y-auto">
+                          class="absolute top-full left-0 right-0 mt-1.5 bg-popover border border-border rounded-xl shadow-lg z-20 max-h-52 overflow-y-auto">
                           <div
                             v-for="s in filteredSpecialties" :key="s"
                             @mousedown.prevent="selectSpecialty(s)"
                             class="px-4 py-2.5 text-sm cursor-pointer transition-colors flex items-center justify-between"
-                            :class="form.specialty === s ? 'bg-primary/10 text-primary font-medium' : 'text-slate-700 hover:bg-slate-50'"
+                            :class="form.specialty === s ? 'bg-primary/10 text-primary font-medium' : 'text-foreground hover:bg-muted'"
                           >
                             {{ s }}
                             <svg v-if="form.specialty === s" class="w-4 h-4 text-primary flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -488,7 +489,7 @@ const steps = [
                       </Transition>
                     </div>
                     <Transition name="err">
-                      <p v-if="errors.specialty" class="flex items-center gap-1.5 text-rose-500 text-xs mt-1.5">
+                      <p v-if="errors.specialty" class="flex items-center gap-1.5 text-destructive text-xs mt-1.5">
                         <svg class="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                           <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
                         </svg>
@@ -517,19 +518,19 @@ const steps = [
               <!-- ── Step 4: Contact ── -->
               <template v-else-if="currentStep === 4">
                 <div class="mb-6">
-                  <h2 class="text-xl font-bold text-slate-900">Contact & Connectivity</h2>
-                  <p class="text-slate-500 text-sm mt-1">Populates your messaging channel and invoice headers.</p>
+                  <h2 class="text-xl font-bold text-foreground">Contact & Connectivity</h2>
+                  <p class="text-muted-foreground text-sm mt-1">Populates your messaging channel and invoice headers.</p>
                 </div>
                 <div class="space-y-5">
 
                   <div>
-                    <Label class="block text-sm font-medium text-slate-700 mb-1.5">
-                      Phone number <span class="text-slate-400 text-xs font-normal">(optional)</span>
+                    <Label class="block text-sm font-medium text-foreground mb-1.5">
+                      Phone number <span class="text-muted-foreground text-xs font-normal">(optional)</span>
                     </Label>
                     <div class="flex gap-2">
                       <select
                         v-model="form.contact_phone_code"
-                        class="px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-sm outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all flex-shrink-0"
+                        class="px-3 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/10 transition-all flex-shrink-0"
                       >
                         <option v-for="c in countryCodes" :key="c.code" :value="c.code">{{ c.label }}</option>
                       </select>
@@ -543,7 +544,7 @@ const steps = [
                   </div>
 
                   <div>
-                    <Label class="block text-sm font-medium text-slate-700 mb-1.5">
+                    <Label class="block text-sm font-medium text-foreground mb-1.5">
                       Professional contact email <span class="text-rose-500">*</span>
                     </Label>
                     <Input
@@ -552,15 +553,15 @@ const steps = [
                       placeholder="contact@yourpractice.com"
                       class="rounded-xl"
                       :class="errors.contact_email
-                        ? 'border-rose-300 bg-rose-50 focus-visible:ring-rose-200'
+                        ? 'border-destructive/50 bg-destructive/5 focus-visible:ring-destructive/20'
                         : form.contact_email
-                          ? 'border-emerald-300 focus-visible:ring-emerald-200'
+                          ? 'border-primary/50 focus-visible:ring-primary/20'
                           : ''"
                       @input="clearError('contact_email')"
                     />
-                    <p class="text-xs text-slate-400 mt-1.5">May differ from your login email — shown on patient comms and invoices.</p>
+                    <p class="text-xs text-muted-foreground mt-1.5">May differ from your login email — shown on patient comms and invoices.</p>
                     <Transition name="err">
-                      <p v-if="errors.contact_email" class="flex items-center gap-1.5 text-rose-500 text-xs mt-1">
+                      <p v-if="errors.contact_email" class="flex items-center gap-1.5 text-destructive text-xs mt-1">
                         <svg class="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                           <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
                         </svg>
@@ -595,7 +596,7 @@ const steps = [
                 v-if="currentStep === 2"
                 type="button"
                 @click="next"
-                class="text-slate-400 hover:text-slate-600 text-sm transition-colors px-2"
+                class="text-muted-foreground hover:text-foreground text-sm transition-colors px-2"
               >
                 Skip for now
               </button>
@@ -626,7 +627,7 @@ const steps = [
             </div>
           </div>
 
-          <p class="text-center text-slate-400 text-xs mt-5">Step {{ currentStep }} of {{ TOTAL }}</p>
+          <p class="text-center text-muted-foreground text-xs mt-5">Step {{ currentStep }} of {{ TOTAL }}</p>
         </div>
 
       </template>
