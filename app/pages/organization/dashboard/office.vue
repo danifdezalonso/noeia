@@ -4,8 +4,12 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '~/components/ui/table'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
 } from '~/components/ui/dialog'
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '~/components/ui/alert-dialog'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
@@ -185,8 +189,8 @@ function loadImage(file: File) {
       <!-- Page header -->
       <div class="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Office Management</h1>
-          <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Manage your clinic rooms and space assignments.</p>
+          <h1 class="text-2xl font-bold text-foreground tracking-tight">Office Management</h1>
+          <p class="text-sm text-muted-foreground mt-0.5">Manage your clinic rooms and space assignments.</p>
         </div>
         <Button @click="openAdd">
           <Plus class="w-4 h-4" />
@@ -196,65 +200,65 @@ function loadImage(file: File) {
 
       <!-- Stats -->
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm p-4">
-          <p class="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1">Total Rooms</p>
-          <p class="text-2xl font-bold text-slate-900 dark:text-white">{{ rooms.length }}</p>
+        <div class="bg-card rounded-xl border border-border/50 shadow-sm p-4">
+          <p class="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Total Rooms</p>
+          <p class="text-2xl font-bold text-foreground">{{ rooms.length }}</p>
         </div>
-        <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm p-4">
-          <p class="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1">Individual</p>
-          <p class="text-2xl font-bold text-slate-900 dark:text-white">{{ rooms.filter(r => r.visitType === 'individual').length }}</p>
+        <div class="bg-card rounded-xl border border-border/50 shadow-sm p-4">
+          <p class="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Individual</p>
+          <p class="text-2xl font-bold text-foreground">{{ rooms.filter(r => r.visitType === 'individual').length }}</p>
         </div>
-        <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm p-4">
-          <p class="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1">Group Rooms</p>
-          <p class="text-2xl font-bold text-slate-900 dark:text-white">{{ rooms.filter(r => r.visitType === 'group').length }}</p>
+        <div class="bg-card rounded-xl border border-border/50 shadow-sm p-4">
+          <p class="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Group Rooms</p>
+          <p class="text-2xl font-bold text-foreground">{{ rooms.filter(r => r.visitType === 'group').length }}</p>
         </div>
-        <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm p-4">
-          <p class="text-xs font-medium text-slate-400 uppercase tracking-wide mb-1">Total Seats</p>
-          <p class="text-2xl font-bold text-slate-900 dark:text-white">{{ rooms.reduce((s, r) => s + r.seats, 0) }}</p>
+        <div class="bg-card rounded-xl border border-border/50 shadow-sm p-4">
+          <p class="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Total Seats</p>
+          <p class="text-2xl font-bold text-foreground">{{ rooms.reduce((s, r) => s + r.seats, 0) }}</p>
         </div>
       </div>
 
       <!-- Table -->
-      <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+      <div class="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow class="bg-slate-50/60 dark:bg-slate-700/50 hover:bg-slate-50/60 dark:hover:bg-slate-700/50">
-                <TableHead class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Room #</TableHead>
-                <TableHead class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Name</TableHead>
-                <TableHead class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Seats</TableHead>
-                <TableHead class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Assignment</TableHead>
-                <TableHead class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Visit Type</TableHead>
-                <TableHead class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Assigned Doctor</TableHead>
+              <TableRow class="bg-muted/30 hover:bg-muted/30">
+                <TableHead class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Room #</TableHead>
+                <TableHead class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Name</TableHead>
+                <TableHead class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Seats</TableHead>
+                <TableHead class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Assignment</TableHead>
+                <TableHead class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Visit Type</TableHead>
+                <TableHead class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Assigned Doctor</TableHead>
                 <TableHead class="w-20" />
               </TableRow>
             </TableHeader>
             <TableBody>
               <TableRow v-if="rooms.length === 0">
                 <TableCell :colspan="7" class="py-16 text-center">
-                  <Building2 class="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                  <p class="text-sm text-slate-400">No rooms added yet. Click "Add Room" to get started.</p>
+                  <Building2 class="w-8 h-8 text-muted-foreground/50 mx-auto mb-2" />
+                  <p class="text-sm text-muted-foreground">No rooms added yet. Click "Add Room" to get started.</p>
                 </TableCell>
               </TableRow>
               <TableRow
                 v-for="room in rooms"
                 :key="room.id"
-                class="hover:bg-slate-50/70 dark:hover:bg-slate-700/30 transition-colors"
+                class="hover:bg-accent/50 transition-colors"
               >
                 <!-- Room # -->
-                <TableCell class="font-mono text-sm font-semibold text-slate-700 dark:text-slate-200">
+                <TableCell class="font-mono text-sm font-semibold text-foreground">
                   {{ room.number }}
                 </TableCell>
 
                 <!-- Name -->
-                <TableCell class="text-sm font-medium text-slate-800 dark:text-slate-100">
+                <TableCell class="text-sm font-medium text-foreground">
                   {{ room.name }}
                 </TableCell>
 
                 <!-- Seats -->
-                <TableCell class="text-sm text-slate-600 dark:text-slate-300">
+                <TableCell class="text-sm text-muted-foreground">
                   <div class="flex items-center gap-1.5">
-                    <Users class="w-3.5 h-3.5 text-slate-400" />
+                    <Users class="w-3.5 h-3.5 text-muted-foreground/70" />
                     {{ room.seats }}
                   </div>
                 </TableCell>
@@ -285,9 +289,9 @@ function loadImage(file: File) {
                 </TableCell>
 
                 <!-- Assigned Doctor -->
-                <TableCell class="text-sm text-slate-600 dark:text-slate-300">
+                <TableCell class="text-sm text-muted-foreground">
                   <span v-if="room.assignedDoctor">{{ room.assignedDoctor }}</span>
-                  <span v-else class="text-slate-400 italic text-xs">Unassigned</span>
+                  <span v-else class="text-muted-foreground/70 italic text-xs">Unassigned</span>
                 </TableCell>
 
                 <!-- Actions -->
@@ -389,7 +393,7 @@ function loadImage(file: File) {
 
         <!-- Assign doctor (only for single) -->
         <div v-if="form.assignment === 'single'">
-          <Label class="text-xs font-medium mb-1.5 block">Assigned Doctor <span class="text-slate-400">(optional)</span></Label>
+          <Label class="text-xs font-medium mb-1.5 block">Assigned Doctor <span class="text-muted-foreground">(optional)</span></Label>
           <Select :model-value="form.assignedDoctor || 'none'" @update:model-value="v => form.assignedDoctor = v === 'none' ? '' : v">
             <SelectTrigger>
               <SelectValue placeholder="Unassigned" />
@@ -403,11 +407,11 @@ function loadImage(file: File) {
 
         <!-- Photo upload (optional) -->
         <div>
-          <Label class="text-xs font-medium mb-1.5 block">Room Photo <span class="text-slate-400">(optional)</span></Label>
+          <Label class="text-xs font-medium mb-1.5 block">Room Photo <span class="text-muted-foreground">(optional)</span></Label>
           <div
             :class="[
               'relative flex flex-col items-center justify-center h-32 border-2 border-dashed rounded-xl cursor-pointer transition-colors overflow-hidden',
-              isDragging ? 'border-primary bg-primary/5' : 'border-slate-200 dark:border-slate-700 hover:border-primary/50 hover:bg-slate-50 dark:hover:bg-slate-800/50',
+              isDragging ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50 hover:bg-accent',
             ]"
             @dragover.prevent="isDragging = true"
             @dragleave="isDragging = false"
@@ -416,37 +420,39 @@ function loadImage(file: File) {
           >
             <img v-if="form.image" :src="form.image" class="absolute inset-0 w-full h-full object-cover rounded-xl" />
             <template v-else>
-              <Building2 class="w-6 h-6 text-slate-300 mb-1" />
-              <p class="text-xs text-slate-400">Drop a photo here or <span class="text-primary font-medium">browse</span></p>
+              <Building2 class="w-6 h-6 text-muted-foreground/50 mb-1" />
+              <p class="text-xs text-muted-foreground">Drop a photo here or <span class="text-primary font-medium">browse</span></p>
             </template>
           </div>
           <input ref="photoInputRef" type="file" accept="image/*" class="hidden" @change="onFileChange" />
         </div>
 
         <!-- Action buttons -->
-        <div class="flex items-center justify-end gap-2 pt-1">
-          <Button variant="outline" @click="modalOpen = false">Cancel</Button>
+        <DialogFooter class="pt-1">
+          <DialogClose as-child>
+            <Button variant="outline">Cancel</Button>
+          </DialogClose>
           <Button :disabled="!form.number.trim() || !form.name.trim()" @click="saveRoom">
             {{ editingId ? 'Save Changes' : 'Add Room' }}
           </Button>
-        </div>
+        </DialogFooter>
       </div>
     </DialogContent>
   </Dialog>
 
   <!-- ══ Delete confirmation ════════════════════════════════════════════════ -->
-  <Dialog :open="!!deleteTarget" @update:open="v => { if (!v) deleteTarget = null }">
-    <DialogContent class="max-w-sm">
-      <DialogHeader>
-        <DialogTitle>Delete Room</DialogTitle>
-      </DialogHeader>
-      <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">
-        Are you sure you want to remove this room? This action cannot be undone.
-      </p>
-      <div class="flex items-center justify-end gap-2 mt-4">
-        <Button variant="outline" @click="deleteTarget = null">Cancel</Button>
-        <Button variant="destructive" @click="deleteRoom(deleteTarget!)">Delete</Button>
-      </div>
-    </DialogContent>
-  </Dialog>
+  <AlertDialog :open="!!deleteTarget" @update:open="v => { if (!v) deleteTarget = null }">
+    <AlertDialogContent>
+      <AlertDialogHeader>
+        <AlertDialogTitle>Delete Room</AlertDialogTitle>
+        <AlertDialogDescription>
+          Are you sure you want to remove this room? This action cannot be undone.
+        </AlertDialogDescription>
+      </AlertDialogHeader>
+      <AlertDialogFooter>
+        <AlertDialogCancel @click="deleteTarget = null">Cancel</AlertDialogCancel>
+        <AlertDialogAction class="bg-destructive text-destructive-foreground hover:bg-destructive/90" @click="deleteRoom(deleteTarget!)">Delete</AlertDialogAction>
+      </AlertDialogFooter>
+    </AlertDialogContent>
+  </AlertDialog>
 </template>

@@ -1,17 +1,8 @@
 <script setup lang="ts">
 import { useTransition, TransitionPresets } from '@vueuse/core'
-import { Bar, Doughnut } from 'vue-chartjs'
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  ArcElement,
-  Tooltip,
-  Legend,
-} from 'chart.js'
-
-ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend)
+import { ChartBar, ChartDonut } from '~/components/ui/chart'
+import { Avatar, AvatarFallback } from '~/components/ui/avatar'
+import { Badge } from '~/components/ui/badge'
 
 definePageMeta({ layout: 'dashboard' })
 
@@ -47,51 +38,29 @@ const metricCards = computed(() => [
 
 // ── Sessions chart ─────────────────────────────────────────────────────────
 
-const sessionsChartData = {
-  labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
-  datasets: [
-    { label: 'Completed', data: [18, 22, 16, 14, 0],  backgroundColor: '#6366f1', borderRadius: 6, borderSkipped: false },
-    { label: 'Scheduled', data: [0,  0,  0,  8,  12], backgroundColor: '#e0e7ff', borderRadius: 6, borderSkipped: false },
-  ],
-}
+const sessionsLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
 
-const sessionsChartOptions = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: {
-    legend: { display: true, position: 'top' as const, align: 'end' as const, labels: { boxWidth: 8, boxHeight: 8, borderRadius: 2, font: { size: 11 }, color: '#94a3b8', padding: 16, usePointStyle: true, pointStyle: 'circle' } },
-    tooltip: { backgroundColor: '#1e293b', titleFont: { size: 11, weight: 'normal' as const }, bodyFont: { size: 12, weight: 'bold' as const }, padding: 10, cornerRadius: 8, borderWidth: 0 },
-  },
-  scales: {
-    x: { stacked: true, grid: { display: false }, border: { display: false }, ticks: { font: { size: 11 }, color: '#94a3b8' } },
-    y: { stacked: true, display: false },
-  },
-  animation: { duration: 900, easing: 'easeOutQuart' as const, delay: (ctx: any) => ctx.dataIndex * 80 },
-}
+const sessionsData = [
+  { completed: 18, scheduled: 0  },
+  { completed: 22, scheduled: 0  },
+  { completed: 16, scheduled: 0  },
+  { completed: 14, scheduled: 8  },
+  { completed: 0,  scheduled: 12 },
+]
 
 // ── Doctor breakdown chart ─────────────────────────────────────────────────
 
-const doctorChartData = {
-  labels: ['Active', 'On Leave', 'Inactive'],
-  datasets: [{
-    data: [6, 1, 1],
-    backgroundColor: ['#6366f1', '#f59e0b', '#cbd5e1'],
-    hoverBackgroundColor: ['#4f46e5', '#d97706', '#94a3b8'],
-    borderWidth: 0,
-    hoverOffset: 6,
-  }],
-}
+const doctorData = [
+  { status: 'Active',   value: 6 },
+  { status: 'On Leave', value: 1 },
+  { status: 'Inactive', value: 1 },
+]
 
-const doctorChartOptions = {
-  responsive: true,
-  maintainAspectRatio: false,
-  cutout: '74%',
-  plugins: {
-    legend: { position: 'right' as const, labels: { boxWidth: 8, boxHeight: 8, borderRadius: 4, font: { size: 11 }, color: '#64748b', padding: 14, usePointStyle: true, pointStyle: 'circle' } },
-    tooltip: { backgroundColor: '#1e293b', titleFont: { size: 11 }, bodyFont: { size: 12, weight: 'bold' as const }, padding: 10, cornerRadius: 8 },
-  },
-  animation: { animateRotate: true, animateScale: true, duration: 1000, easing: 'easeOutQuart' as const },
-}
+const doctorColors = ['#6366f1', '#f59e0b', '#cbd5e1']
+
+const doctorDonutData = computed(() =>
+  doctorData.map((d, i) => ({ label: d.status, value: d.value, color: doctorColors[i] }))
+)
 
 // ── Recent doctors ─────────────────────────────────────────────────────────
 
@@ -115,7 +84,7 @@ const accentMap: Record<string, { dot: string; value: string }> = {
   amber:   { dot: 'bg-amber-500',   value: 'text-amber-600'   },
   emerald: { dot: 'bg-emerald-500', value: 'text-emerald-600' },
 }
-function getAccent(color: string) { return accentMap[color] ?? { dot: 'bg-slate-400', value: 'text-slate-600' } }
+function getAccent(color: string) { return accentMap[color] ?? { dot: 'bg-muted-foreground', value: 'text-muted-foreground' } }
 </script>
 
 <template>
@@ -124,10 +93,10 @@ function getAccent(color: string) { return accentMap[color] ?? { dot: 'bg-slate-
 
     <!-- Page header -->
     <div class="appear" style="--delay: 0ms">
-      <h1 class="text-xl font-semibold text-slate-900 dark:text-white">
+      <h1 class="text-xl font-semibold text-foreground">
         Good morning, {{ persona.orgName || persona.name }}
       </h1>
-      <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Here's your clinic overview for today.</p>
+      <p class="text-sm text-muted-foreground mt-0.5">Here's your clinic overview for today.</p>
     </div>
 
     <!-- Metric cards -->
@@ -135,96 +104,101 @@ function getAccent(color: string) { return accentMap[color] ?? { dot: 'bg-slate-
       <div
         v-for="(card, i) in metricCards"
         :key="card.label"
-        class="appear bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm p-4"
+        class="appear bg-card rounded-xl border border-border shadow-sm p-4"
         :style="{ '--delay': `${i * 70 + 60}ms` }"
       >
         <div class="flex items-center gap-1.5 mb-2">
           <span class="w-1.5 h-1.5 rounded-full" :class="getAccent(card.color).dot" />
-          <p class="text-xs font-medium text-slate-400 uppercase tracking-wide">{{ card.label }}</p>
+          <p class="text-xs font-medium text-muted-foreground uppercase tracking-wide">{{ card.label }}</p>
         </div>
-        <p class="text-3xl font-bold text-slate-900 dark:text-white tabular-nums" :class="getAccent(card.color).value">
+        <p class="text-3xl font-bold text-foreground tabular-nums" :class="getAccent(card.color).value">
           {{ card.display }}
         </p>
-        <p class="text-xs text-slate-400 mt-1.5">{{ card.sub }}</p>
+        <p class="text-xs text-muted-foreground mt-1.5">{{ card.sub }}</p>
       </div>
     </div>
 
     <!-- Charts row -->
     <div class="grid grid-cols-1 lg:grid-cols-5 gap-4">
       <!-- Sessions bar -->
-      <div class="appear lg:col-span-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm p-5" style="--delay: 360ms">
+      <div class="appear lg:col-span-3 bg-card rounded-xl border border-border shadow-sm p-5" style="--delay: 360ms">
         <div class="flex items-center justify-between mb-1">
-          <h2 class="text-sm font-semibold text-slate-800 dark:text-slate-100">Sessions This Week</h2>
-          <span class="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">70 total</span>
+          <h2 class="text-sm font-semibold text-foreground">Sessions This Week</h2>
+          <Badge class="text-[10px] border-transparent">70 total</Badge>
         </div>
-        <p class="text-xs text-slate-400 mb-4">All doctors · Mon – Fri</p>
-        <ClientOnly>
-          <div class="h-44">
-            <Bar :data="sessionsChartData" :options="sessionsChartOptions" />
+        <p class="text-xs text-muted-foreground mb-3">All doctors · Mon – Fri</p>
+        <!-- Legend -->
+        <div class="flex items-center gap-4 mb-3">
+          <div v-for="item in [{ label: 'Completed', color: '#6366f1' }, { label: 'Scheduled', color: '#c7d2fe' }]" :key="item.label" class="flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-sm" :style="{ background: item.color }" />
+            <span class="text-[11px] text-muted-foreground">{{ item.label }}</span>
           </div>
-          <template #fallback>
-            <div class="h-44 flex items-end gap-2 px-4 animate-pulse">
-              <div v-for="(h, i) in [70, 90, 60, 80, 40]" :key="i" class="flex-1 bg-slate-100 rounded-t-md" :style="{ height: `${h}%` }" />
-            </div>
-          </template>
-        </ClientOnly>
+        </div>
+        <ChartBar
+          :data="sessionsData"
+          :segments="[
+            { key: 'completed', color: '#6366f1', label: 'Completed' },
+            { key: 'scheduled', color: '#c7d2fe', label: 'Scheduled' },
+          ]"
+          :x-labels="sessionsLabels"
+          class="h-36 w-full"
+        />
       </div>
 
-      <!-- Doctor breakdown doughnut -->
-      <div class="appear lg:col-span-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm p-5" style="--delay: 440ms">
+      <!-- Doctor breakdown donut -->
+      <div class="appear lg:col-span-2 bg-card rounded-xl border border-border shadow-sm p-5 flex flex-col" style="--delay: 440ms">
         <div class="flex items-center justify-between mb-1">
-          <h2 class="text-sm font-semibold text-slate-800 dark:text-slate-100">Doctor Status</h2>
-          <span class="text-xs font-medium text-slate-500 bg-slate-50 px-2 py-0.5 rounded-full">8 total</span>
+          <h2 class="text-sm font-semibold text-foreground">Doctor Status</h2>
+          <Badge variant="secondary" class="text-[10px] border-transparent">8 total</Badge>
         </div>
-        <p class="text-xs text-slate-400 mb-4">Active · On Leave · Inactive</p>
-        <ClientOnly>
-          <div class="relative h-44">
-            <Doughnut :data="doctorChartData" :options="doctorChartOptions" />
-            <div class="absolute inset-0 flex items-center justify-center pointer-events-none" style="right: 30%">
-              <div class="text-center">
-                <p class="text-2xl font-bold text-slate-900 dark:text-white">8</p>
-                <p class="text-[10px] text-slate-400 leading-tight">doctors</p>
-              </div>
-            </div>
+        <p class="text-xs text-muted-foreground mb-4">Active · On Leave · Inactive</p>
+
+        <!-- Donut chart -->
+        <ChartDonut
+          :data="doctorDonutData"
+          central-label="8"
+          central-sub-label="doctors"
+          class="max-h-[200px]"
+        />
+
+        <!-- Legend -->
+        <div class="flex flex-col gap-1.5 mt-4">
+          <div v-for="(d, i) in doctorData" :key="d.status" class="flex items-center gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-sm shrink-0" :style="{ background: doctorColors[i] }" />
+            <span class="text-[11px] text-muted-foreground">{{ d.status }}</span>
+            <span class="text-[11px] font-semibold text-foreground ml-auto tabular-nums">{{ d.value }}</span>
           </div>
-          <template #fallback>
-            <div class="h-44 flex items-center justify-center animate-pulse">
-              <div class="w-32 h-32 rounded-full border-[18px] border-slate-100" />
-            </div>
-          </template>
-        </ClientOnly>
+        </div>
       </div>
     </div>
 
     <!-- Two-column content -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <!-- Top doctors today -->
-      <div class="appear bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm p-4" style="--delay: 520ms">
-        <h2 class="text-sm font-semibold text-slate-800 dark:text-slate-100 mb-3">Top Doctors Today</h2>
+      <div class="appear bg-card rounded-xl border border-border shadow-sm p-4" style="--delay: 520ms">
+        <h2 class="text-sm font-semibold text-foreground mb-3">Top Doctors Today</h2>
         <div class="space-y-1">
           <div
             v-for="(d, i) in recentDoctors"
             :key="d.name"
-            class="session-row flex items-center gap-3 p-2.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+            class="session-row flex items-center gap-3 p-2.5 rounded-lg hover:bg-accent transition-colors"
             :style="{ '--i': i }"
           >
-            <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-              <span class="text-primary text-xs font-bold">{{ d.initials }}</span>
-            </div>
+            <Avatar class="size-8 flex-shrink-0">
+              <AvatarFallback class="bg-primary/10 text-primary text-xs font-bold">{{ d.initials }}</AvatarFallback>
+            </Avatar>
             <div class="flex-1 min-w-0">
-              <p class="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">{{ d.name }}</p>
-              <p class="text-xs text-slate-400">{{ d.specialty }}</p>
+              <p class="text-sm font-medium text-foreground truncate">{{ d.name }}</p>
+              <p class="text-xs text-muted-foreground">{{ d.specialty }}</p>
             </div>
-            <span class="flex-shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">
-              {{ d.sessions }} sessions
-            </span>
+            <Badge variant="secondary" class="flex-shrink-0 text-[10px] border-transparent">{{ d.sessions }} sessions</Badge>
           </div>
         </div>
       </div>
 
       <!-- Recent activity -->
-      <div class="appear bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm p-4" style="--delay: 600ms">
-        <h2 class="text-sm font-semibold text-slate-800 dark:text-slate-100 mb-3">Recent Activity</h2>
+      <div class="appear bg-card rounded-xl border border-border shadow-sm p-4" style="--delay: 600ms">
+        <h2 class="text-sm font-semibold text-foreground mb-3">Recent Activity</h2>
         <div class="space-y-3">
           <div
             v-for="(a, i) in activity"
@@ -234,8 +208,8 @@ function getAccent(color: string) { return accentMap[color] ?? { dot: 'bg-slate-
           >
             <div class="w-1.5 h-1.5 rounded-full bg-primary/60 mt-1.5 flex-shrink-0" />
             <div>
-              <p class="text-sm text-slate-700 dark:text-slate-200">{{ a.text }}</p>
-              <p class="text-xs text-slate-400 mt-0.5">{{ a.time }}</p>
+              <p class="text-sm text-foreground">{{ a.text }}</p>
+              <p class="text-xs text-muted-foreground mt-0.5">{{ a.time }}</p>
             </div>
           </div>
         </div>

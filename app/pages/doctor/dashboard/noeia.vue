@@ -9,6 +9,7 @@ import {
   startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isSameMonth, isToday,
 } from 'date-fns'
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover'
+import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
 
 definePageMeta({ layout: 'dashboard' })
 
@@ -246,18 +247,18 @@ onMounted(() => {
   <div class="flex-1 flex overflow-hidden min-h-0">
 
     <!-- ══ Left sidebar ═══════════════════════════════════════════════════ -->
-    <aside class="w-52 sm:w-60 md:w-64 flex flex-col bg-white dark:bg-slate-900 border-r border-slate-100 dark:border-slate-800 shrink-0 min-w-0">
+    <aside class="w-52 sm:w-60 md:w-64 flex flex-col bg-background border-r border-border/50 shrink-0 min-w-0">
 
       <!-- Tabs -->
-      <div class="flex border-b border-slate-100 dark:border-slate-800 shrink-0">
+      <div class="flex border-b border-border/50 shrink-0">
         <button
           v-for="t in (['schedule', 'past'] as const)"
           :key="t"
           :class="[
             'flex-1 py-3 text-sm font-medium transition-colors',
             activeTab === t
-              ? 'text-slate-900 dark:text-white border-b-2 border-indigo-600'
-              : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300',
+              ? 'text-foreground border-b-2 border-indigo-600'
+              : 'text-muted-foreground hover:text-foreground',
           ]"
           @click="activeTab = t"
         >
@@ -268,7 +269,7 @@ onMounted(() => {
       <!-- Appointment list -->
       <div class="flex-1 overflow-y-auto py-2">
         <template v-for="([groupLabel, items]) in currentGroups" :key="groupLabel">
-          <p class="px-4 pt-3 pb-1.5 text-[10px] font-semibold text-slate-400 uppercase tracking-widest">
+          <p class="px-4 pt-3 pb-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
             {{ groupLabel }}
           </p>
           <button
@@ -276,18 +277,19 @@ onMounted(() => {
             :key="appt.id"
             :class="[
               'w-full flex items-center gap-3 px-3 py-2.5 transition-colors text-left',
-              selectedId === appt.id ? 'bg-indigo-50 dark:bg-indigo-950' : 'hover:bg-slate-50 dark:hover:bg-slate-800',
+              selectedId === appt.id ? 'bg-indigo-50 dark:bg-indigo-950' : 'hover:bg-accent',
             ]"
             @click="selectAppointment(appt.id)"
           >
-            <div :class="['w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-bold', appt.avatarBg, appt.avatarText]">
-              {{ appt.initials }}
-            </div>
+            <Avatar class="size-8 shrink-0">
+              <AvatarImage :src="avatarUrl(appt.patientName)" :alt="appt.patientName" />
+              <AvatarFallback :class="['text-xs font-bold', appt.avatarBg, appt.avatarText]">{{ appt.initials }}</AvatarFallback>
+            </Avatar>
             <div class="min-w-0 flex-1">
-              <p :class="['text-sm font-medium truncate leading-tight', selectedId === appt.id ? 'text-indigo-700 dark:text-indigo-300' : 'text-slate-800 dark:text-slate-100']">
+              <p :class="['text-sm font-medium truncate leading-tight', selectedId === appt.id ? 'text-indigo-700 dark:text-indigo-300' : 'text-foreground']">
                 {{ appt.patientName }}
               </p>
-              <p class="text-xs text-slate-400 mt-0.5">{{ appt.time }}</p>
+              <p class="text-xs text-muted-foreground mt-0.5">{{ appt.time }}</p>
             </div>
             <div v-if="selectedId === appt.id" class="w-1.5 h-1.5 rounded-full bg-indigo-500 shrink-0" />
           </button>
@@ -296,16 +298,16 @@ onMounted(() => {
     </aside>
 
     <!-- ══ Main area ══════════════════════════════════════════════════════ -->
-    <main class="flex-1 flex flex-col min-w-0 bg-slate-50/70 dark:bg-slate-950/70">
+    <main class="flex-1 flex flex-col min-w-0 bg-muted/30">
 
       <!-- ── Header ──────────────────────────────────────────────────────── -->
-      <header class="shrink-0 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 px-6 pt-4 pb-3">
+      <header class="shrink-0 bg-background border-b border-border/50 px-6 pt-4 pb-3">
 
         <!-- Row 1: patient name + trash + right actions -->
         <div class="flex items-center justify-between gap-4">
           <div class="flex items-center gap-2 min-w-0">
-            <h2 class="text-xl font-bold text-slate-900 dark:text-white truncate">{{ selected.patientName }}</h2>
-            <button class="p-1 rounded text-slate-300 hover:text-red-400 hover:bg-red-50 transition-colors shrink-0" title="Delete session">
+            <h2 class="text-xl font-bold text-foreground truncate">{{ selected.patientName }}</h2>
+            <button class="p-1 rounded text-muted-foreground/50 hover:text-red-400 hover:bg-red-50 transition-colors shrink-0" title="Delete session">
               <Trash2 class="w-4 h-4" />
             </button>
           </div>
@@ -318,7 +320,7 @@ onMounted(() => {
                   'flex items-center gap-1.5 pl-3 pr-2 py-1.5 text-sm font-medium border rounded-l-lg transition-colors',
                   isRecording
                     ? 'bg-red-50 text-red-600 border-red-200'
-                    : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700',
+                    : 'bg-card text-foreground border-border hover:bg-accent',
                 ]"
                 @click="toggleRecord"
               >
@@ -332,7 +334,7 @@ onMounted(() => {
               <button
                 :class="[
                   'flex items-center px-1.5 border-y border-r rounded-r-lg transition-colors',
-                  isRecording ? 'bg-red-50 border-red-200 text-red-400' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700',
+                  isRecording ? 'bg-red-50 border-red-200 text-red-400' : 'bg-card border-border text-muted-foreground hover:bg-accent',
                 ]"
                 @click.stop="transcribeOpen = !transcribeOpen"
               >
@@ -340,16 +342,16 @@ onMounted(() => {
               </button>
 
               <Transition enter-active-class="transition duration-100 ease-out" enter-from-class="opacity-0 scale-95" enter-to-class="opacity-100 scale-100" leave-active-class="transition duration-75 ease-in" leave-from-class="opacity-100" leave-to-class="opacity-0">
-                <div v-if="transcribeOpen" class="absolute right-0 top-full mt-1.5 z-30 w-48 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden" @click.stop>
-                  <button class="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700" @click="toggleRecord">
-                    <Mic class="w-3.5 h-3.5 text-slate-400" />Live recording
+                <div v-if="transcribeOpen" class="absolute right-0 top-full mt-1.5 z-30 w-48 bg-card rounded-xl border border-border shadow-lg overflow-hidden" @click.stop>
+                  <button class="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-foreground hover:bg-accent" @click="toggleRecord">
+                    <Mic class="w-3.5 h-3.5 text-muted-foreground" />Live recording
                   </button>
-                  <button class="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700">
-                    <Volume2 class="w-3.5 h-3.5 text-slate-400" />Upload audio
+                  <button class="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-foreground hover:bg-accent">
+                    <Volume2 class="w-3.5 h-3.5 text-muted-foreground" />Upload audio
                   </button>
-                  <div class="border-t border-slate-100" />
-                  <button class="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700">
-                    <Copy class="w-3.5 h-3.5 text-slate-400" />Paste transcript
+                  <div class="border-t border-border" />
+                  <button class="w-full flex items-center gap-2.5 px-3.5 py-2.5 text-sm text-foreground hover:bg-accent">
+                    <Copy class="w-3.5 h-3.5 text-muted-foreground" />Paste transcript
                   </button>
                 </div>
               </Transition>
@@ -370,31 +372,31 @@ onMounted(() => {
           <!-- Date/time badge → date+time picker popover -->
           <Popover>
             <PopoverTrigger as-child>
-              <button class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
-                <CalendarDays class="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
+              <button class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-foreground text-sm font-medium hover:bg-accent transition-colors">
+                <CalendarDays class="w-3.5 h-3.5 text-muted-foreground" />
                 {{ fmtDateBadge(selected) }}
               </button>
             </PopoverTrigger>
             <PopoverContent align="start" class="w-80 p-5" :side-offset="8">
               <!-- Time input -->
-              <p class="text-sm font-semibold text-slate-800 dark:text-slate-100 mb-3">Session start time</p>
+              <p class="text-sm font-semibold text-foreground mb-3">Session start time</p>
               <input
                 v-model="selected.sessionTime"
                 type="time"
-                class="w-full px-4 py-2.5 border-2 border-indigo-400 rounded-xl text-base text-slate-800 focus:outline-none focus:border-indigo-500 mb-5"
+                class="w-full px-4 py-2.5 border-2 border-indigo-400 rounded-xl text-base text-foreground bg-background focus:outline-none focus:border-indigo-500 mb-5"
               />
 
               <!-- Mini calendar -->
-              <p class="text-sm font-semibold text-slate-800 mb-3">Session date</p>
-              <div class="border border-slate-200 rounded-xl overflow-hidden">
+              <p class="text-sm font-semibold text-foreground mb-3">Session date</p>
+              <div class="border border-border rounded-xl overflow-hidden">
                 <!-- Month nav -->
-                <div class="flex items-center justify-between px-4 py-3 border-b border-slate-100">
-                  <button class="p-1 rounded-lg hover:bg-slate-100 transition-colors" @click="prevMonth">
-                    <ChevronLeft class="w-4 h-4 text-slate-500" />
+                <div class="flex items-center justify-between px-4 py-3 border-b border-border/50">
+                  <button class="p-1 rounded-lg hover:bg-accent transition-colors" @click="prevMonth">
+                    <ChevronLeft class="w-4 h-4 text-muted-foreground" />
                   </button>
-                  <span class="text-sm font-semibold text-slate-800">{{ calendarMonthLabel }}</span>
-                  <button class="p-1 rounded-lg hover:bg-slate-100 transition-colors" @click="nextMonth">
-                    <ChevronRight class="w-4 h-4 text-slate-500" />
+                  <span class="text-sm font-semibold text-foreground">{{ calendarMonthLabel }}</span>
+                  <button class="p-1 rounded-lg hover:bg-accent transition-colors" @click="nextMonth">
+                    <ChevronRight class="w-4 h-4 text-muted-foreground" />
                   </button>
                 </div>
 
@@ -402,7 +404,7 @@ onMounted(() => {
                 <div class="p-3">
                   <!-- Day headers -->
                   <div class="grid grid-cols-7 mb-1">
-                    <div v-for="d in ['S','M','T','W','T','F','S']" :key="d" class="text-center text-xs font-medium text-slate-400 py-1">{{ d }}</div>
+                    <div v-for="d in ['S','M','T','W','T','F','S']" :key="d" class="text-center text-xs font-medium text-muted-foreground py-1">{{ d }}</div>
                   </div>
                   <!-- Days -->
                   <div class="grid grid-cols-7 gap-y-0.5">
@@ -411,10 +413,10 @@ onMounted(() => {
                       :key="day.toISOString()"
                       :class="[
                         'h-8 w-full flex items-center justify-center rounded-full text-sm transition-colors',
-                        !isSameMonth(day, calendarViewDate) ? 'text-slate-300' : 'text-slate-700',
+                        !isSameMonth(day, calendarViewDate) ? 'text-muted-foreground/40' : 'text-foreground',
                         isSameDay(day, selected.sessionDate) ? 'bg-indigo-600 text-white font-semibold' : '',
-                        isToday(day) && !isSameDay(day, selected.sessionDate) ? 'bg-slate-100 font-semibold' : '',
-                        isSameMonth(day, calendarViewDate) && !isSameDay(day, selected.sessionDate) ? 'hover:bg-slate-100' : '',
+                        isToday(day) && !isSameDay(day, selected.sessionDate) ? 'bg-muted font-semibold' : '',
+                        isSameMonth(day, calendarViewDate) && !isSameDay(day, selected.sessionDate) ? 'hover:bg-accent' : '',
                       ]"
                       @click="selectDay(day)"
                     >
@@ -429,41 +431,41 @@ onMounted(() => {
           <!-- Language badge → language settings popover -->
           <Popover>
             <PopoverTrigger as-child>
-              <button class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
-                <Languages class="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
+              <button class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-foreground text-sm font-medium hover:bg-accent transition-colors">
+                <Languages class="w-3.5 h-3.5 text-muted-foreground" />
                 {{ selected.inputLanguage }}
               </button>
             </PopoverTrigger>
             <PopoverContent align="start" class="w-72 p-5" :side-offset="8">
-              <h3 class="text-base font-bold text-slate-900 mb-4">Language settings</h3>
+              <h3 class="text-base font-bold text-foreground mb-4">Language settings</h3>
 
               <!-- Input language -->
               <div class="mb-4">
-                <p class="text-sm font-semibold text-slate-800 mb-1">Input language</p>
-                <p class="text-xs text-slate-400 mb-2">Used for transcripts, dictations and uploaded recordings.</p>
+                <p class="text-sm font-semibold text-foreground mb-1">Input language</p>
+                <p class="text-xs text-muted-foreground mb-2">Used for transcripts, dictations and uploaded recordings.</p>
                 <div class="relative">
                   <select
                     v-model="selected.inputLanguage"
-                    class="w-full appearance-none px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 pr-10"
+                    class="w-full appearance-none px-4 py-2.5 border border-border rounded-xl text-sm text-foreground bg-background focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 pr-10"
                   >
                     <option v-for="lang in languages" :key="lang" :value="lang">{{ lang }}</option>
                   </select>
-                  <ChevronDown class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                  <ChevronDown class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                 </div>
               </div>
 
               <!-- Output language -->
               <div>
-                <p class="text-sm font-semibold text-slate-800 mb-1">Output language</p>
-                <p class="text-xs text-slate-400 mb-2">Used for notes and documents.</p>
+                <p class="text-sm font-semibold text-foreground mb-1">Output language</p>
+                <p class="text-xs text-muted-foreground mb-2">Used for notes and documents.</p>
                 <div class="relative">
                   <select
                     v-model="selected.outputLanguage"
-                    class="w-full appearance-none px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-700 bg-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 pr-10"
+                    class="w-full appearance-none px-4 py-2.5 border border-border rounded-xl text-sm text-foreground bg-background focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 pr-10"
                   >
                     <option v-for="lang in languages" :key="lang" :value="lang">{{ lang }}</option>
                   </select>
-                  <ChevronDown class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                  <ChevronDown class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                 </div>
               </div>
             </PopoverContent>
@@ -478,11 +480,11 @@ onMounted(() => {
       </header>
 
       <!-- ── Content tabs ─────────────────────────────────────────────────── -->
-      <div class="shrink-0 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 px-6 flex items-end">
+      <div class="shrink-0 bg-background border-b border-border/50 px-6 flex items-end">
         <button
           :class="[
             'flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors',
-            contentTab === 'context' ? 'text-indigo-700 dark:text-indigo-300 border-indigo-600' : 'text-slate-500 dark:text-slate-400 border-transparent hover:text-slate-700 dark:hover:text-slate-200',
+            contentTab === 'context' ? 'text-indigo-700 dark:text-indigo-300 border-indigo-600' : 'text-muted-foreground border-transparent hover:text-foreground',
           ]"
           @click="contentTab = 'context'"
         >
@@ -494,14 +496,14 @@ onMounted(() => {
           :key="session.id"
           :class="[
             'flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors',
-            contentTab === session.id ? 'text-indigo-700 dark:text-indigo-300 border-indigo-600' : 'text-slate-500 dark:text-slate-400 border-transparent hover:text-slate-700 dark:hover:text-slate-200',
+            contentTab === session.id ? 'text-indigo-700 dark:text-indigo-300 border-indigo-600' : 'text-muted-foreground border-transparent hover:text-foreground',
           ]"
           @click="contentTab = session.id"
         >
           <Pencil class="w-3.5 h-3.5" />
           {{ session.label }}
         </button>
-        <button class="px-3 py-2.5 text-slate-400 hover:text-slate-600 border-b-2 border-transparent -mb-px transition-colors" title="Add session">
+        <button class="px-3 py-2.5 text-muted-foreground hover:text-foreground border-b-2 border-transparent -mb-px transition-colors" title="Add session">
           <Plus class="w-4 h-4" />
         </button>
       </div>
@@ -511,7 +513,7 @@ onMounted(() => {
 
         <!-- Context tab -->
         <div v-if="contentTab === 'context'" class="flex-1 flex flex-col min-h-0 p-5">
-          <div class="flex-1 flex flex-col bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden min-h-0">
+          <div class="flex-1 flex flex-col bg-card rounded-2xl border border-border shadow-sm overflow-hidden min-h-0">
 
             <!-- Textarea + right-side toolbar -->
             <div class="flex-1 relative min-h-0 flex">
@@ -519,7 +521,7 @@ onMounted(() => {
                 ref="contextAreaRef"
                 :value="selected.contextText"
                 placeholder="Add any additional context about the patient or paste files here"
-                class="flex-1 resize-none px-5 py-5 text-sm text-slate-700 dark:text-slate-200 placeholder:text-slate-300 dark:placeholder:text-slate-600 focus:outline-none leading-relaxed font-[inherit] min-h-0 bg-transparent"
+                class="flex-1 resize-none px-5 py-5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none leading-relaxed font-[inherit] min-h-0 bg-transparent"
                 @input="setContextText"
               />
 
@@ -527,47 +529,47 @@ onMounted(() => {
               <div class="absolute top-4 right-4 flex items-center gap-2">
 
                 <!-- Mic group -->
-                <div class="flex items-center border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden" @click.stop>
-                  <button class="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" title="Voice input">
+                <div class="flex items-center border border-border rounded-lg overflow-hidden" @click.stop>
+                  <button class="p-2 text-muted-foreground hover:bg-accent transition-colors" title="Voice input">
                     <Mic class="w-3.5 h-3.5" />
                   </button>
-                  <div class="w-px h-4 bg-slate-200" />
-                  <button class="px-1.5 py-2 text-slate-400 hover:bg-slate-50 transition-colors" @click.stop="micOpen = !micOpen">
+                  <div class="w-px h-4 bg-border" />
+                  <button class="px-1.5 py-2 text-muted-foreground hover:bg-accent transition-colors" @click.stop="micOpen = !micOpen">
                     <ChevronDown class="w-3 h-3" />
                   </button>
                   <Transition enter-active-class="transition duration-100 ease-out" enter-from-class="opacity-0 scale-95" enter-to-class="opacity-100 scale-100" leave-active-class="transition duration-75 ease-in" leave-from-class="opacity-100" leave-to-class="opacity-0">
-                    <div v-if="micOpen" class="absolute right-28 top-8 z-30 w-36 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-lg overflow-hidden">
-                      <button class="w-full px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 text-left">Record note</button>
-                      <button class="w-full px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 text-left">Dictate text</button>
+                    <div v-if="micOpen" class="absolute right-28 top-8 z-30 w-36 bg-card rounded-xl border border-border shadow-lg overflow-hidden">
+                      <button class="w-full px-3 py-2 text-sm text-foreground hover:bg-accent text-left">Record note</button>
+                      <button class="w-full px-3 py-2 text-sm text-foreground hover:bg-accent text-left">Dictate text</button>
                     </div>
                   </Transition>
                 </div>
 
                 <!-- Undo / Redo group -->
-                <div class="flex items-center border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
-                  <button class="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" title="Undo" @click="undoContext">
+                <div class="flex items-center border border-border rounded-lg overflow-hidden">
+                  <button class="p-2 text-muted-foreground hover:bg-accent transition-colors" title="Undo" @click="undoContext">
                     <Undo2 class="w-3.5 h-3.5" />
                   </button>
-                  <div class="w-px h-4 bg-slate-200" />
-                  <button class="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors" title="Redo" @click="redoContext">
+                  <div class="w-px h-4 bg-border" />
+                  <button class="p-2 text-muted-foreground hover:bg-accent transition-colors" title="Redo" @click="redoContext">
                     <Redo2 class="w-3.5 h-3.5" />
                   </button>
                 </div>
 
                 <!-- Copy group -->
-                <div class="flex items-center border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden" @click.stop>
-                  <button class="flex items-center gap-1.5 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50 transition-colors" @click="copyContext">
+                <div class="flex items-center border border-border rounded-lg overflow-hidden" @click.stop>
+                  <button class="flex items-center gap-1.5 px-3 py-2 text-sm text-foreground hover:bg-accent transition-colors" @click="copyContext">
                     Copy
                   </button>
-                  <div class="w-px h-4 bg-slate-200" />
-                  <button class="px-1.5 py-2 text-slate-400 hover:bg-slate-50 transition-colors" @click.stop="copyOpen = !copyOpen">
+                  <div class="w-px h-4 bg-border" />
+                  <button class="px-1.5 py-2 text-muted-foreground hover:bg-accent transition-colors" @click.stop="copyOpen = !copyOpen">
                     <ChevronDown class="w-3 h-3" />
                   </button>
                   <Transition enter-active-class="transition duration-100 ease-out" enter-from-class="opacity-0 scale-95" enter-to-class="opacity-100 scale-100" leave-active-class="transition duration-75 ease-in" leave-from-class="opacity-100" leave-to-class="opacity-0">
-                    <div v-if="copyOpen" class="absolute right-0 top-8 z-30 w-40 bg-white rounded-xl border border-slate-200 shadow-lg overflow-hidden">
-                      <button class="w-full px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 text-left" @click="copyContext">Copy all</button>
-                      <button class="w-full px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 text-left">Copy as Markdown</button>
-                      <button class="w-full px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 text-left">Copy as SOAP</button>
+                    <div v-if="copyOpen" class="absolute right-0 top-8 z-30 w-40 bg-card rounded-xl border border-border shadow-lg overflow-hidden">
+                      <button class="w-full px-3 py-2 text-sm text-foreground hover:bg-accent text-left" @click="copyContext">Copy all</button>
+                      <button class="w-full px-3 py-2 text-sm text-foreground hover:bg-accent text-left">Copy as Markdown</button>
+                      <button class="w-full px-3 py-2 text-sm text-foreground hover:bg-accent text-left">Copy as SOAP</button>
                     </div>
                   </Transition>
                 </div>
@@ -575,11 +577,11 @@ onMounted(() => {
             </div>
 
             <!-- Bottom action row -->
-            <div class="flex items-center gap-2 px-4 py-3 border-t border-slate-100 dark:border-slate-800 shrink-0">
-              <button class="w-9 h-9 rounded-xl border border-slate-200 flex items-center justify-center text-slate-500 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 transition-colors" title="Link patient">
+            <div class="flex items-center gap-2 px-4 py-3 border-t border-border/50 shrink-0">
+              <button class="w-9 h-9 rounded-xl border border-border flex items-center justify-center text-muted-foreground hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 transition-colors" title="Link patient">
                 <UserRound class="w-4 h-4" />
               </button>
-              <button class="w-9 h-9 rounded-xl border border-slate-200 flex items-center justify-center text-slate-500 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 transition-colors" title="Attach file">
+              <button class="w-9 h-9 rounded-xl border border-border flex items-center justify-center text-muted-foreground hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50 transition-colors" title="Attach file">
                 <Paperclip class="w-4 h-4" />
               </button>
             </div>
@@ -589,16 +591,16 @@ onMounted(() => {
         <!-- Session tabs -->
         <template v-for="session in selected.sessions" :key="session.id">
           <div v-if="contentTab === session.id" class="flex-1 flex flex-col min-h-0 p-5">
-            <div class="flex-1 flex flex-col bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden min-h-0">
+            <div class="flex-1 flex flex-col bg-card rounded-2xl border border-border shadow-sm overflow-hidden min-h-0">
 
               <!-- Empty state -->
               <div v-if="session.transcript.length === 0" class="flex-1 flex flex-col items-center justify-center gap-4 p-8">
-                <div class="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
-                  <Mic class="w-7 h-7 text-slate-400 dark:text-slate-500" />
+                <div class="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center">
+                  <Mic class="w-7 h-7 text-muted-foreground/50" />
                 </div>
                 <div class="text-center">
-                  <p class="text-sm font-semibold text-slate-700 dark:text-slate-200">Ready to transcribe</p>
-                  <p class="text-xs text-slate-400 mt-1 max-w-xs">Click <strong>Transcribe</strong> to start live recording, or upload an audio file.</p>
+                  <p class="text-sm font-semibold text-foreground">Ready to transcribe</p>
+                  <p class="text-xs text-muted-foreground mt-1 max-w-xs">Click <strong>Transcribe</strong> to start live recording, or upload an audio file.</p>
                 </div>
                 <button
                   class="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors"
@@ -625,14 +627,14 @@ onMounted(() => {
                     :key="i"
                     :class="['flex gap-3', line.speaker === 'patient' ? 'flex-row-reverse' : '']"
                   >
-                    <div :class="['w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5', line.speaker === 'therapist' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600']">
+                    <div :class="['w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5', line.speaker === 'therapist' ? 'bg-indigo-100 text-indigo-700' : 'bg-muted text-muted-foreground']">
                       {{ line.speaker === 'therapist' ? 'T' : 'P' }}
                     </div>
                     <div :class="['max-w-[75%] flex flex-col gap-1', line.speaker === 'patient' ? 'items-end' : 'items-start']">
-                      <span class="text-[10px] text-slate-400 font-medium">
+                      <span class="text-[10px] text-muted-foreground font-medium">
                         {{ line.speaker === 'therapist' ? 'Therapist' : 'Patient' }} · {{ line.time }}
                       </span>
-                      <div :class="['px-4 py-2.5 rounded-2xl text-sm leading-relaxed', line.speaker === 'therapist' ? 'bg-slate-100 text-slate-800 rounded-tl-sm' : 'bg-indigo-600 text-white rounded-tr-sm']">
+                      <div :class="['px-4 py-2.5 rounded-2xl text-sm leading-relaxed', line.speaker === 'therapist' ? 'bg-muted text-foreground rounded-tl-sm' : 'bg-indigo-600 text-white rounded-tr-sm']">
                         {{ line.text }}
                       </div>
                     </div>
@@ -645,21 +647,21 @@ onMounted(() => {
       </div>
 
       <!-- ── Noe AI bar ───────────────────────────────────────────────────── -->
-      <div class="shrink-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 px-5 py-3">
+      <div class="shrink-0 bg-background border-t border-border px-5 py-3">
         <!-- Previous Noe messages -->
         <div v-if="noeMessages.length > 0" class="mb-3 max-h-36 overflow-y-auto space-y-2 px-1">
           <div v-for="(msg, i) in noeMessages" :key="i" :class="['flex gap-2', msg.role === 'user' ? 'justify-end' : 'justify-start']">
             <div v-if="msg.role === 'noe'" class="w-5 h-5 rounded-full bg-indigo-600 flex items-center justify-center shrink-0 mt-0.5">
               <Sparkles class="w-3 h-3 text-white" />
             </div>
-            <div :class="['max-w-[85%] px-3 py-2 rounded-xl text-xs leading-relaxed', msg.role === 'user' ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200' : 'bg-indigo-50 dark:bg-indigo-950 text-indigo-900 dark:text-indigo-200 border border-indigo-100 dark:border-indigo-900']">
+            <div :class="['max-w-[85%] px-3 py-2 rounded-xl text-xs leading-relaxed', msg.role === 'user' ? 'bg-muted text-foreground' : 'bg-indigo-50 dark:bg-indigo-950 text-indigo-900 dark:text-indigo-200 border border-indigo-100 dark:border-indigo-900']">
               {{ msg.text }}
             </div>
           </div>
         </div>
 
         <!-- Input -->
-        <div class="flex items-center gap-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-transparent transition-all">
+        <div class="flex items-center gap-3 bg-muted/50 border border-border rounded-xl px-3 py-2 focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-transparent transition-all">
           <div class="w-6 h-6 rounded-lg bg-indigo-600 flex items-center justify-center shrink-0">
             <Sparkles class="w-3.5 h-3.5 text-white" />
           </div>
@@ -667,11 +669,11 @@ onMounted(() => {
             v-model="noeInput"
             type="text"
             placeholder="Ask Noe to do anything…"
-            class="flex-1 bg-transparent text-sm text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none"
+            class="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
             @keydown.enter="sendNoe"
           />
           <button
-            :class="['p-1.5 rounded-lg transition-colors', noeInput.trim() ? 'text-indigo-600 hover:bg-indigo-50' : 'text-slate-300 cursor-default']"
+            :class="['p-1.5 rounded-lg transition-colors', noeInput.trim() ? 'text-indigo-600 hover:bg-indigo-50' : 'text-muted-foreground/40 cursor-default']"
             :disabled="!noeInput.trim()"
             @click="sendNoe"
           >

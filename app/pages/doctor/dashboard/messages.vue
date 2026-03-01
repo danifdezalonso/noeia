@@ -1,94 +1,24 @@
 <script setup lang="ts">
 import {
   Search, Phone, Video, MoreHorizontal, Paperclip, Smile, Send,
-  Check, CheckCheck, Circle,
+  Check, CheckCheck,
 } from 'lucide-vue-next'
-import { format, isToday, isYesterday, parseISO } from 'date-fns'
+import { format, isToday, isYesterday } from 'date-fns'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
+import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
+import { Badge } from '~/components/ui/badge'
 
 definePageMeta({ layout: 'dashboard' })
 
-// ── Types ──────────────────────────────────────────────────────────────────
-
-type MessageStatus = 'sent' | 'delivered' | 'read'
-
-interface Message {
-  id: string
-  from: 'therapist' | 'patient'
-  text: string
-  timestamp: Date
-  status?: MessageStatus
-}
-
-interface Conversation {
-  id: string
-  patientName: string
-  initials: string
-  avatarBg: string
-  avatarText: string
-  online: boolean
-  lastMessage: string
-  lastTime: Date
-  unread: number
-  messages: Message[]
-}
-
-// ── Mock data ──────────────────────────────────────────────────────────────
-
-function t(h: number, m: number): Date {
-  const d = new Date(); d.setHours(h, m, 0, 0); return d
-}
-function yesterday(h: number, m: number): Date {
-  const d = new Date(); d.setDate(d.getDate() - 1); d.setHours(h, m, 0, 0); return d
-}
-
-const conversations = ref<Conversation[]>([
-  {
-    id: 'c1',
-    patientName: 'Sarah Johnson',
-    initials: 'SJ',
-    avatarBg: 'bg-rose-100',
-    avatarText: 'text-rose-700',
-    online: true,
-    lastMessage: 'Should I bring my medication list?',
-    lastTime: t(10, 30),
-    unread: 0,
-    messages: [
-      { id: 'm1', from: 'patient',   text: 'Hi Dr. Torres, I have a question about my appointment.', timestamp: t(10, 12), status: 'read' },
-      { id: 'm2', from: 'therapist', text: 'Of course, Sarah. What\'s on your mind?', timestamp: t(10, 13), status: 'read' },
-      { id: 'm3', from: 'patient',   text: 'I need to reschedule my Thursday session. I have a work conflict that just came up.', timestamp: t(10, 15), status: 'read' },
-      { id: 'm4', from: 'therapist', text: 'No problem at all — these things happen. When would work better for you this week?', timestamp: t(10, 17), status: 'read' },
-      { id: 'm5', from: 'patient',   text: 'Would Friday at 3pm work?', timestamp: t(10, 18), status: 'read' },
-      { id: 'm6', from: 'therapist', text: 'Friday at 3pm works perfectly. I\'ve moved the session in the calendar — you should receive an updated confirmation shortly.', timestamp: t(10, 20), status: 'read' },
-      { id: 'm7', from: 'patient',   text: 'Amazing, thank you so much! 🙏', timestamp: t(10, 21), status: 'read' },
-      { id: 'm8', from: 'patient',   text: 'Quick question — should I bring my medication list to the Friday appointment?', timestamp: t(10, 30), status: 'read' },
-    ],
-  },
-  {
-    id: 'c2',
-    patientName: 'Michael Brown',
-    initials: 'MB',
-    avatarBg: 'bg-sky-100',
-    avatarText: 'text-sky-700',
-    online: false,
-    lastMessage: 'Thanks for the resources.',
-    lastTime: yesterday(16, 45),
-    unread: 0,
-    messages: [
-      { id: 'm1', from: 'therapist', text: 'Hi Michael, I wanted to share a few reading resources related to what we discussed in our last session.', timestamp: yesterday(16, 10), status: 'read' },
-      { id: 'm2', from: 'therapist', text: 'There\'s a good overview of CBT techniques for sleep anxiety on the NHS website, and I\'ve also attached a short breathing exercise guide.', timestamp: yesterday(16, 11), status: 'read' },
-      { id: 'm3', from: 'patient',   text: 'Thanks for the resources. I\'ll have a look before our next session.', timestamp: yesterday(16, 45), status: 'read' },
-    ],
-  },
-])
+const { conversations, selectConversation: _select, sendMessage: _send } = useMessages()
 
 // ── State ──────────────────────────────────────────────────────────────────
 
 const selectedId  = ref('c1')
 const search      = ref('')
 const compose     = ref('')
-const messagesEnd = ref<HTMLElement>()
+const threadRef   = ref<InstanceType<typeof import('~/components/ai/ConversationThread.vue').default>>()
 
 const selected = computed(
   () => conversations.value.find(c => c.id === selectedId.value)!,
@@ -97,30 +27,19 @@ const selected = computed(
 const filteredConversations = computed(() => {
   if (!search.value.trim()) return conversations.value
   const q = search.value.toLowerCase()
-  return conversations.value.filter(c => c.patientName.toLowerCase().includes(q))
+  return conversations.value.filter(c => c.name.toLowerCase().includes(q))
 })
 
 function selectConversation(id: string) {
   selectedId.value = id
-  const c = conversations.value.find(c => c.id === id)
-  if (c) c.unread = 0
+  _select(id)
 }
 
 function sendMessage() {
   if (!compose.value.trim()) return
-  const c = conversations.value.find(c => c.id === selectedId.value)
-  if (!c) return
-  c.messages.push({
-    id: `m${Date.now()}`,
-    from: 'therapist',
-    text: compose.value.trim(),
-    timestamp: new Date(),
-    status: 'sent',
-  })
-  c.lastMessage = compose.value.trim()
-  c.lastTime = new Date()
+  _send(selectedId.value, compose.value.trim())
   compose.value = ''
-  nextTick(() => messagesEnd.value?.scrollIntoView({ behavior: 'smooth' }))
+  nextTick(() => threadRef.value?.scrollToBottom())
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -135,7 +54,7 @@ function fmtMsgTime(d: Date) {
   return format(d, 'HH:mm')
 }
 
-type MessageGroup = { dateLabel: string; messages: Message[] }
+type MessageGroup = { dateLabel: string; messages: typeof selected.value.messages }
 const groupedMessages = computed<MessageGroup[]>(() => {
   const msgs = selected.value?.messages ?? []
   const groups: MessageGroup[] = []
@@ -155,9 +74,9 @@ const groupedMessages = computed<MessageGroup[]>(() => {
   return groups
 })
 
-onMounted(() => messagesEnd.value?.scrollIntoView())
+onMounted(() => nextTick(() => threadRef.value?.scrollToBottom('instant')))
 watch(() => selected.value?.messages.length, () => {
-  nextTick(() => messagesEnd.value?.scrollIntoView({ behavior: 'smooth' }))
+  nextTick(() => threadRef.value?.scrollToBottom())
 })
 </script>
 
@@ -165,26 +84,21 @@ watch(() => selected.value?.messages.length, () => {
   <div class="flex-1 flex overflow-hidden min-h-0">
 
     <!-- ══ Left — conversation list ══════════════════════════════════════ -->
-    <aside class="w-64 sm:w-72 md:w-80 flex flex-col bg-white dark:bg-slate-900 border-r border-slate-100 dark:border-slate-800 shrink-0 min-w-0">
+    <aside class="w-64 sm:w-72 md:w-80 flex flex-col bg-background border-r border-border shrink-0 min-w-0">
 
       <!-- Header -->
-      <div class="flex items-center justify-between px-4 py-4 border-b border-slate-100 dark:border-slate-800 shrink-0">
-        <h2 class="text-base font-bold text-slate-900 dark:text-white">Messages</h2>
+      <div class="flex items-center justify-between px-4 py-4 border-b border-border shrink-0">
+        <h2 class="text-base font-bold text-foreground">Messages</h2>
         <Button variant="ghost" size="icon">
           <MoreHorizontal class="w-4 h-4" />
         </Button>
       </div>
 
       <!-- Search -->
-      <div class="px-4 py-3 border-b border-slate-100 dark:border-slate-800 shrink-0">
+      <div class="px-4 py-3 border-b border-border shrink-0">
         <div class="relative">
-          <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-          <Input
-            v-model="search"
-            type="text"
-            placeholder="Search messages..."
-            class="pl-9"
-          />
+          <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+          <Input v-model="search" type="text" placeholder="Search messages..." class="pl-9" />
         </div>
       </div>
 
@@ -194,66 +108,62 @@ watch(() => selected.value?.messages.length, () => {
           v-for="conv in filteredConversations"
           :key="conv.id"
           :class="[
-            'w-full flex items-center gap-3 px-4 py-3.5 text-left transition-colors border-b border-slate-50',
-            selectedId === conv.id ? 'bg-primary/10 dark:bg-primary/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800',
+            'w-full flex items-center gap-3 px-4 py-3.5 text-left transition-colors border-b border-border/50',
+            selectedId === conv.id ? 'bg-primary/10' : 'hover:bg-accent',
           ]"
           @click="selectConversation(conv.id)"
         >
           <!-- Avatar + online dot -->
           <div class="relative shrink-0">
-            <div :class="['w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold', conv.avatarBg, conv.avatarText]">
-              {{ conv.initials }}
-            </div>
-            <span
-              :class="[
-                'absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white',
-                conv.online ? 'bg-green-500' : 'bg-slate-300',
-              ]"
-            />
+            <Avatar class="size-10">
+              <AvatarImage :src="avatarUrl(conv.name)" :alt="conv.name" />
+              <AvatarFallback :class="[conv.avatarBg, conv.avatarText, 'text-sm font-bold']">{{ conv.initials }}</AvatarFallback>
+            </Avatar>
+            <span :class="['absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-background', conv.online ? 'bg-green-500' : 'bg-muted-foreground/30']" />
           </div>
 
           <!-- Name + preview -->
           <div class="flex-1 min-w-0">
             <div class="flex items-center justify-between gap-2">
-              <p :class="['text-sm font-semibold truncate', selectedId === conv.id ? 'text-primary' : 'text-slate-800 dark:text-slate-100']">
-                {{ conv.patientName }}
+              <p :class="['text-sm font-semibold truncate', selectedId === conv.id ? 'text-primary' : 'text-foreground']">
+                {{ conv.name }}
               </p>
-              <span class="text-[11px] text-slate-400 shrink-0">{{ fmtTime(conv.lastTime) }}</span>
+              <span class="text-[11px] text-muted-foreground shrink-0">{{ fmtTime(conv.lastTime) }}</span>
             </div>
             <div class="flex items-center justify-between gap-2 mt-0.5">
-              <p class="text-xs text-slate-500 truncate">{{ conv.lastMessage }}</p>
-              <span
-                v-if="conv.unread > 0"
-                class="shrink-0 min-w-4 h-4 px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center"
-              >
-                {{ conv.unread }}
-              </span>
+              <p class="text-xs text-muted-foreground truncate">{{ conv.lastMessage }}</p>
+              <Badge v-if="conv.unread > 0" class="shrink-0 min-w-4 h-4 px-1 text-[10px] font-bold">{{ conv.unread }}</Badge>
             </div>
           </div>
         </button>
 
-        <div v-if="filteredConversations.length === 0" class="py-12 text-center">
-          <Search class="w-8 h-8 text-slate-300 mx-auto mb-2" />
-          <p class="text-sm text-slate-400">No conversations found</p>
-        </div>
+        <!-- Empty search state -->
+        <AiConversationEmptyState
+          v-if="filteredConversations.length === 0"
+          title="No conversations found"
+          description="Try a different search term."
+        >
+          <template #icon><Search class="w-5 h-5 text-muted-foreground" /></template>
+        </AiConversationEmptyState>
       </div>
     </aside>
 
     <!-- ══ Right — active conversation ══════════════════════════════════ -->
-    <main class="flex-1 flex flex-col min-w-0 bg-white dark:bg-slate-900">
+    <main class="flex-1 flex flex-col min-w-0 bg-background">
 
       <!-- Chat header -->
-      <header class="shrink-0 flex items-center justify-between px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
+      <header class="shrink-0 flex items-center justify-between px-5 py-3.5 border-b border-border bg-background">
         <div class="flex items-center gap-3">
           <div class="relative">
-            <div :class="['w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold', selected.avatarBg, selected.avatarText]">
-              {{ selected.initials }}
-            </div>
-            <span :class="['absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white', selected.online ? 'bg-green-500' : 'bg-slate-300']" />
+            <Avatar class="size-9">
+              <AvatarImage :src="avatarUrl(selected.name)" :alt="selected.name" />
+              <AvatarFallback :class="[selected.avatarBg, selected.avatarText, 'text-sm font-bold']">{{ selected.initials }}</AvatarFallback>
+            </Avatar>
+            <span :class="['absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-background', selected.online ? 'bg-green-500' : 'bg-muted-foreground/30']" />
           </div>
           <div>
-            <p class="text-sm font-semibold text-slate-800 dark:text-slate-100 leading-tight">{{ selected.patientName }}</p>
-            <p :class="['text-xs leading-tight', selected.online ? 'text-green-600' : 'text-slate-400']">
+            <p class="text-sm font-semibold text-foreground leading-tight">{{ selected.name }}</p>
+            <p :class="['text-xs leading-tight', selected.online ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground']">
               {{ selected.online ? 'Online' : 'Offline' }}
             </p>
           </div>
@@ -273,59 +183,46 @@ watch(() => selected.value?.messages.length, () => {
       </header>
 
       <!-- Messages area -->
-      <div class="flex-1 overflow-y-auto px-5 py-4 space-y-6 min-h-0 bg-slate-50/40 dark:bg-slate-950/40">
-        <template v-for="group in groupedMessages" :key="group.dateLabel">
+      <AiConversationThread ref="threadRef" class="px-5 py-4 space-y-6 bg-muted/20">
+        <AiConversationEmptyState v-if="!groupedMessages.length" title="Start the conversation" description="Send a message to begin." />
 
+        <template v-for="group in groupedMessages" :key="group.dateLabel">
+          <!-- Date separator -->
           <div class="flex items-center gap-3">
-            <div class="flex-1 h-px bg-slate-200" />
-            <span class="text-xs text-slate-400 font-medium px-2">{{ group.dateLabel }}</span>
-            <div class="flex-1 h-px bg-slate-200" />
+            <div class="flex-1 h-px bg-border" />
+            <span class="text-xs text-muted-foreground font-medium px-2">{{ group.dateLabel }}</span>
+            <div class="flex-1 h-px bg-border" />
           </div>
 
           <div class="space-y-2">
-            <div
-              v-for="msg in group.messages"
-              :key="msg.id"
-              :class="['flex gap-2.5', msg.from === 'therapist' ? 'flex-row-reverse' : '']"
-            >
-              <div
-                v-if="msg.from === 'patient'"
-                :class="['w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 self-end', selected.avatarBg, selected.avatarText]"
-              >
-                {{ selected.initials }}
-              </div>
+            <div v-for="msg in group.messages" :key="msg.id" :class="['flex gap-2.5', msg.from === 'me' ? 'flex-row-reverse' : '']">
+              <Avatar v-if="msg.from === 'other'" class="size-8 shrink-0 self-end">
+                <AvatarImage :src="avatarUrl(selected.name)" :alt="selected.name" />
+                <AvatarFallback :class="[selected.avatarBg, selected.avatarText, 'text-xs font-bold']">{{ selected.initials }}</AvatarFallback>
+              </Avatar>
 
-              <div :class="['flex flex-col gap-1 max-w-[70%]', msg.from === 'therapist' ? 'items-end' : 'items-start']">
-                <div
-                  :class="[
-                    'px-4 py-2.5 rounded-2xl text-sm leading-relaxed',
-                    msg.from === 'therapist'
-                      ? 'bg-primary text-primary-foreground rounded-br-sm'
-                      : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-bl-sm shadow-sm',
-                  ]"
-                >
+              <div :class="['flex flex-col gap-1 max-w-[70%]', msg.from === 'me' ? 'items-end' : 'items-start']">
+                <div :class="['px-4 py-2.5 rounded-2xl text-sm leading-relaxed', msg.from === 'me' ? 'bg-primary text-primary-foreground rounded-br-sm' : 'bg-card text-foreground border border-border rounded-bl-sm shadow-sm']">
                   {{ msg.text }}
                 </div>
                 <div class="flex items-center gap-1">
-                  <span class="text-[11px] text-slate-400">{{ fmtMsgTime(msg.timestamp) }}</span>
-                  <template v-if="msg.from === 'therapist'">
+                  <span class="text-[11px] text-muted-foreground">{{ fmtMsgTime(msg.timestamp) }}</span>
+                  <template v-if="msg.from === 'me'">
                     <CheckCheck v-if="msg.status === 'read'" class="w-3.5 h-3.5 text-primary/60" />
-                    <CheckCheck v-else-if="msg.status === 'delivered'" class="w-3.5 h-3.5 text-slate-400" />
-                    <Check v-else class="w-3.5 h-3.5 text-slate-300" />
+                    <CheckCheck v-else-if="msg.status === 'delivered'" class="w-3.5 h-3.5 text-muted-foreground" />
+                    <Check v-else class="w-3.5 h-3.5 text-muted-foreground/40" />
                   </template>
                 </div>
               </div>
             </div>
           </div>
         </template>
-
-        <div ref="messagesEnd" />
-      </div>
+      </AiConversationThread>
 
       <!-- Compose bar -->
-      <footer class="shrink-0 px-5 py-3.5 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
-        <div class="flex items-center gap-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-2.5 focus-within:ring-2 focus-within:ring-primary focus-within:border-transparent transition-all">
-          <button class="text-slate-400 hover:text-slate-600 transition-colors shrink-0" title="Attach file">
+      <footer class="shrink-0 px-5 py-3.5 border-t border-border bg-background">
+        <div class="flex items-center gap-3 bg-muted border border-border rounded-2xl px-4 py-2.5 focus-within:ring-2 focus-within:ring-ring focus-within:border-transparent transition-all">
+          <button class="text-muted-foreground hover:text-foreground transition-colors shrink-0" title="Attach file">
             <Paperclip class="w-4.5 h-4.5" />
           </button>
 
@@ -333,21 +230,16 @@ watch(() => selected.value?.messages.length, () => {
             v-model="compose"
             type="text"
             placeholder="Type a message..."
-            class="flex-1 bg-transparent text-sm text-slate-700 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none"
+            class="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
             @keydown.enter="sendMessage"
           />
 
-          <button class="text-slate-400 hover:text-slate-600 transition-colors shrink-0" title="Emoji">
+          <button class="text-muted-foreground hover:text-foreground transition-colors shrink-0" title="Emoji">
             <Smile class="w-4.5 h-4.5" />
           </button>
 
           <button
-            :class="[
-              'w-8 h-8 rounded-xl flex items-center justify-center transition-colors shrink-0',
-              compose.trim()
-                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                : 'bg-slate-200 text-slate-400 cursor-default',
-            ]"
+            :class="['w-8 h-8 rounded-xl flex items-center justify-center transition-colors shrink-0', compose.trim() ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'bg-muted-foreground/20 text-muted-foreground cursor-default']"
             :disabled="!compose.trim()"
             @click="sendMessage"
           >

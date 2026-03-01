@@ -5,6 +5,10 @@ import timeGridPlugin from '@fullcalendar/timegrid'
 import listPlugin from '@fullcalendar/list'
 import interactionPlugin from '@fullcalendar/interaction'
 import type { CalendarEvent } from '~/composables/useCalendar'
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '~/components/ui/alert-dialog'
 
 const props = defineProps<{ events?: CalendarEvent[] }>()
 
@@ -12,13 +16,27 @@ const cal = useCalendar()
 const {
   viewMode, currentTitle,
   hideWeekends, showWeekNums, slotDuration, workHours,
-  openQuickCreate, openEdit, moveEvent, toggleTaskDone, openContextMenu,
+  openQuickCreate, openEventView, moveEvent, toggleTaskDone, openContextMenu,
 } = cal
 
 // Use prop events if provided, otherwise fall back to composable events
 const activeEvents = computed(() => props.events ?? cal.events.value)
 
-const calendarRef = ref<InstanceType<typeof FullCalendar>>()
+const calendarRef   = ref<InstanceType<typeof FullCalendar>>()
+const showMoveConfirm = ref(false)
+const pendingMove     = ref<{ eventId: string; title: string; newStart: string; newEnd: string; allDay: boolean; revertFn: () => void } | null>(null)
+
+function confirmMove() {
+  if (pendingMove.value) moveEvent(pendingMove.value.eventId, pendingMove.value.newStart, pendingMove.value.newEnd, pendingMove.value.allDay)
+  pendingMove.value   = null
+  showMoveConfirm.value = false
+}
+
+function cancelMove() {
+  pendingMove.value?.revertFn()
+  pendingMove.value   = null
+  showMoveConfirm.value = false
+}
 
 // ── Category base colors ─────────────────────────────────────────────────────
 const categoryStyle: Record<string, { bg: string; text: string }> = {
@@ -44,19 +62,30 @@ const fcEvents = computed(() =>
     return {
       id: ev.id,
       title: ev.title,
-      start: ev.start,
-      end: ev.end,
+      start: ev.allDay ? ev.start.split('T')[0] : ev.start,
+      end:   ev.allDay ? ev.end.split('T')[0]   : ev.end,
       allDay: ev.allDay ?? false,
       backgroundColor: bg,
       textColor: style.text,
       borderColor: 'transparent',
-      // category/done/cancelled classes are applied via the eventClassNames
-      // callback (below) so FullCalendar always re-evaluates them on re-render
+      // classNames on the event object itself — FC compares these as a standard
+      // prop and re-renders the element whenever the array contents change
+      // (e.g. cancelled toggled). eventClassNames callback is kept as fallback.
+      classNames: [
+        `fc-ev-${ev.category}`,
+        ...(ev.done      ? ['fc-ev-done']      : []),
+        ...(ev.allDay    ? ['fc-ev-allday']    : []),
+        ...(ev.cancelled ? ['fc-ev-cancelled'] : []),
+      ],
       extendedProps: {
-        category:  ev.category,
-        done:      !!ev.done,
-        cancelled: !!ev.cancelled,
-        allDay:    !!ev.allDay,
+        category:       ev.category,
+        done:           !!ev.done,
+        cancelled:      !!ev.cancelled,
+        allDay:         !!ev.allDay,
+        modality:       ev.modality ?? null,
+        hasDescription: !!ev.description,
+        hasNotification: ev.notification !== undefined && ev.notification !== -1,
+        isPrivate:      ev.visibility === 'private',
       },
     }
   }),
@@ -130,7 +159,10 @@ const calendarOptions = computed(() => ({
       toLocalIso(info.end),
       info.jsEvent?.clientX ?? 400,
       info.jsEvent?.clientY ?? 300,
+      info.allDay ?? false,
     )
+    // Immediately clear the selection mirror so it doesn't overlap the new event after save
+    nextTick(() => calendarRef.value?.getApi()?.unselect())
   },
 
   eventClick: (info: any) => {
@@ -142,7 +174,7 @@ const calendarOptions = computed(() => ({
       return
     }
     const ev = activeEvents.value.find((e) => e.id === info.event.id)
-    if (ev) openEdit(ev)
+    if (ev) openEventView(ev, info.jsEvent.clientX, info.jsEvent.clientY)
   },
 
   eventDidMount: (info: any) => {
@@ -169,11 +201,52 @@ const calendarOptions = computed(() => ({
         mainEl.prepend(circle)
       }
     }
+
+    // ── Property icons (modality, description, notification, privacy) ───────
+    const p = info.event.extendedProps
+    const svgWrap = (path: string) =>
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`
+    const iconParts: string[] = []
+    if (p.modality === 'online')
+      iconParts.push(svgWrap('<path d="M15 10l4.553-2.069A1 1 0 0121 8.845v6.311a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"/>'))
+    if (p.modality === 'inperson')
+      iconParts.push(svgWrap('<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>'))
+    if (p.hasDescription)
+      iconParts.push(svgWrap('<line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>'))
+    if (p.hasNotification)
+      iconParts.push(svgWrap('<path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/>'))
+    if (p.isPrivate)
+      iconParts.push(svgWrap('<rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>'))
+
+    if (iconParts.length > 0) {
+      const timeEl = info.el.querySelector('.fc-event-time') as HTMLElement | null
+      if (timeEl && !timeEl.querySelector('.fc-ev-icons')) {
+        const span = document.createElement('span')
+        span.className = 'fc-ev-icons'
+        span.innerHTML = iconParts.join('')
+        timeEl.insertBefore(span, timeEl.firstChild)
+      } else if (!timeEl) {
+        // All-day events: inject into title
+        const titleEl = info.el.querySelector('.fc-event-title') as HTMLElement | null
+        if (titleEl && !titleEl.querySelector('.fc-ev-icons')) {
+          const span = document.createElement('span')
+          span.className = 'fc-ev-icons'
+          span.innerHTML = iconParts.join('')
+          titleEl.insertBefore(span, titleEl.firstChild)
+        }
+      }
+    }
   },
 
   eventDrop: (info: any) => {
-    if (!confirm(`Move "${info.event.title}" to the new time?`)) { info.revert(); return }
-    moveEvent(info.event.id, toLocalIso(info.event.start), toLocalIso(info.event.end ?? info.event.start))
+    const isAllDay = info.event.allDay as boolean
+    const endDate  = info.event.end ?? info.event.start
+    const newStart = isAllDay ? toLocalIso(info.event.start).split('T')[0] : toLocalIso(info.event.start)
+    const newEnd   = isAllDay ? toLocalIso(endDate).split('T')[0]          : toLocalIso(endDate)
+    // Do NOT call info.revert() here — keep the event at the dropped position visually.
+    // revertFn is stored so Cancel can undo the visual move.
+    pendingMove.value   = { eventId: info.event.id, title: info.event.title, newStart, newEnd, allDay: isAllDay, revertFn: info.revert }
+    showMoveConfirm.value = true
   },
 
   datesSet: (info: any) => {
@@ -200,6 +273,22 @@ defineExpose({
 
 <template>
   <FullCalendar ref="calendarRef" :options="calendarOptions" />
+
+  <!-- Move event confirmation -->
+  <AlertDialog :open="showMoveConfirm">
+    <AlertDialogContent>
+      <AlertDialogHeader>
+        <AlertDialogTitle>Move event?</AlertDialogTitle>
+        <AlertDialogDescription>
+          Move "{{ pendingMove?.title }}" to the new time?
+        </AlertDialogDescription>
+      </AlertDialogHeader>
+      <AlertDialogFooter>
+        <AlertDialogCancel @click="cancelMove">Cancel</AlertDialogCancel>
+        <AlertDialogAction @click="confirmMove">Move</AlertDialogAction>
+      </AlertDialogFooter>
+    </AlertDialogContent>
+  </AlertDialog>
 </template>
 
 <style>
@@ -228,11 +317,32 @@ defineExpose({
 .fc-daygrid .fc-gcal-daynum { width: auto; height: auto; font-size: 11px; font-weight: 500; color: #6b7280; background: none !important; }
 .fc-daygrid .fc-gcal-daynum.today { color: #4f46e5; background: none !important; font-weight: 700; }
 
+/* ── Event property icons ───────────────────────────────────────────────── */
+.fc-ev-icons {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-right: 3px;
+  vertical-align: middle;
+  flex-wrap: nowrap;
+}
+.fc-ev-icons svg {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  opacity: 0.85;
+  color: inherit;
+}
+
 /* ── All-day row ────────────────────────────────────────────────────────── */
 .fc-timegrid-axis-cushion { display: none !important; }
 .fc-timegrid-axis { width: 52px !important; }
-.fc-timegrid-all-day .fc-daygrid-body, .fc-timegrid-all-day-cushion { padding: 1px 0 !important; }
-.fc-timegrid-all-day .fc-daygrid-day-frame { min-height: 12px !important; }
+/* In FC v6 the all-day area = the non-liquid body section.
+   fc-scroller-harness has overflow:hidden by default which clips event chips.
+   Override it and guarantee enough height for at least one chip row. */
+.fc-scrollgrid-section-body:not(.fc-scrollgrid-section-liquid) .fc-scroller-harness { overflow: visible !important; }
+.fc-scrollgrid-section-body:not(.fc-scrollgrid-section-liquid) .fc-scroller        { overflow: visible !important; }
+.fc-scrollgrid-section-body:not(.fc-scrollgrid-section-liquid) .fc-daygrid-day-frame { min-height: 2.5em !important; }
 
 /* ── Today column ───────────────────────────────────────────────────────── */
 .fc-day-today         { background: rgba(79,70,229,0.025) !important; }
@@ -368,9 +478,9 @@ defineExpose({
 /* ═══════════════════════════════════════════════════════════════════════════
    Dark mode overrides
    ─────────────────────────────────────────────────────────────────────────── */
-.dark .fc-theme-standard td, .dark .fc-theme-standard th { border-color: #334155 !important; }
-.dark .fc-theme-standard .fc-scrollgrid { border-color: #334155 !important; }
-.dark .fc-col-header-cell { background: #0f172a !important; border-bottom-color: #334155 !important; }
+.dark .fc-theme-standard td, .dark .fc-theme-standard th { border-color: #222222 !important; }
+.dark .fc-theme-standard .fc-scrollgrid { border-color: #222222 !important; }
+.dark .fc-col-header-cell { background: #0A0A0A !important; border-bottom-color: #222222 !important; }
 .dark .fc-gcal-dayname                 { color: #94a3b8; }
 .dark .fc-gcal-dayname.today           { color: #818cf8; }
 .dark .fc-gcal-daynum                  { color: #e2e8f0; }
@@ -380,19 +490,19 @@ defineExpose({
 .dark .fc-day-today                    { background: rgba(79,70,229,0.08) !important; }
 .dark .fc-daygrid-day.fc-day-today     { background: rgba(79,70,229,0.1) !important; }
 .dark .fc-timegrid-slot-label          { color: #64748b !important; }
-.dark .fc-timegrid-slot-minor          { border-top-color: #1e293b !important; }
+.dark .fc-timegrid-slot-minor          { border-top-color: #181818 !important; }
 .dark .fc-non-business                 { background: rgba(0,0,0,0.25) !important; }
 .dark .fc-highlight                    { background: rgba(99,102,241,0.2) !important; border-color: #6366f1 !important; }
 .dark .fc-daygrid-day-number           { color: #94a3b8 !important; }
 .dark .fc-day-today .fc-daygrid-day-number { color: #818cf8 !important; }
 .dark .fc-daygrid-more-link            { color: #818cf8 !important; }
 .dark .fc-week-number                  { color: #475569 !important; }
-.dark .fc-list-event:hover td          { background: #1e293b !important; }
-.dark .fc-list-day-cushion             { background: #1e293b !important; color: #94a3b8 !important; }
+.dark .fc-list-event:hover td          { background: #1c1c1c !important; }
+.dark .fc-list-day-cushion             { background: #181818 !important; color: #94a3b8 !important; }
 .dark .fc-list-event-title a           { color: #e2e8f0 !important; }
 .dark .fc-list-event-time              { color: #94a3b8 !important; }
 .dark .fc-list-table td                { border-color: #334155 !important; }
-.dark .fc-list-empty                   { background: #0f172a !important; color: #64748b !important; }
-.dark .fc-scroller::-webkit-scrollbar-thumb       { background: #475569; }
-.dark .fc-scroller::-webkit-scrollbar-thumb:hover { background: #64748b; }
+.dark .fc-list-empty                   { background: #0A0A0A !important; color: #64748b !important; }
+.dark .fc-scroller::-webkit-scrollbar-thumb       { background: #333333; }
+.dark .fc-scroller::-webkit-scrollbar-thumb:hover { background: #444444; }
 </style>

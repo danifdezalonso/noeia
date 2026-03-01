@@ -97,10 +97,10 @@ const filteredEvents = computed<CalendarEvent[]>(() => {
 </script>
 
 <template>
-  <div class="flex-1 flex flex-col overflow-hidden bg-white dark:bg-slate-900 min-h-0">
+  <div class="flex-1 flex flex-col overflow-hidden bg-background min-h-0">
 
     <!-- Toolbar -->
-    <header class="shrink-0 border-b border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+    <header class="shrink-0 border-b border-border bg-background">
 
       <!-- Row 1 -->
       <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-2">
@@ -115,7 +115,7 @@ const filteredEvents = computed<CalendarEvent[]>(() => {
           <Button variant="ghost" size="icon" class="rounded-full" @click="calendarViewRef?.next()">
             <ChevronRight class="w-5 h-5" />
           </Button>
-          <h2 class="text-base font-normal text-gray-800 dark:text-slate-100 ml-1 select-none whitespace-nowrap">{{ currentTitle || '…' }}</h2>
+          <h2 class="text-base font-normal text-foreground ml-1 select-none whitespace-nowrap">{{ currentTitle || '…' }}</h2>
         </div>
         <div ref="settingsTriggerRef" class="relative">
           <Button
@@ -136,7 +136,7 @@ const filteredEvents = computed<CalendarEvent[]>(() => {
       <div class="flex flex-wrap items-center justify-between px-4 pb-2 gap-x-3 gap-y-2">
         <!-- Doctor filter chips -->
         <div class="flex items-center gap-1.5 flex-wrap min-w-0">
-          <span class="text-xs text-gray-400 font-medium shrink-0 mr-0.5">Doctors:</span>
+          <span class="text-xs text-muted-foreground font-medium shrink-0 mr-0.5">Doctors:</span>
           <button
             v-for="d in orgDoctors"
             :key="d.id"
@@ -147,7 +147,7 @@ const filteredEvents = computed<CalendarEvent[]>(() => {
                 ? DOCTOR_COLORS[d.id]?.active
                 : activeDoctors.size === 0
                   ? DOCTOR_COLORS[d.id]?.chip
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 opacity-50'
+                  : 'bg-muted text-muted-foreground border-border opacity-50'
             "
           >
             {{ d.name.replace('Dr. ', '') }}
@@ -155,7 +155,7 @@ const filteredEvents = computed<CalendarEvent[]>(() => {
           <button
             v-if="activeDoctors.size > 0"
             @click="activeDoctors = new Set()"
-            class="px-2 py-1 rounded-full text-xs font-medium text-slate-400 hover:text-slate-600 transition-colors"
+            class="px-2 py-1 rounded-full text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
           >
             Clear
           </button>
@@ -186,13 +186,13 @@ const filteredEvents = computed<CalendarEvent[]>(() => {
         <CalendarView ref="calendarViewRef" class="absolute inset-0" :events="filteredEvents" />
         <template #fallback>
           <div class="absolute inset-0 flex animate-pulse">
-            <div class="w-14 shrink-0 pt-14 space-y-[47px] pr-2 border-r border-gray-200 dark:border-slate-700">
-              <div v-for="i in 8" :key="i" class="h-2.5 bg-gray-100 dark:bg-slate-700 rounded ml-2" />
+            <div class="w-14 shrink-0 pt-14 space-y-[47px] pr-2 border-r border-border">
+              <div v-for="i in 8" :key="i" class="h-2.5 bg-muted rounded ml-2" />
             </div>
             <div class="flex-1 flex flex-col">
-              <div class="grid grid-cols-5 h-14 border-b border-gray-200 dark:border-slate-700">
-                <div v-for="i in 5" :key="i" class="flex flex-col items-center justify-center gap-1.5 border-r last:border-r-0 border-gray-200">
-                  <div class="h-2 w-6 bg-gray-100 rounded" /><div class="h-7 w-7 bg-gray-100 rounded-full" />
+              <div class="grid grid-cols-5 h-14 border-b border-border">
+                <div v-for="i in 5" :key="i" class="flex flex-col items-center justify-center gap-1.5 border-r last:border-r-0 border-border">
+                  <div class="h-2 w-6 bg-muted rounded" /><div class="h-7 w-7 bg-muted rounded-full" />
                 </div>
               </div>
             </div>
@@ -203,6 +203,7 @@ const filteredEvents = computed<CalendarEvent[]>(() => {
 
     <QuickEventModal />
     <EventModal />
+    <EventViewPopover />
     <EventContextMenu />
   </div>
 </template>

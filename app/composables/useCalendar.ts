@@ -39,6 +39,8 @@ export interface CalendarEvent {
   cancellationReason?: string
   notifyPatient?: boolean
   notifyPatientMinutes?: number
+  // meeting
+  invitees?: string[]
   // style overrides
   color?: string
   labels?: string[]
@@ -108,6 +110,20 @@ export const useCalendar = () => {
   const quickModalOpen = useState<boolean>('cal-quick-modal', () => false)
   const quickModalPos  = useState<{ x: number; y: number } | null>('cal-quick-modal-pos', () => null)
   const draftData      = useState<Partial<CalendarEvent> | null>('cal-draft', () => null)
+  const pendingAllDay  = useState<boolean>('cal-pending-allday', () => false)
+
+  // ── Event view popover ────────────────────────────────────────────────────────
+  const viewPopoverOpen  = useState<boolean>('cal-view-popover', () => false)
+  const viewPopoverEvent = useState<CalendarEvent | null>('cal-view-popover-ev', () => null)
+  const viewPopoverPos   = useState<{ x: number; y: number } | null>('cal-view-popover-pos', () => null)
+
+  function openEventView(event: CalendarEvent, x: number, y: number) {
+    viewPopoverEvent.value = { ...event }
+    viewPopoverPos.value   = { x, y }
+    viewPopoverOpen.value  = true
+    quickModalOpen.value   = false
+    modalOpen.value        = false
+  }
 
   // ── Context menu ────────────────────────────────────────────────────────────
   const contextMenu = useState<ContextMenuState | null>('cal-context-menu', () => null)
@@ -135,10 +151,11 @@ export const useCalendar = () => {
     modalOpen.value      = true
   }
 
-  function openQuickCreate(start: string, end: string, x: number, y: number) {
+  function openQuickCreate(start: string, end: string, x: number, y: number, allDay = false) {
     editingEvent.value   = null
     pendingRange.value   = { start, end }
     draftData.value      = null
+    pendingAllDay.value  = allDay
     quickModalPos.value  = { x, y }
     quickModalOpen.value = true
     modalOpen.value      = false
@@ -224,10 +241,16 @@ export const useCalendar = () => {
     }, 0)
   }
 
-  function moveEvent(id: string, start: string, end: string) {
+  function moveEvent(id: string, start: string, end: string, allDay?: boolean) {
     const idx = events.value.findIndex((e) => e.id === id)
     if (idx !== -1) {
-      const updated = { ...events.value[idx]!, start, end }
+      const base = events.value[idx]!
+      const updated: CalendarEvent = {
+        ...base,
+        start,
+        end,
+        allDay: allDay === true ? true : (allDay === false ? undefined : base.allDay),
+      }
       events.value = [...events.value.slice(0, idx), updated, ...events.value.slice(idx + 1)]
       setTimeout(async () => { try { await useEventsDb().upsertEvent(updated) } catch {} }, 0)
     }
@@ -294,11 +317,12 @@ export const useCalendar = () => {
 
   return {
     events, modalOpen, editingEvent, pendingRange, viewMode, currentTitle,
-    quickModalOpen, quickModalPos, draftData,
+    quickModalOpen, quickModalPos, draftData, pendingAllDay,
     contextMenu,
     hideWeekends, showWeekNums, slotDuration, workHours,
     mockPatients,
-    openCreate, openQuickCreate, openFullModal, openEdit,
+    openCreate, openQuickCreate, openFullModal, openEdit, openEventView,
+    viewPopoverOpen, viewPopoverEvent, viewPopoverPos,
     saveEvent, moveEvent, deleteEvent, deleteEvents, checkConflict, getConflictingEvents,
     toggleTaskDone,
     openContextMenu, closeContextMenu, setEventColor, toggleEventLabel, duplicateEvent,

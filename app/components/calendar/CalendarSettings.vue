@@ -56,12 +56,12 @@ function setWorkHours(dow: number, update: Partial<WorkDayHours>) {
   >
     <div
       v-if="open"
-      class="absolute right-0 top-full mt-2 z-50 w-72 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-gray-200 dark:border-slate-700 overflow-hidden"
+      class="absolute right-0 top-full mt-2 z-50 w-72 bg-card rounded-xl shadow-xl border border-border overflow-hidden"
       @click.stop
     >
       <!-- Header -->
-      <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-slate-700">
-        <h3 class="text-sm font-semibold text-gray-800 dark:text-slate-100">Calendar settings</h3>
+      <div class="flex items-center justify-between px-4 py-3 border-b border-border">
+        <h3 class="text-sm font-semibold text-foreground">Calendar settings</h3>
         <Button variant="ghost" size="icon-sm" @click="emit('close')">
           <X class="w-4 h-4" />
         </Button>
@@ -71,16 +71,16 @@ function setWorkHours(dow: number, update: Partial<WorkDayHours>) {
 
         <!-- ── Display section ──────────────────────────────────────────── -->
         <section>
-          <p class="text-[10px] font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-2.5">Display</p>
+          <p class="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2.5">Display</p>
           <div class="space-y-1">
 
             <!-- Hide weekends -->
             <div class="flex items-center justify-between py-1.5">
               <div class="flex items-center gap-2.5">
-                <div class="w-7 h-7 rounded-lg bg-gray-50 dark:bg-slate-700 flex items-center justify-center">
-                  <EyeOff class="w-3.5 h-3.5 text-gray-400 dark:text-slate-500" />
+                <div class="w-7 h-7 rounded-lg bg-muted flex items-center justify-center">
+                  <EyeOff class="w-3.5 h-3.5 text-muted-foreground" />
                 </div>
-                <Label class="text-sm text-gray-700 dark:text-slate-200 cursor-pointer">Hide weekends</Label>
+                <Label class="text-sm text-foreground cursor-pointer">Hide weekends</Label>
               </div>
               <Switch v-model:checked="hideWeekends" />
             </div>
@@ -90,10 +90,10 @@ function setWorkHours(dow: number, update: Partial<WorkDayHours>) {
 
         <!-- ── Time slots section ───────────────────────────────────────── -->
         <section>
-          <p class="text-[10px] font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider mb-2.5">Time slots</p>
+          <p class="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2.5">Time slots</p>
           <div class="flex items-center gap-2.5">
-            <div class="w-7 h-7 rounded-lg bg-gray-50 dark:bg-slate-700 flex items-center justify-center shrink-0">
-              <Clock class="w-3.5 h-3.5 text-gray-400 dark:text-slate-500" />
+            <div class="w-7 h-7 rounded-lg bg-muted flex items-center justify-center shrink-0">
+              <Clock class="w-3.5 h-3.5 text-muted-foreground" />
             </div>
             <ToggleGroup
               type="single"
@@ -117,12 +117,12 @@ function setWorkHours(dow: number, update: Partial<WorkDayHours>) {
         <!-- ── Working hours section ────────────────────────────────────── -->
         <section>
           <div class="flex items-start gap-2.5 mb-3">
-            <div class="w-7 h-7 rounded-lg bg-gray-50 dark:bg-slate-700 flex items-center justify-center shrink-0 mt-0.5">
-              <Briefcase class="w-3.5 h-3.5 text-gray-400 dark:text-slate-500" />
+            <div class="w-7 h-7 rounded-lg bg-muted flex items-center justify-center shrink-0 mt-0.5">
+              <Briefcase class="w-3.5 h-3.5 text-muted-foreground" />
             </div>
             <div>
-              <p class="text-[10px] font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wider">Working hours</p>
-              <p class="text-[11px] text-gray-400 dark:text-slate-500 mt-0.5 leading-snug">
+              <p class="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Working hours</p>
+              <p class="text-[11px] text-muted-foreground mt-0.5 leading-snug">
                 Highlighted as bookable for patients.<br>
                 You can still add events outside these hours.
               </p>
@@ -133,7 +133,7 @@ function setWorkHours(dow: number, update: Partial<WorkDayHours>) {
               v-for="d in DAYS" :key="d.dow"
               class="flex items-center gap-1.5 h-8"
             >
-              <span class="w-7 text-xs font-medium text-gray-500 dark:text-slate-400 shrink-0">{{ d.label }}</span>
+              <span class="w-7 text-xs font-medium text-muted-foreground shrink-0">{{ d.label }}</span>
               <Switch
                 :checked="workHours[d.dow].enabled"
                 @update:checked="setWorkHours(d.dow, { enabled: $event })"
@@ -155,7 +155,7 @@ function setWorkHours(dow: number, update: Partial<WorkDayHours>) {
                     </SelectContent>
                   </Select>
                 </div>
-                <span class="text-gray-300 dark:text-slate-600 text-xs shrink-0">–</span>
+                <span class="text-muted-foreground text-xs shrink-0">–</span>
                 <div class="flex-1 min-w-0">
                   <Select
                     :model-value="workHours[d.dow].end"
@@ -172,7 +172,7 @@ function setWorkHours(dow: number, update: Partial<WorkDayHours>) {
                   </Select>
                 </div>
               </template>
-              <span v-else class="text-xs text-gray-300 dark:text-slate-600 ml-1">Closed</span>
+              <span v-else class="text-xs text-muted-foreground ml-1">Closed</span>
             </div>
           </div>
         </section>

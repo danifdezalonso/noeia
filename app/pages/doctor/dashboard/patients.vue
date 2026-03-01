@@ -9,10 +9,14 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '~/components/ui/table'
 import {
+  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
+} from '~/components/ui/sheet'
+import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuLabel,
 } from '~/components/ui/dropdown-menu'
 import { Button } from '~/components/ui/button'
+import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
 import { Input } from '~/components/ui/input'
 import { Badge } from '~/components/ui/badge'
 
@@ -174,6 +178,10 @@ const filtered = computed(() => {
   return list
 })
 
+// ── Patient sheet ──────────────────────────────────────────────────────────
+
+const selectedPatient = ref<Patient | null>(null)
+
 // ── New patient modal ──────────────────────────────────────────────────────
 
 const newPatientModalOpen = ref(false)
@@ -277,8 +285,8 @@ const columns: { key: SortKey; label: string }[] = [
       <!-- ── Page header ─────────────────────────────────────────────────── -->
       <div class="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Patients</h1>
-          <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Manage your patient records.</p>
+          <h1 class="text-2xl font-bold text-foreground tracking-tight">Patients</h1>
+          <p class="text-sm text-muted-foreground mt-0.5">Manage your patient records.</p>
         </div>
         <Button @click="newPatientModalOpen = true">
           <Plus class="w-4 h-4" />
@@ -291,7 +299,7 @@ const columns: { key: SortKey; label: string }[] = [
 
         <!-- Search -->
         <div class="relative flex-1 max-w-sm">
-          <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+          <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
           <Input
             v-model="search"
             type="text"
@@ -323,34 +331,34 @@ const columns: { key: SortKey; label: string }[] = [
                 v-if="opt.value !== 'all'"
                 :class="['w-2 h-2 rounded-full shrink-0', statusMeta[opt.value as PatientStatus].dot]"
               />
-              <span v-else class="w-2 h-2 rounded-full shrink-0 bg-slate-200" />
+              <span v-else class="w-2 h-2 rounded-full shrink-0 bg-muted-foreground/40" />
               {{ opt.label }}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
 
         <!-- Count -->
-        <p class="text-sm text-slate-400 ml-auto">
+        <p class="text-sm text-muted-foreground ml-auto">
           {{ filtered.length }} patient{{ filtered.length !== 1 ? 's' : '' }}
         </p>
       </div>
 
       <!-- ── Table ───────────────────────────────────────────────────────── -->
-      <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+      <div class="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
           <Table class="min-w-[700px]">
             <TableHeader>
-              <TableRow class="bg-slate-50/60 dark:bg-slate-700/50 hover:bg-slate-50/60 dark:hover:bg-slate-700/50">
+              <TableRow class="bg-muted/50 hover:bg-muted/50">
                 <!-- Sortable columns -->
                 <TableHead
                   v-for="col in columns"
                   :key="col.key"
-                  class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap cursor-pointer hover:text-slate-700 dark:hover:text-slate-200 transition-colors select-none"
+                  class="text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap cursor-pointer hover:text-foreground transition-colors select-none"
                   @click="toggleSort(col.key)"
                 >
                   <div class="flex items-center gap-1">
                     {{ col.label }}
-                    <span class="text-slate-300">
+                    <span class="text-muted-foreground">
                       <ChevronUp      v-if="sortKey === col.key && sortDir === 'asc'"  class="w-3.5 h-3.5 text-primary" />
                       <ChevronDown    v-else-if="sortKey === col.key && sortDir === 'desc'" class="w-3.5 h-3.5 text-primary" />
                       <ChevronsUpDown v-else class="w-3.5 h-3.5" />
@@ -359,12 +367,12 @@ const columns: { key: SortKey; label: string }[] = [
                 </TableHead>
 
                 <!-- Related — not sortable -->
-                <TableHead class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
+                <TableHead class="text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">
                   Related
                 </TableHead>
 
                 <!-- Actions -->
-                <TableHead class="text-xs font-semibold text-slate-500 uppercase tracking-wider w-[100px]" />
+                <TableHead class="text-xs font-semibold text-muted-foreground uppercase tracking-wider w-[100px]" />
               </TableRow>
             </TableHeader>
 
@@ -374,12 +382,12 @@ const columns: { key: SortKey; label: string }[] = [
               <TableRow v-if="filtered.length === 0">
                 <TableCell colspan="7" class="py-20 text-center">
                   <div class="flex flex-col items-center gap-3">
-                    <div class="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
-                      <UserRound class="w-6 h-6 text-slate-400 dark:text-slate-500" />
+                    <div class="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+                      <UserRound class="w-6 h-6 text-muted-foreground" />
                     </div>
                     <div>
-                      <p class="text-sm font-medium text-slate-600 dark:text-slate-300">No patients found</p>
-                      <p class="text-xs text-slate-400 mt-0.5">
+                      <p class="text-sm font-medium text-foreground">No patients found</p>
+                      <p class="text-xs text-muted-foreground mt-0.5">
                         {{ search || statusFilter !== 'all' ? 'Try adjusting your search or filter' : 'Start by adding your first patient.' }}
                       </p>
                     </div>
@@ -395,16 +403,18 @@ const columns: { key: SortKey; label: string }[] = [
               <TableRow
                 v-for="p in filtered"
                 :key="p.id"
-                class="hover:bg-slate-50/70 dark:hover:bg-slate-700/30 transition-colors"
+                class="hover:bg-accent/50 transition-colors cursor-pointer"
+                @click="selectedPatient = p"
               >
 
                 <!-- Name -->
                 <TableCell class="whitespace-nowrap">
                   <div class="flex items-center gap-3">
                     <div class="relative shrink-0">
-                      <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                        <span class="text-primary text-[11px] font-bold">{{ p.initials }}</span>
-                      </div>
+                      <Avatar class="size-8">
+                        <AvatarImage :src="avatarUrl(p.name)" :alt="p.name" />
+                        <AvatarFallback class="bg-primary/10 text-primary text-[11px] font-bold">{{ p.initials }}</AvatarFallback>
+                      </Avatar>
                       <!-- Status dot -->
                       <span
                         :class="[
@@ -414,8 +424,8 @@ const columns: { key: SortKey; label: string }[] = [
                       />
                     </div>
                     <div>
-                      <p class="font-medium text-slate-800 dark:text-slate-100 leading-tight">{{ p.name }}</p>
-                      <p class="text-[11px] text-slate-400 leading-tight mt-0.5">
+                      <p class="font-medium text-foreground leading-tight">{{ p.name }}</p>
+                      <p class="text-[11px] text-muted-foreground leading-tight mt-0.5">
                         {{ p.sessionCount }} session{{ p.sessionCount !== 1 ? 's' : '' }}
                       </p>
                     </div>
@@ -426,9 +436,9 @@ const columns: { key: SortKey; label: string }[] = [
                 <TableCell class="whitespace-nowrap">
                   <a
                     :href="`mailto:${p.email}`"
-                    class="flex items-center gap-1.5 text-slate-600 hover:text-primary transition-colors group"
+                    class="flex items-center gap-1.5 text-foreground hover:text-primary transition-colors group"
                   >
-                    <Mail class="w-3.5 h-3.5 text-slate-300 group-hover:text-primary transition-colors" />
+                    <Mail class="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
                     <span class="text-sm">{{ p.email }}</span>
                   </a>
                 </TableCell>
@@ -437,9 +447,9 @@ const columns: { key: SortKey; label: string }[] = [
                 <TableCell class="whitespace-nowrap">
                   <a
                     :href="`tel:${p.phone}`"
-                    class="flex items-center gap-1.5 text-slate-600 hover:text-primary transition-colors group"
+                    class="flex items-center gap-1.5 text-foreground hover:text-primary transition-colors group"
                   >
-                    <Phone class="w-3.5 h-3.5 text-slate-300 group-hover:text-primary transition-colors" />
+                    <Phone class="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
                     <span class="text-sm tabular-nums">{{ p.phone }}</span>
                   </a>
                 </TableCell>
@@ -447,10 +457,10 @@ const columns: { key: SortKey; label: string }[] = [
                 <!-- Date of birth -->
                 <TableCell class="whitespace-nowrap">
                   <div class="flex items-center gap-1.5">
-                    <CalendarDays class="w-3.5 h-3.5 text-slate-300 shrink-0" />
+                    <CalendarDays class="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                     <div>
-                      <span class="text-sm text-slate-600">{{ fmtDob(p.dob) }}</span>
-                      <span class="text-xs text-slate-400 ml-1.5">· {{ calcAge(p.dob) }} y</span>
+                      <span class="text-sm text-foreground">{{ fmtDob(p.dob) }}</span>
+                      <span class="text-xs text-muted-foreground ml-1.5">· {{ calcAge(p.dob) }} y</span>
                     </div>
                   </div>
                 </TableCell>
@@ -471,16 +481,16 @@ const columns: { key: SortKey; label: string }[] = [
                       :key="rel.id"
                       class="flex items-center gap-1.5"
                     >
-                      <Link2 class="w-3 h-3 text-slate-300 shrink-0" />
-                      <span class="text-xs text-slate-600 dark:text-slate-300 font-medium">{{ rel.name }}</span>
-                      <span class="text-[10px] text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded-full">{{ rel.relationship }}</span>
+                      <Link2 class="w-3 h-3 text-muted-foreground shrink-0" />
+                      <span class="text-xs text-foreground font-medium">{{ rel.name }}</span>
+                      <span class="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">{{ rel.relationship }}</span>
                     </div>
                   </div>
-                  <span v-else class="text-xs text-slate-300">—</span>
+                  <span v-else class="text-xs text-muted-foreground">—</span>
                 </TableCell>
 
                 <!-- Actions -->
-                <TableCell class="whitespace-nowrap">
+                <TableCell class="whitespace-nowrap" @click.stop>
                   <div class="flex items-center gap-1 justify-end">
 
                     <!-- Quick: schedule session -->
@@ -503,21 +513,21 @@ const columns: { key: SortKey; label: string }[] = [
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" class="w-44">
-                        <DropdownMenuLabel class="text-xs text-slate-400 font-normal">Patient actions</DropdownMenuLabel>
+                        <DropdownMenuLabel class="text-xs text-muted-foreground font-normal">Patient actions</DropdownMenuLabel>
                         <DropdownMenuSeparator />
 
                         <DropdownMenuItem class="gap-2 cursor-pointer">
-                          <Eye class="w-3.5 h-3.5 text-slate-400" />
+                          <Eye class="w-3.5 h-3.5 text-muted-foreground" />
                           View profile
                         </DropdownMenuItem>
 
                         <DropdownMenuItem class="gap-2 cursor-pointer">
-                          <Pencil class="w-3.5 h-3.5 text-slate-400" />
+                          <Pencil class="w-3.5 h-3.5 text-muted-foreground" />
                           Edit details
                         </DropdownMenuItem>
 
                         <DropdownMenuItem class="gap-2 cursor-pointer" @click="scheduleSession(p)">
-                          <CalendarPlus class="w-3.5 h-3.5 text-slate-400" />
+                          <CalendarPlus class="w-3.5 h-3.5 text-muted-foreground" />
                           Schedule session
                         </DropdownMenuItem>
 
@@ -562,6 +572,124 @@ const columns: { key: SortKey; label: string }[] = [
 
     </div>
   </div>
+
+  <!-- Patient detail Sheet -->
+  <Sheet :open="!!selectedPatient" @update:open="(v) => { if (!v) selectedPatient = null }">
+    <SheetContent side="right" class="w-full sm:max-w-md flex flex-col gap-0 p-0">
+      <SheetHeader class="px-6 pt-6 pb-4 border-b border-border">
+        <div class="flex items-center gap-3 mb-1">
+          <div class="relative shrink-0">
+            <Avatar class="size-10">
+              <AvatarImage :src="avatarUrl(selectedPatient?.name ?? '')" :alt="selectedPatient?.name" />
+              <AvatarFallback class="bg-primary/10 text-primary text-sm font-bold">{{ selectedPatient?.initials }}</AvatarFallback>
+            </Avatar>
+            <span
+              v-if="selectedPatient"
+              :class="['absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background', statusMeta[selectedPatient.status].dot]"
+            />
+          </div>
+          <div>
+            <SheetTitle class="text-base font-semibold text-foreground">
+              {{ selectedPatient?.name }}
+            </SheetTitle>
+            <SheetDescription>
+              <Badge
+                v-if="selectedPatient"
+                variant="outline"
+                :class="['gap-1.5 mt-1', statusMeta[selectedPatient.status].badge]"
+              >
+                <span :class="['w-1.5 h-1.5 rounded-full', statusMeta[selectedPatient.status].dot]" />
+                {{ statusMeta[selectedPatient.status].label }}
+              </Badge>
+            </SheetDescription>
+          </div>
+        </div>
+      </SheetHeader>
+
+      <div v-if="selectedPatient" class="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+
+        <!-- Contact -->
+        <div>
+          <p class="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Contact</p>
+          <div class="space-y-2">
+            <a :href="`mailto:${selectedPatient.email}`" class="flex items-center gap-2 text-sm text-foreground hover:text-primary transition-colors">
+              <Mail class="w-4 h-4 text-muted-foreground shrink-0" />
+              {{ selectedPatient.email }}
+            </a>
+            <a :href="`tel:${selectedPatient.phone}`" class="flex items-center gap-2 text-sm text-foreground hover:text-primary transition-colors">
+              <Phone class="w-4 h-4 text-muted-foreground shrink-0" />
+              {{ selectedPatient.phone }}
+            </a>
+          </div>
+        </div>
+
+        <!-- Date of birth -->
+        <div>
+          <p class="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Date of Birth</p>
+          <div class="flex items-center gap-2 text-sm text-foreground">
+            <CalendarDays class="w-4 h-4 text-muted-foreground shrink-0" />
+            <span>{{ fmtDob(selectedPatient.dob) }}</span>
+            <span class="text-muted-foreground">· {{ calcAge(selectedPatient.dob) }} years old</span>
+          </div>
+        </div>
+
+        <!-- Sessions -->
+        <div>
+          <p class="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Sessions</p>
+          <div class="flex items-center gap-4 text-sm">
+            <div>
+              <p class="text-2xl font-bold text-foreground">{{ selectedPatient.sessionCount }}</p>
+              <p class="text-xs text-muted-foreground">total sessions</p>
+            </div>
+            <div v-if="selectedPatient.lastSession">
+              <p class="font-medium text-foreground">{{ format(parseISO(selectedPatient.lastSession), 'MMM d, yyyy') }}</p>
+              <p class="text-xs text-muted-foreground">last session</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Related patients -->
+        <div v-if="selectedPatient.related.length > 0">
+          <p class="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Related</p>
+          <div class="space-y-2">
+            <div
+              v-for="rel in selectedPatient.related"
+              :key="rel.id"
+              class="flex items-center gap-2"
+            >
+              <Link2 class="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+              <span class="text-sm font-medium text-foreground">{{ rel.name }}</span>
+              <span class="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">{{ rel.relationship }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick actions -->
+        <div class="pt-2 border-t border-border">
+          <p class="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">Actions</p>
+          <div class="flex flex-wrap gap-2">
+            <Button size="sm" class="gap-1.5" @click="scheduleSession(selectedPatient); selectedPatient = null">
+              <CalendarPlus class="w-3.5 h-3.5" /> Schedule session
+            </Button>
+            <template v-if="selectedPatient.status === 'active'">
+              <Button size="sm" variant="outline" class="gap-1.5 text-amber-600 border-amber-200 hover:bg-amber-50" @click="setInactive(selectedPatient.id)">
+                Set inactive
+              </Button>
+              <Button size="sm" variant="outline" class="gap-1.5 text-rose-500 border-rose-200 hover:bg-rose-50" @click="discharge(selectedPatient.id)">
+                Discharge
+              </Button>
+            </template>
+            <template v-else-if="selectedPatient.status !== 'active'">
+              <Button size="sm" variant="outline" class="gap-1.5 text-green-600 border-green-200 hover:bg-green-50" @click="reactivate(selectedPatient.id)">
+                Reactivate
+              </Button>
+            </template>
+          </div>
+        </div>
+
+      </div>
+    </SheetContent>
+  </Sheet>
 
   <!-- Add patient modal -->
   <AddPatientModal

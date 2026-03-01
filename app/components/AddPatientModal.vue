@@ -8,6 +8,9 @@ import {
 } from '~/components/ui/select'
 import { Switch } from '~/components/ui/switch'
 import { Textarea } from '~/components/ui/textarea'
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from '~/components/ui/dialog'
 
 export interface NewPatient {
   name: string
@@ -32,6 +35,8 @@ export interface NewPatient {
 
 const props = defineProps<{ existingPatients: { id: string; name: string }[] }>()
 const emit  = defineEmits<{ close: []; save: [p: NewPatient] }>()
+
+const open = ref(true)
 
 const PRONOUNS       = ['She/Her', 'He/Him', 'They/Them', 'Ze/Zir', 'Prefer not to say']
 const REFERRAL_SOURCES = ['Self-referral', 'GP / Primary care', 'Psychiatrist', 'Insurance', 'Family or friend', 'Online search', 'Other']
@@ -121,6 +126,11 @@ function initials(name: string) {
   return name.trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase()
 }
 
+function handleClose() {
+  open.value = false
+  nextTick(() => emit('close'))
+}
+
 function save() {
   errName.value  = !form.name.trim()
   errEmail.value = !form.email.trim()
@@ -150,255 +160,248 @@ function save() {
 </script>
 
 <template>
-  <Teleport to="body">
-    <div class="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" @click.self="emit('close')">
-      <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-[560px] flex flex-col max-h-[92vh]">
+  <Dialog :open="open" @update:open="(v) => !v && handleClose()">
+    <DialogContent class="flex flex-col gap-0 p-0 max-h-[85vh] sm:max-w-[560px]">
 
-        <!-- Header -->
-        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 shrink-0">
-          <h2 class="text-base font-semibold text-slate-800 dark:text-slate-100">New Patient</h2>
-          <Button variant="ghost" size="icon" class="rounded-full" @click="emit('close')">
-            <X class="w-4 h-4" />
-          </Button>
-        </div>
+      <DialogHeader class="shrink-0 px-6 pt-6 pb-4 border-b border-border">
+        <DialogTitle>New Patient</DialogTitle>
+      </DialogHeader>
 
-        <!-- Scrollable body -->
-        <div class="overflow-y-auto flex-1 px-6 py-5 space-y-6">
+      <!-- Scrollable body -->
+      <div class="overflow-y-auto flex-1 px-6 py-5 space-y-6 min-h-0">
 
-          <!-- ── Identity ──────────────────────────────────────────────────── -->
-          <section class="space-y-4">
-            <p class="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Identity</p>
+        <!-- ── Identity ──────────────────────────────────────────────────── -->
+        <section class="space-y-4">
+          <p class="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Identity</p>
 
-            <!-- Full name -->
+          <!-- Full name -->
+          <div>
+            <Label class="text-xs font-medium text-muted-foreground mb-1.5 block">Full name <span class="text-red-500">*</span></Label>
+            <Input
+              v-model="form.name"
+              placeholder="First and last name"
+              :class="errName ? 'border-red-400 focus-visible:ring-red-200' : ''"
+              @input="errName = false"
+            />
+            <p v-if="errName" class="mt-1 text-xs text-red-500">Full name is required</p>
+          </div>
+
+          <!-- Gender + Pronouns -->
+          <div class="grid grid-cols-2 gap-3">
             <div>
-              <Label class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5 block">Full name <span class="text-red-500">*</span></Label>
-              <Input
-                v-model="form.name"
-                placeholder="First and last name"
-                :class="errName ? 'border-red-400 focus-visible:ring-red-200' : ''"
-                @input="errName = false"
-              />
-              <p v-if="errName" class="mt-1 text-xs text-red-500">Full name is required</p>
-            </div>
-
-            <!-- Gender + Pronouns -->
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <Label class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5 block">Gender</Label>
-                <Select v-model="form.gender">
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select…" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem v-for="g in GENDER_OPTIONS" :key="g" :value="g">{{ g }}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5 block">Pronouns</Label>
-                <Select v-model="form.pronouns">
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select…" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem v-for="p in PRONOUNS" :key="p" :value="p">{{ p }}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <!-- DOB -->
-            <div>
-              <Label class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5 block">Date of birth</Label>
-              <Input v-model="form.dob" type="date" />
-            </div>
-          </section>
-
-          <div class="border-t border-slate-100 dark:border-slate-800" />
-
-          <!-- ── Contact ───────────────────────────────────────────────────── -->
-          <section class="space-y-4">
-            <p class="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Contact</p>
-
-            <!-- Email -->
-            <div>
-              <Label class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5 block">Email <span class="text-red-500">*</span></Label>
-              <Input
-                v-model="form.email"
-                type="email"
-                placeholder="patient@email.com"
-                :class="errEmail ? 'border-red-400 focus-visible:ring-red-200' : ''"
-                @input="errEmail = false"
-              />
-              <p v-if="errEmail" class="mt-1 text-xs text-red-500">Email is required</p>
-            </div>
-
-            <!-- Phone -->
-            <div>
-              <Label class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5 block">Phone</Label>
-              <Input v-model="form.phone" type="tel" placeholder="+1 555 000 0000" />
-            </div>
-
-            <!-- Address -->
-            <div>
-              <Label class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5 block">Address</Label>
-              <Input v-model="form.address" placeholder="Street, city, country" />
-            </div>
-
-            <!-- Emergency contact -->
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <Label class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5 block">Emergency contact name</Label>
-                <Input v-model="form.emergencyContactName" placeholder="Full name" />
-              </div>
-              <div>
-                <Label class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5 block">Emergency contact phone</Label>
-                <Input v-model="form.emergencyContactPhone" type="tel" placeholder="+1 555 000 0000" />
-              </div>
-            </div>
-          </section>
-
-          <div class="border-t border-slate-100 dark:border-slate-800" />
-
-          <!-- ── Insurance ──────────────────────────────────────────────────── -->
-          <section class="space-y-3">
-            <div class="flex items-center justify-between">
-              <p class="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Insurance</p>
-              <Switch v-model:checked="form.hasInsurance" />
-            </div>
-            <Transition enter-active-class="transition duration-150 ease-out" enter-from-class="opacity-0 -translate-y-1" enter-to-class="opacity-100 translate-y-0">
-              <div v-if="form.hasInsurance" class="grid grid-cols-2 gap-3">
-                <div>
-                  <Label class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5 block">Insurer</Label>
-                  <Input v-model="form.insurer" placeholder="Insurance company" />
-                </div>
-                <div>
-                  <Label class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5 block">Policy number</Label>
-                  <Input v-model="form.policyNumber" placeholder="POL-000000" />
-                </div>
-              </div>
-            </Transition>
-          </section>
-
-          <div class="border-t border-slate-100 dark:border-slate-800" />
-
-          <!-- ── Clinical context ───────────────────────────────────────────── -->
-          <section class="space-y-4">
-            <p class="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Clinical context</p>
-
-            <!-- Referral source -->
-            <div>
-              <Label class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5 block">Referral source</Label>
-              <Select v-model="form.referralSource">
+              <Label class="text-xs font-medium text-muted-foreground mb-1.5 block">Gender</Label>
+              <Select v-model="form.gender">
                 <SelectTrigger>
                   <SelectValue placeholder="Select…" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem v-for="s in REFERRAL_SOURCES" :key="s" :value="s">{{ s }}</SelectItem>
+                  <SelectItem v-for="g in GENDER_OPTIONS" :key="g" :value="g">{{ g }}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-
-            <!-- Chief complaint -->
             <div>
-              <Label class="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5 block">Chief complaint / reason for consultation</Label>
-              <Textarea v-model="form.chiefComplaint" :rows="2" placeholder="Brief description of primary concern…" class="resize-none" />
-            </div>
-          </section>
-
-          <div class="border-t border-slate-100 dark:border-slate-800" />
-
-          <!-- ── Related patients ───────────────────────────────────────────── -->
-          <section class="space-y-3">
-            <p class="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Related patients</p>
-
-            <!-- Existing relations -->
-            <div v-if="related.length > 0" class="space-y-1.5">
-              <div v-for="(r, i) in related" :key="r.id" class="flex items-center gap-2 px-3 py-2 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                <div class="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                  <span class="text-primary text-[9px] font-bold">{{ r.name.split(' ').map(w=>w[0]).join('').slice(0,2) }}</span>
-                </div>
-                <span class="flex-1 text-xs text-slate-700 dark:text-slate-200 font-medium truncate">{{ r.name }}</span>
-                <span class="text-xs text-slate-400 dark:text-slate-500">{{ r.relationship }}</span>
-                <button class="ml-1 text-slate-300 hover:text-red-400 transition-colors" @click="removeRelated(i)">
-                  <X class="w-3.5 h-3.5" />
-                </button>
-              </div>
-            </div>
-
-            <!-- Add relation row -->
-            <div ref="relWrapRef" class="flex gap-2 items-start">
-              <div class="relative flex-1">
-                <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none z-10" />
-                <Input
-                  v-model="relQuery"
-                  placeholder="Search patient…"
-                  class="pl-9 text-xs h-8"
-                  @focus="relDropOpen = true"
-                  @input="relDropOpen = true"
-                />
-                <div v-if="relDropOpen && filteredPatients.length > 0" class="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg z-10 py-1 max-h-32 overflow-y-auto">
-                  <button v-for="p in filteredPatients" :key="p.id" class="w-full text-left px-3 py-1.5 text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors" @click="selectRelated(p)">{{ p.name }}</button>
-                </div>
-              </div>
-              <Select v-model="pendingRelType">
-                <SelectTrigger class="h-8 text-xs w-32 shrink-0">
-                  <SelectValue />
+              <Label class="text-xs font-medium text-muted-foreground mb-1.5 block">Pronouns</Label>
+              <Select v-model="form.pronouns">
+                <SelectTrigger>
+                  <SelectValue placeholder="Select…" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem v-for="r in RELATIONSHIPS" :key="r" :value="r">{{ r }}</SelectItem>
+                  <SelectItem v-for="p in PRONOUNS" :key="p" :value="p">{{ p }}</SelectItem>
                 </SelectContent>
               </Select>
-              <Button
-                size="sm"
-                :disabled="!pendingRel"
-                class="h-8 text-xs"
-                @click="addRelated"
-              >
-                <Plus class="w-3 h-3" /> Add
-              </Button>
             </div>
-          </section>
+          </div>
 
-          <div class="border-t border-slate-100 dark:border-slate-800" />
+          <!-- DOB -->
+          <div>
+            <Label class="text-xs font-medium text-muted-foreground mb-1.5 block">Date of birth</Label>
+            <Input v-model="form.dob" type="date" />
+          </div>
+        </section>
 
-          <!-- ── Tags ──────────────────────────────────────────────────────── -->
-          <section class="space-y-2">
-            <p class="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Tags</p>
-            <div class="flex flex-wrap gap-1.5 p-2.5 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 min-h-[44px] cursor-text" @click="($el => ($el as HTMLElement)?.querySelector('input')?.focus())($event.currentTarget)">
-              <span v-for="t in tags" :key="t" class="inline-flex items-center gap-1 pl-2 pr-1.5 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
-                {{ t }}
-                <button class="hover:text-red-500 transition-colors" @click.stop="removeTag(t)"><X class="w-3 h-3" /></button>
-              </span>
-              <input
-                v-model="tagInput"
-                type="text"
-                placeholder="Add tag…"
-                class="flex-1 min-w-[100px] text-xs bg-transparent text-slate-700 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none"
-                @keydown="onTagKey"
-                @blur="addTag"
+        <div class="border-t border-border" />
+
+        <!-- ── Contact ───────────────────────────────────────────────────── -->
+        <section class="space-y-4">
+          <p class="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Contact</p>
+
+          <!-- Email -->
+          <div>
+            <Label class="text-xs font-medium text-muted-foreground mb-1.5 block">Email <span class="text-red-500">*</span></Label>
+            <Input
+              v-model="form.email"
+              type="email"
+              placeholder="patient@email.com"
+              :class="errEmail ? 'border-red-400 focus-visible:ring-red-200' : ''"
+              @input="errEmail = false"
+            />
+            <p v-if="errEmail" class="mt-1 text-xs text-red-500">Email is required</p>
+          </div>
+
+          <!-- Phone -->
+          <div>
+            <Label class="text-xs font-medium text-muted-foreground mb-1.5 block">Phone</Label>
+            <Input v-model="form.phone" type="tel" placeholder="+1 555 000 0000" />
+          </div>
+
+          <!-- Address -->
+          <div>
+            <Label class="text-xs font-medium text-muted-foreground mb-1.5 block">Address</Label>
+            <Input v-model="form.address" placeholder="Street, city, country" />
+          </div>
+
+          <!-- Emergency contact -->
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <Label class="text-xs font-medium text-muted-foreground mb-1.5 block">Emergency contact name</Label>
+              <Input v-model="form.emergencyContactName" placeholder="Full name" />
+            </div>
+            <div>
+              <Label class="text-xs font-medium text-muted-foreground mb-1.5 block">Emergency contact phone</Label>
+              <Input v-model="form.emergencyContactPhone" type="tel" placeholder="+1 555 000 0000" />
+            </div>
+          </div>
+        </section>
+
+        <div class="border-t border-border" />
+
+        <!-- ── Insurance ──────────────────────────────────────────────────── -->
+        <section class="space-y-3">
+          <div class="flex items-center justify-between">
+            <p class="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Insurance</p>
+            <Switch v-model:checked="form.hasInsurance" />
+          </div>
+          <Transition enter-active-class="transition duration-150 ease-out" enter-from-class="opacity-0 -translate-y-1" enter-to-class="opacity-100 translate-y-0">
+            <div v-if="form.hasInsurance" class="grid grid-cols-2 gap-3">
+              <div>
+                <Label class="text-xs font-medium text-muted-foreground mb-1.5 block">Insurer</Label>
+                <Input v-model="form.insurer" placeholder="Insurance company" />
+              </div>
+              <div>
+                <Label class="text-xs font-medium text-muted-foreground mb-1.5 block">Policy number</Label>
+                <Input v-model="form.policyNumber" placeholder="POL-000000" />
+              </div>
+            </div>
+          </Transition>
+        </section>
+
+        <div class="border-t border-border" />
+
+        <!-- ── Clinical context ───────────────────────────────────────────── -->
+        <section class="space-y-4">
+          <p class="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Clinical context</p>
+
+          <!-- Referral source -->
+          <div>
+            <Label class="text-xs font-medium text-muted-foreground mb-1.5 block">Referral source</Label>
+            <Select v-model="form.referralSource">
+              <SelectTrigger>
+                <SelectValue placeholder="Select…" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="s in REFERRAL_SOURCES" :key="s" :value="s">{{ s }}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <!-- Chief complaint -->
+          <div>
+            <Label class="text-xs font-medium text-muted-foreground mb-1.5 block">Chief complaint / reason for consultation</Label>
+            <Textarea v-model="form.chiefComplaint" :rows="2" placeholder="Brief description of primary concern…" class="resize-none" />
+          </div>
+        </section>
+
+        <div class="border-t border-border" />
+
+        <!-- ── Related patients ───────────────────────────────────────────── -->
+        <section class="space-y-3">
+          <p class="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Related patients</p>
+
+          <!-- Existing relations -->
+          <div v-if="related.length > 0" class="space-y-1.5">
+            <div v-for="(r, i) in related" :key="r.id" class="flex items-center gap-2 px-3 py-2 bg-card rounded-lg">
+              <div class="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <span class="text-primary text-[9px] font-bold">{{ r.name.split(' ').map(w=>w[0]).join('').slice(0,2) }}</span>
+              </div>
+              <span class="flex-1 text-xs text-foreground font-medium truncate">{{ r.name }}</span>
+              <span class="text-xs text-muted-foreground">{{ r.relationship }}</span>
+              <button class="ml-1 text-muted-foreground hover:text-red-400 transition-colors" @click="removeRelated(i)">
+                <X class="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+          <!-- Add relation row -->
+          <div ref="relWrapRef" class="flex gap-2 items-start">
+            <div class="relative flex-1">
+              <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none z-10" />
+              <Input
+                v-model="relQuery"
+                placeholder="Search patient…"
+                class="pl-9 text-xs h-8"
+                @focus="relDropOpen = true"
+                @input="relDropOpen = true"
               />
+              <div v-if="relDropOpen && filteredPatients.length > 0" class="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg z-10 py-1 max-h-32 overflow-y-auto">
+                <button v-for="p in filteredPatients" :key="p.id" class="w-full text-left px-3 py-1.5 text-xs text-foreground hover:bg-accent transition-colors" @click="selectRelated(p)">{{ p.name }}</button>
+              </div>
             </div>
-            <p class="text-[10px] text-slate-400">Press Enter or comma to add a tag. E.g. anxiety, CBT, couples</p>
-          </section>
+            <Select v-model="pendingRelType">
+              <SelectTrigger class="h-8 text-xs w-32 shrink-0">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="r in RELATIONSHIPS" :key="r" :value="r">{{ r }}</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              size="sm"
+              :disabled="!pendingRel"
+              class="h-8 text-xs"
+              @click="addRelated"
+            >
+              <Plus class="w-3 h-3" /> Add
+            </Button>
+          </div>
+        </section>
 
-          <div class="border-t border-slate-100 dark:border-slate-800" />
+        <div class="border-t border-border" />
 
-          <!-- ── Internal notes ─────────────────────────────────────────────── -->
-          <section class="space-y-2">
-            <p class="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Internal notes</p>
-            <Textarea v-model="form.internalNotes" :rows="3" placeholder="Notes visible only to you and your team…" class="resize-none" />
-          </section>
+        <!-- ── Tags ──────────────────────────────────────────────────────── -->
+        <section class="space-y-2">
+          <p class="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Tags</p>
+          <div class="flex flex-wrap gap-1.5 p-2.5 border border-border rounded-xl bg-card min-h-[44px] cursor-text" @click="($el => ($el as HTMLElement)?.querySelector('input')?.focus())($event.currentTarget)">
+            <span v-for="t in tags" :key="t" class="inline-flex items-center gap-1 pl-2 pr-1.5 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
+              {{ t }}
+              <button class="hover:text-red-500 transition-colors" @click.stop="removeTag(t)"><X class="w-3 h-3" /></button>
+            </span>
+            <input
+              v-model="tagInput"
+              type="text"
+              placeholder="Add tag…"
+              class="flex-1 min-w-[100px] text-xs bg-transparent text-foreground placeholder:text-muted-foreground focus:outline-none"
+              @keydown="onTagKey"
+              @blur="addTag"
+            />
+          </div>
+          <p class="text-[10px] text-muted-foreground">Press Enter or comma to add a tag. E.g. anxiety, CBT, couples</p>
+        </section>
 
-        </div>
+        <div class="border-t border-border" />
 
-        <!-- Footer -->
-        <div class="flex items-center justify-end gap-2.5 px-6 py-4 border-t border-slate-100 dark:border-slate-800 shrink-0">
-          <Button variant="ghost" @click="emit('close')">Cancel</Button>
-          <Button @click="save">Add Patient</Button>
-        </div>
+        <!-- ── Internal notes ─────────────────────────────────────────────── -->
+        <section class="space-y-2">
+          <p class="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Internal notes</p>
+          <Textarea v-model="form.internalNotes" :rows="3" placeholder="Notes visible only to you and your team…" class="resize-none" />
+        </section>
 
       </div>
-    </div>
-  </Teleport>
+
+      <DialogFooter class="shrink-0 border-t border-border px-6 py-4">
+        <Button variant="outline" @click="handleClose">Cancel</Button>
+        <Button @click="save">Add Patient</Button>
+      </DialogFooter>
+
+    </DialogContent>
+  </Dialog>
 </template>

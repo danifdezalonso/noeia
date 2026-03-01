@@ -5,25 +5,21 @@ import {
   ChevronsUpDown, ChevronUp, SlidersHorizontal, FileText, Send,
 } from 'lucide-vue-next'
 import { format, parseISO } from 'date-fns'
-import { Line } from 'vue-chartjs'
-import {
-  Chart as ChartJS, LineElement, PointElement, LinearScale,
-  CategoryScale, Filler, Tooltip,
-} from 'chart.js'
+import { ChartBar, ChartDonut, ChartAreaInteractive } from '~/components/ui/chart'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '~/components/ui/table'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
 } from '~/components/ui/dialog'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { Badge } from '~/components/ui/badge'
+import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu'
 
-ChartJS.register(LineElement, PointElement, LinearScale, CategoryScale, Filler, Tooltip)
 
 definePageMeta({ layout: 'dashboard' })
 
@@ -125,7 +121,7 @@ const drBillMeta: Record<DoctorRow['billStatus'], { label: string; classes: stri
   billed:  { label: 'Billed',  classes: 'bg-amber-50 text-amber-700 border-amber-200'    },
   pending: { label: 'Pending', classes: 'bg-orange-50 text-orange-600 border-orange-200' },
   paid:    { label: 'Paid',    classes: 'bg-green-50 text-green-700 border-green-200'    },
-  draft:   { label: 'Draft',   classes: 'bg-slate-50 text-slate-500 border-slate-200'    },
+  draft:   { label: 'Draft',   classes: 'bg-muted text-muted-foreground border-border'    },
 }
 
 function setDrStatus(id: string, status: DoctorRow['billStatus']) {
@@ -171,12 +167,94 @@ const totalPaid    = computed(() => invoiceRows.value.filter(r => r.billingStatu
 const totalPending = computed(() => invoiceRows.value.filter(r => r.billingStatus === 'pending').reduce((s, r) => s + r.amount, 0))
 const totalOverdue = computed(() => invoiceRows.value.filter(r => r.billingStatus === 'overdue').reduce((s, r) => s + r.amount, 0))
 
-const sparkDays = ['1','3','5','8','10','12','15','18','19','22']
-const sparkOpts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false } }, scales: { x: { display: false }, y: { display: false } }, animation: false } as any
-const sparkBilled  = { labels: sparkDays, datasets: [{ data: [120,260,260,400,540,690,810,960,960,1110], fill: true, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.08)', borderWidth: 2, pointRadius: 0, tension: 0.4 }] }
-const sparkPaid    = { labels: sparkDays, datasets: [{ data: [120,120,120,260,260,410,530,530,650,770],   fill: true, borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,0.08)',  borderWidth: 2, pointRadius: 0, tension: 0.4 }] }
-const sparkPending = { labels: sparkDays, datasets: [{ data: [0,140,140,140,280,280,280,430,310,170],    fill: true, borderColor: '#f97316', backgroundColor: 'rgba(249,115,22,0.08)', borderWidth: 2, pointRadius: 0, tension: 0.4 }] }
-const sparkOverdue = { labels: sparkDays, datasets: [{ data: [0,0,0,0,0,0,0,160,160,300],               fill: true, borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.08)',  borderWidth: 2, pointRadius: 0, tension: 0.4 }] }
+const sparkBilledData  = [120,260,260,400,540,690,810,960,960,1110].map(v => ({ v }))
+const sparkPaidData    = [120,120,120,260,260,410,530,530,650,770].map(v => ({ v }))
+const sparkPendingData = [0,140,140,140,280,280,280,430,310,170].map(v => ({ v }))
+const sparkOverdueData = [0,0,0,0,0,0,0,160,160,300].map(v => ({ v }))
+
+// ── Area chart data (90-day daily revenue vs collected) ────────────────────
+const invoiceAreaData = (() => {
+  function mkRng(seed: number) {
+    let s = seed >>> 0
+    return () => { s = (Math.imul(1664525, s) + 1013904223) >>> 0; return s / 0x100000000 }
+  }
+  const rng = mkRng(77)
+  const amts = [120, 120, 140, 150, 160]
+  const actual: Record<string, { revenue: number; collected: number }> = {
+    '2025-12-05': { revenue: 160, collected: 0   },
+    '2025-12-15': { revenue: 120, collected: 120 },
+    '2025-12-18': { revenue: 150, collected: 150 },
+    '2025-12-19': { revenue: 140, collected: 0   },
+    '2025-12-20': { revenue: 120, collected: 120 },
+    '2026-01-08': { revenue: 140, collected: 140 },
+    '2026-01-10': { revenue: 150, collected: 0   },
+    '2026-01-22': { revenue: 140, collected: 0   },
+  }
+  const result: { date: string; revenue: number; collected: number }[] = []
+  for (let i = 89; i >= 0; i--) {
+    const d = new Date('2026-03-01')
+    d.setDate(d.getDate() - i)
+    const ymd = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+    if (actual[ymd]) {
+      result.push({ date: ymd, ...actual[ymd] })
+    } else {
+      const dow = d.getDay()
+      if (dow >= 1 && dow <= 5 && rng() < 0.5) {
+        const n = Math.floor(rng() * 3) + 1
+        const amt = amts.slice(0, n).reduce((s, v) => s + amts[Math.floor(rng() * amts.length)], 0)
+        result.push({ date: ymd, revenue: amt, collected: rng() > 0.3 ? amt : 0 })
+      } else {
+        result.push({ date: ymd, revenue: 0, collected: 0 })
+      }
+    }
+  }
+  return result
+})()
+const invoiceSeries = [
+  { key: 'revenue',   label: 'Revenue',   color: '#6366f1' },
+  { key: 'collected', label: 'Collected', color: '#22c55e' },
+]
+
+// ── Sparkline helpers ──────────────────────────────────────────────────────
+function toSparkPath(data: {v: number}[], w = 96, h = 40) {
+  const vals = data.map(d => d.v)
+  const max = Math.max(...vals, 1)
+  return 'M' + vals.map((v, i) => {
+    const x = (i / (vals.length - 1)) * w
+    const y = h - (v / max) * h * 0.85 + 2
+    return `${x.toFixed(1)},${y.toFixed(1)}`
+  }).join('L')
+}
+function toAreaPath(data: {v: number}[], w = 96, h = 40) {
+  const vals = data.map(d => d.v)
+  const max = Math.max(...vals, 1)
+  const pts = vals.map((v, i) => {
+    const x = (i / (vals.length - 1)) * w
+    const y = h - (v / max) * h * 0.85 + 2
+    return `${x.toFixed(1)},${y.toFixed(1)}`
+  })
+  return `M0,${h} L${pts.join(' L')} L${w},${h} Z`
+}
+
+// ── Card dialog state ──────────────────────────────────────────────────────
+const activePatCard  = ref<'billed' | 'paid' | 'pending' | 'overdue' | null>(null)
+const activeDocCard  = ref<'commission' | 'pendingBills' | 'volume' | null>(null)
+
+// Patients view dialog data
+const patDonutData = computed(() => [
+  { label: 'Paid',    value: totalPaid.value,    color: '#22c55e' },
+  { label: 'Pending', value: totalPending.value, color: '#f97316' },
+  { label: 'Overdue', value: totalOverdue.value, color: '#ef4444' },
+].filter(d => d.value > 0))
+
+const pendingInvoices  = computed(() => invoiceRows.value.filter(r => r.billingStatus === 'pending'))
+const overdueInvoices  = computed(() => invoiceRows.value.filter(r => r.billingStatus === 'overdue'))
+const paidInvoices     = computed(() => invoiceRows.value.filter(r => r.billingStatus === 'paid'))
+
+// Doctors view dialog data
+const doctorVolumeData   = computed(() => doctorRows.value.map(d => ({ volume: drVolume(d) })))
+const doctorVolumeLabels = computed(() => doctorRows.value.map(d => d.initials))
+const pendingDoctors     = computed(() => doctorRows.value.filter(d => d.billStatus === 'pending' || d.billStatus === 'billed'))
 
 const invoiceSearch       = ref('')
 const invoiceDoctorFilter = ref('all')
@@ -202,7 +280,7 @@ const typeMeta: Record<string, string> = {
   'In-Person':  'bg-teal-50 text-teal-700 ring-teal-200',
   'Couples':    'bg-violet-50 text-violet-700 ring-violet-200',
   'Group':      'bg-amber-50 text-amber-700 ring-amber-200',
-  'Individual': 'bg-slate-50 text-slate-600 ring-slate-200',
+  'Individual': 'bg-muted text-muted-foreground ring-border',
 }
 
 const invBillingMeta: Record<InvStatus, { label: string; classes: string; icon: string }> = {
@@ -223,7 +301,7 @@ function openInvoice(row: InvoiceRow) { editorRow.value = { ...row }; editorOpen
 
       <!-- ── Page header ───────────────────────────────────────────────── -->
       <div class="flex flex-wrap items-center justify-between gap-3">
-        <h1 class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Billing & Invoices</h1>
+        <h1 class="text-2xl font-bold text-foreground tracking-tight">Billing & Invoices</h1>
         <div class="flex items-center gap-2">
           <Button variant="outline">
             <Download class="w-4 h-4" />
@@ -237,7 +315,7 @@ function openInvoice(row: InvoiceRow) { editorRow.value = { ...row }; editorOpen
       </div>
 
       <!-- ── Tabs ─────────────────────────────────────────────────────── -->
-      <div class="flex gap-1 border-b border-slate-200 dark:border-slate-700 -mb-1">
+      <div class="flex gap-1 border-b border-border -mb-1">
         <button
           v-for="tab in [{ key: 'doctors', label: 'Doctors' }, { key: 'patients', label: 'Patients' }]"
           :key="tab.key"
@@ -245,7 +323,7 @@ function openInvoice(row: InvoiceRow) { editorRow.value = { ...row }; editorOpen
             'px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px',
             activeTab === tab.key
               ? 'border-primary text-primary'
-              : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300',
+              : 'border-transparent text-muted-foreground hover:text-foreground',
           ]"
           @click="activeTab = (tab.key as 'doctors' | 'patients')"
         >
@@ -262,27 +340,27 @@ function openInvoice(row: InvoiceRow) { editorRow.value = { ...row }; editorOpen
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
 
           <!-- Total Commission YTD -->
-          <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-5">
-            <p class="text-sm text-slate-500 dark:text-slate-400 font-medium mb-3">Total Commission (YTD)</p>
-            <p class="text-3xl font-bold text-slate-900 dark:text-white tabular-nums">{{ fmtCurrency(totalCommissionYTD) }}</p>
+          <div class="bg-card rounded-xl border border-border shadow-sm p-5 cursor-pointer hover:shadow-md transition-shadow" @click="activeDocCard = 'commission'">
+            <p class="text-sm text-muted-foreground font-medium mb-3">Total Commission (YTD)</p>
+            <p class="text-3xl font-bold text-foreground tabular-nums">{{ fmtCurrency(totalCommissionYTD) }}</p>
             <p class="text-xs text-green-600 dark:text-green-400 mt-1.5">+5.4% from last month</p>
           </div>
 
           <!-- Pending Bills -->
-          <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-5">
+          <div class="bg-card rounded-xl border border-border shadow-sm p-5 cursor-pointer hover:shadow-md transition-shadow" @click="activeDocCard = 'pendingBills'">
             <div class="flex items-center justify-between mb-3">
-              <p class="text-sm text-slate-500 dark:text-slate-400 font-medium">Pending Bills</p>
+              <p class="text-sm text-muted-foreground font-medium">Pending Bills</p>
               <Clock class="w-4 h-4 text-orange-400" />
             </div>
             <p class="text-3xl font-bold text-orange-500 tabular-nums">{{ fmtCurrency(pendingBillsTotal) }}</p>
-            <p class="text-xs text-slate-400 dark:text-slate-500 mt-1.5">Owed by {{ pendingDoctorCount }} {{ pendingDoctorCount === 1 ? 'doctor' : 'doctors' }}</p>
+            <p class="text-xs text-muted-foreground mt-1.5">Owed by {{ pendingDoctorCount }} {{ pendingDoctorCount === 1 ? 'doctor' : 'doctors' }}</p>
           </div>
 
           <!-- Session Volume -->
-          <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-5">
-            <p class="text-sm text-slate-500 dark:text-slate-400 font-medium mb-3">Session Volume</p>
+          <div class="bg-card rounded-xl border border-border shadow-sm p-5 cursor-pointer hover:shadow-md transition-shadow" @click="activeDocCard = 'volume'">
+            <p class="text-sm text-muted-foreground font-medium mb-3">Session Volume</p>
             <p class="text-3xl font-bold text-blue-600 tabular-nums">{{ fmtCurrency(sessionVolumeTotal) }}</p>
-            <p class="text-xs text-slate-400 dark:text-slate-500 mt-1.5">Total value of services</p>
+            <p class="text-xs text-muted-foreground mt-1.5">Total value of services</p>
           </div>
 
         </div>
@@ -290,7 +368,7 @@ function openInvoice(row: InvoiceRow) { editorRow.value = { ...row }; editorOpen
         <!-- Filters -->
         <div class="flex items-center gap-2.5 flex-wrap">
           <div class="relative flex-1 min-w-[220px] max-w-sm">
-            <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none z-10" />
+            <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none z-10" />
             <Input v-model="doctorSearch" placeholder="Filter doctors..." class="pl-9" />
           </div>
 
@@ -302,7 +380,7 @@ function openInvoice(row: InvoiceRow) { editorRow.value = { ...row }; editorOpen
                 :class="doctorStatusFilter !== 'all' ? 'bg-primary/10 text-primary border-primary/30' : ''"
               >
                 {{ doctorStatusFilter === 'all' ? 'All Statuses' : drBillMeta[doctorStatusFilter as DoctorRow['billStatus']]?.label ?? doctorStatusFilter }}
-                <ChevronDown class="w-3.5 h-3.5 ml-1 text-slate-400" />
+                <ChevronDown class="w-3.5 h-3.5 ml-1 text-muted-foreground" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" class="w-40">
@@ -318,59 +396,60 @@ function openInvoice(row: InvoiceRow) { editorRow.value = { ...row }; editorOpen
           </DropdownMenu>
 
           <!-- Date range -->
-          <div class="flex flex-wrap items-center gap-1.5 text-sm text-slate-600 dark:text-slate-300">
-            <div class="flex items-center gap-1 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg">
-              <span class="text-slate-400 text-xs">📅</span>
-              <input v-model="doctorDateFrom" type="date" class="text-sm bg-transparent text-slate-700 dark:text-slate-200 focus:outline-none" />
+          <div class="flex flex-wrap items-center gap-1.5 text-sm text-muted-foreground">
+            <div class="flex items-center gap-1 px-3 py-2 bg-card border border-border rounded-lg">
+              <span class="text-muted-foreground text-xs">📅</span>
+              <input v-model="doctorDateFrom" type="date" class="text-sm bg-transparent text-foreground focus:outline-none" />
             </div>
-            <span class="text-slate-400">–</span>
-            <div class="flex items-center gap-1 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg">
-              <span class="text-slate-400 text-xs">📅</span>
-              <input v-model="doctorDateTo" type="date" class="text-sm bg-transparent text-slate-700 dark:text-slate-200 focus:outline-none" />
+            <span class="text-muted-foreground">–</span>
+            <div class="flex items-center gap-1 px-3 py-2 bg-card border border-border rounded-lg">
+              <span class="text-muted-foreground text-xs">📅</span>
+              <input v-model="doctorDateTo" type="date" class="text-sm bg-transparent text-foreground focus:outline-none" />
             </div>
           </div>
         </div>
 
         <!-- Doctors table -->
-        <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+        <div class="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
           <div class="overflow-x-auto">
             <Table class="min-w-[700px]">
               <TableHeader>
-                <TableRow class="border-b border-slate-100 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-700/40 hover:bg-slate-50/60">
+                <TableRow class="border-b border-border bg-muted/30 hover:bg-muted/30">
                   <TableHead class="w-10" />
-                  <TableHead class="px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Doctor</TableHead>
-                  <TableHead class="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Volume</TableHead>
-                  <TableHead class="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Commission ({{ filteredDoctors[0]?.commissionPct ?? 30 }}%)</TableHead>
-                  <TableHead class="px-4 py-3 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Bill Status</TableHead>
-                  <TableHead class="px-4 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Actions</TableHead>
+                  <TableHead class="px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Doctor</TableHead>
+                  <TableHead class="px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider">Total Volume</TableHead>
+                  <TableHead class="px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider">Commission ({{ filteredDoctors[0]?.commissionPct ?? 30 }}%)</TableHead>
+                  <TableHead class="px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Bill Status</TableHead>
+                  <TableHead class="px-4 py-3 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 <template v-for="doc in filteredDoctors" :key="doc.id">
                   <!-- Doctor summary row -->
                   <TableRow
-                    class="border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50/60 dark:hover:bg-slate-700/30 transition-colors cursor-pointer"
+                    class="border-b border-border/50 hover:bg-accent/50 transition-colors cursor-pointer"
                     @click="toggleExpand(doc.id)"
                   >
                     <TableCell class="pl-4 py-3.5">
                       <component
                         :is="expandedDoctors.has(doc.id) ? ChevronDown : ChevronRight"
-                        class="w-4 h-4 text-slate-400 transition-transform"
+                        class="w-4 h-4 text-muted-foreground transition-transform"
                       />
                     </TableCell>
                     <TableCell class="px-4 py-3.5">
                       <div class="flex items-center gap-2.5">
-                        <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                          <span class="text-primary text-xs font-bold">{{ doc.initials }}</span>
-                        </div>
+                        <Avatar class="size-8 shrink-0">
+                          <AvatarImage :src="avatarUrl(doc.name)" :alt="doc.name" />
+                          <AvatarFallback class="bg-primary/10 text-primary text-xs font-bold">{{ doc.initials }}</AvatarFallback>
+                        </Avatar>
                         <div>
-                          <p class="font-semibold text-slate-800 dark:text-slate-100">{{ doc.name }}</p>
-                          <p class="text-xs text-slate-400 dark:text-slate-500">{{ doc.sessions.length }} sessions</p>
+                          <p class="font-semibold text-foreground">{{ doc.name }}</p>
+                          <p class="text-xs text-muted-foreground">{{ doc.sessions.length }} sessions</p>
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell class="px-4 py-3.5 text-right font-semibold text-slate-700 dark:text-slate-200 tabular-nums">{{ fmtCurrency(drVolume(doc)) }}</TableCell>
-                    <TableCell class="px-4 py-3.5 text-right font-semibold text-slate-800 dark:text-slate-100 tabular-nums">{{ fmtCurrency(drCommission(doc)) }}</TableCell>
+                    <TableCell class="px-4 py-3.5 text-right font-semibold text-foreground tabular-nums">{{ fmtCurrency(drVolume(doc)) }}</TableCell>
+                    <TableCell class="px-4 py-3.5 text-right font-semibold text-foreground tabular-nums">{{ fmtCurrency(drCommission(doc)) }}</TableCell>
                     <TableCell class="px-4 py-3.5" @click.stop>
                       <DropdownMenu>
                         <DropdownMenuTrigger as-child>
@@ -402,27 +481,27 @@ function openInvoice(row: InvoiceRow) { editorRow.value = { ...row }; editorOpen
 
                   <!-- Expanded sub-table -->
                   <TableRow v-if="expandedDoctors.has(doc.id)" :key="`${doc.id}-expanded`">
-                    <TableCell colspan="6" class="bg-slate-50/70 dark:bg-slate-900/30 border-b border-slate-100 dark:border-slate-700 px-0 py-0">
+                    <TableCell colspan="6" class="bg-muted/30 border-b border-border px-0 py-0">
                       <Table>
                         <TableHeader>
-                          <TableRow class="border-b border-slate-200 dark:border-slate-700/50 hover:bg-transparent">
-                            <TableHead class="pl-14 pr-4 py-2.5 text-xs font-semibold text-slate-400 uppercase tracking-wider">Date</TableHead>
-                            <TableHead class="px-4 py-2.5 text-xs font-semibold text-slate-400 uppercase tracking-wider">Patient</TableHead>
-                            <TableHead class="px-4 py-2.5 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">Session Fee</TableHead>
-                            <TableHead class="px-4 py-2.5 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">Extras</TableHead>
-                            <TableHead class="px-4 py-2.5 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">Commission ({{ doc.commissionPct }}%)</TableHead>
-                            <TableHead class="px-4 py-2.5 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">Invoice</TableHead>
+                          <TableRow class="border-b border-border hover:bg-transparent">
+                            <TableHead class="pl-14 pr-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Date</TableHead>
+                            <TableHead class="px-4 py-2.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Patient</TableHead>
+                            <TableHead class="px-4 py-2.5 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider">Session Fee</TableHead>
+                            <TableHead class="px-4 py-2.5 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider">Extras</TableHead>
+                            <TableHead class="px-4 py-2.5 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider">Commission ({{ doc.commissionPct }}%)</TableHead>
+                            <TableHead class="px-4 py-2.5 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider">Invoice</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           <template v-for="sess in doc.sessions" :key="sess.id">
                             <!-- Session row -->
-                            <TableRow class="border-b border-slate-100 dark:border-slate-700/40 hover:bg-white/60 dark:hover:bg-slate-800/40 transition-colors">
-                              <TableCell class="pl-14 pr-4 py-2.5 text-slate-500 dark:text-slate-400 whitespace-nowrap">{{ fmtDate(sess.date) }}</TableCell>
-                              <TableCell class="px-4 py-2.5 font-medium text-slate-700 dark:text-slate-200">{{ sess.patient }}</TableCell>
-                              <TableCell class="px-4 py-2.5 text-right tabular-nums text-slate-600 dark:text-slate-300">{{ fmtCurrency(sess.sessionFee) }}</TableCell>
-                              <TableCell class="px-4 py-2.5 text-right tabular-nums text-slate-400">{{ sess.extras ? fmtCurrency(sess.extras) : '–' }}</TableCell>
-                              <TableCell class="px-4 py-2.5 text-right tabular-nums font-medium text-slate-700 dark:text-slate-200">{{ fmtCurrency(sessComm(sess.sessionFee, doc.commissionPct)) }}</TableCell>
+                            <TableRow class="border-b border-border/50 hover:bg-accent/30 transition-colors">
+                              <TableCell class="pl-14 pr-4 py-2.5 text-muted-foreground whitespace-nowrap">{{ fmtDate(sess.date) }}</TableCell>
+                              <TableCell class="px-4 py-2.5 font-medium text-foreground">{{ sess.patient }}</TableCell>
+                              <TableCell class="px-4 py-2.5 text-right tabular-nums text-muted-foreground">{{ fmtCurrency(sess.sessionFee) }}</TableCell>
+                              <TableCell class="px-4 py-2.5 text-right tabular-nums text-muted-foreground">{{ sess.extras ? fmtCurrency(sess.extras) : '–' }}</TableCell>
+                              <TableCell class="px-4 py-2.5 text-right tabular-nums font-medium text-foreground">{{ fmtCurrency(sessComm(sess.sessionFee, doc.commissionPct)) }}</TableCell>
                               <TableCell class="px-4 py-2.5 text-right">
                                 <Button variant="link" size="sm" class="h-auto p-0 text-xs gap-1">
                                   Session <ExternalLink class="w-3 h-3" />
@@ -430,19 +509,19 @@ function openInvoice(row: InvoiceRow) { editorRow.value = { ...row }; editorOpen
                               </TableCell>
                             </TableRow>
                             <!-- Documentation sub-row -->
-                            <TableRow v-if="sess.docFee" :key="`${sess.id}-doc`" class="border-b border-slate-100 dark:border-slate-700/40 bg-slate-50/50 dark:bg-slate-900/20">
+                            <TableRow v-if="sess.docFee" :key="`${sess.id}-doc`" class="border-b border-border/50 bg-muted/20">
                               <TableCell class="pl-14 pr-4 py-2" />
                               <TableCell class="px-4 py-2">
-                                <div class="flex items-center gap-1.5 text-slate-400 dark:text-slate-500 text-sm">
-                                  <span class="text-slate-300 dark:text-slate-600 text-base leading-none">└</span>
+                                <div class="flex items-center gap-1.5 text-muted-foreground text-sm">
+                                  <span class="text-muted-foreground/50 text-base leading-none">└</span>
                                   Documentation
                                 </div>
                               </TableCell>
-                              <TableCell class="px-4 py-2 text-right tabular-nums text-slate-400 dark:text-slate-500 text-sm">{{ fmtCurrency(sess.docFee) }}</TableCell>
-                              <TableCell class="px-4 py-2 text-right text-slate-400 text-sm">–</TableCell>
-                              <TableCell class="px-4 py-2 text-right tabular-nums text-slate-500 dark:text-slate-400 text-sm">{{ fmtCurrency(sessComm(sess.docFee, doc.commissionPct)) }}</TableCell>
+                              <TableCell class="px-4 py-2 text-right tabular-nums text-muted-foreground text-sm">{{ fmtCurrency(sess.docFee) }}</TableCell>
+                              <TableCell class="px-4 py-2 text-right text-muted-foreground text-sm">–</TableCell>
+                              <TableCell class="px-4 py-2 text-right tabular-nums text-muted-foreground text-sm">{{ fmtCurrency(sessComm(sess.docFee, doc.commissionPct)) }}</TableCell>
                               <TableCell class="px-4 py-2 text-right">
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400">Doc</span>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-muted text-muted-foreground">Doc</span>
                               </TableCell>
                             </TableRow>
                           </template>
@@ -455,8 +534,8 @@ function openInvoice(row: InvoiceRow) { editorRow.value = { ...row }; editorOpen
                 <TableRow v-if="filteredDoctors.length === 0">
                   <TableCell colspan="6" class="py-16 text-center">
                     <div class="flex flex-col items-center gap-2">
-                      <AlertCircle class="w-8 h-8 text-slate-300" />
-                      <p class="text-sm text-slate-500">No doctors match your filters.</p>
+                      <AlertCircle class="w-8 h-8 text-muted-foreground/50" />
+                      <p class="text-sm text-muted-foreground">No doctors match your filters.</p>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -476,34 +555,47 @@ function openInvoice(row: InvoiceRow) { editorRow.value = { ...row }; editorOpen
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <div
             v-for="card in [
-              { label: 'Total Billed', value: totalBilled,  data: sparkBilled,  color: 'text-blue-600'   },
-              { label: 'Paid',         value: totalPaid,    data: sparkPaid,    color: 'text-green-600'  },
-              { label: 'Pending',      value: totalPending, data: sparkPending, color: 'text-orange-500' },
-              { label: 'Overdue',      value: totalOverdue, data: sparkOverdue, color: 'text-red-500'    },
+              { key: 'billed',  label: 'Total Billed', value: totalBilled,  sparkData: sparkBilledData,  lineColor: '#6366f1' },
+              { key: 'paid',    label: 'Paid',         value: totalPaid,    sparkData: sparkPaidData,    lineColor: '#22c55e' },
+              { key: 'pending', label: 'Pending',      value: totalPending, sparkData: sparkPendingData, lineColor: '#f97316' },
+              { key: 'overdue', label: 'Overdue',      value: totalOverdue, sparkData: sparkOverdueData, lineColor: '#ef4444' },
             ]"
             :key="card.label"
-            class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 flex flex-col gap-1"
+            class="bg-card rounded-xl border border-border shadow-sm p-4 flex flex-col gap-1 cursor-pointer hover:shadow-md transition-shadow"
+            @click="activePatCard = (card.key as any)"
           >
             <div class="flex items-center justify-between">
-              <p class="text-sm text-slate-500 dark:text-slate-400 font-medium">{{ card.label }}</p>
-              <Button variant="ghost" size="icon" class="w-6 h-6" @click="showValues = !showValues">
-                <component :is="showValues ? Eye : EyeOff" class="w-3.5 h-3.5 text-slate-300 hover:text-slate-500 transition-colors" />
+              <p class="text-sm text-muted-foreground font-medium">{{ card.label }}</p>
+              <Button variant="ghost" size="icon" class="w-6 h-6" @click.stop="showValues = !showValues">
+                <component :is="showValues ? Eye : EyeOff" class="w-3.5 h-3.5 text-muted-foreground/70 hover:text-muted-foreground transition-colors" />
               </Button>
             </div>
-            <p :class="['text-2xl font-bold tabular-nums', card.color]">
+            <p class="text-2xl font-bold tabular-nums text-foreground">
               {{ showValues ? fmtCurrency(card.value) : '€ ···' }}
             </p>
+            <!-- SVG Sparkline -->
             <div class="h-10 mt-1">
-              <Line :data="card.data" :options="sparkOpts" />
+              <svg viewBox="0 0 96 40" class="w-full h-full overflow-visible">
+                <path :d="toAreaPath(card.sparkData)" :fill="card.lineColor" fill-opacity="0.12" />
+                <path :d="toSparkPath(card.sparkData)" :stroke="card.lineColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
             </div>
           </div>
         </div>
+
+        <!-- Area chart -->
+        <ChartAreaInteractive
+          :data="invoiceAreaData"
+          :series="invoiceSeries"
+          title="Revenue vs Collected"
+          description="Daily invoice activity for the last 3 months"
+        />
 
         <!-- Filters -->
         <div class="flex items-center gap-2.5 flex-wrap">
           <!-- Search -->
           <div class="relative min-w-[200px] max-w-xs flex-1">
-            <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none z-10" />
+            <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none z-10" />
             <Input v-model="invoiceSearch" placeholder="Filter invoices..." class="pl-9" />
           </div>
 
@@ -515,7 +607,7 @@ function openInvoice(row: InvoiceRow) { editorRow.value = { ...row }; editorOpen
                 :class="invoiceDoctorFilter !== 'all' ? 'bg-primary/10 text-primary border-primary/30' : ''"
               >
                 {{ invoiceDoctorFilter === 'all' ? 'All Doctors' : invoiceDoctorFilter }}
-                <ChevronDown class="w-3.5 h-3.5 ml-1 text-slate-400" />
+                <ChevronDown class="w-3.5 h-3.5 ml-1 text-muted-foreground" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" class="w-52">
@@ -544,7 +636,7 @@ function openInvoice(row: InvoiceRow) { editorRow.value = { ...row }; editorOpen
                 :class="invoiceStatusFilter !== 'all' ? 'bg-primary/10 text-primary border-primary/30' : ''"
               >
                 {{ invoiceStatusFilter === 'all' ? 'All Statuses' : invoiceStatusFilter.charAt(0).toUpperCase() + invoiceStatusFilter.slice(1) }}
-                <ChevronDown class="w-3.5 h-3.5 ml-1 text-slate-400" />
+                <ChevronDown class="w-3.5 h-3.5 ml-1 text-muted-foreground" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" class="w-40">
@@ -561,14 +653,14 @@ function openInvoice(row: InvoiceRow) { editorRow.value = { ...row }; editorOpen
 
           <!-- Date range -->
           <div class="flex flex-wrap items-center gap-1.5">
-            <div class="flex items-center gap-1 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg">
-              <span class="text-slate-400 text-xs">📅</span>
-              <input v-model="invoiceDateFrom" type="date" class="text-sm bg-transparent text-slate-700 dark:text-slate-200 focus:outline-none" />
+            <div class="flex items-center gap-1 px-3 py-2 bg-card border border-border rounded-lg">
+              <span class="text-muted-foreground text-xs">📅</span>
+              <input v-model="invoiceDateFrom" type="date" class="text-sm bg-transparent text-foreground focus:outline-none" />
             </div>
-            <span class="text-slate-400 text-sm">–</span>
-            <div class="flex items-center gap-1 px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg">
-              <span class="text-slate-400 text-xs">📅</span>
-              <input v-model="invoiceDateTo" type="date" class="text-sm bg-transparent text-slate-700 dark:text-slate-200 focus:outline-none" />
+            <span class="text-muted-foreground text-sm">–</span>
+            <div class="flex items-center gap-1 px-3 py-2 bg-card border border-border rounded-lg">
+              <span class="text-muted-foreground text-xs">📅</span>
+              <input v-model="invoiceDateTo" type="date" class="text-sm bg-transparent text-foreground focus:outline-none" />
             </div>
           </div>
 
@@ -580,20 +672,20 @@ function openInvoice(row: InvoiceRow) { editorRow.value = { ...row }; editorOpen
         </div>
 
         <!-- Invoices table -->
-        <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+        <div class="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
           <div class="overflow-x-auto">
             <Table class="min-w-[960px]">
               <TableHeader>
-                <TableRow class="bg-slate-50/60 dark:bg-slate-700/40 hover:bg-slate-50/60 dark:hover:bg-slate-700/40">
-                  <TableHead class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Invoice ID</TableHead>
-                  <TableHead class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Date</TableHead>
-                  <TableHead class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Patient</TableHead>
-                  <TableHead class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Professional</TableHead>
-                  <TableHead class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Type</TableHead>
-                  <TableHead class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Session Status</TableHead>
-                  <TableHead class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Payment</TableHead>
-                  <TableHead class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap text-right">Amount</TableHead>
-                  <TableHead class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">Billing Status</TableHead>
+                <TableRow class="bg-muted/30 hover:bg-muted/30">
+                  <TableHead class="text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">Invoice ID</TableHead>
+                  <TableHead class="text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">Date</TableHead>
+                  <TableHead class="text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">Patient</TableHead>
+                  <TableHead class="text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">Professional</TableHead>
+                  <TableHead class="text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">Type</TableHead>
+                  <TableHead class="text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">Session Status</TableHead>
+                  <TableHead class="text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">Payment</TableHead>
+                  <TableHead class="text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap text-right">Amount</TableHead>
+                  <TableHead class="text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">Billing Status</TableHead>
                   <TableHead class="w-12" />
                 </TableRow>
               </TableHeader>
@@ -601,8 +693,8 @@ function openInvoice(row: InvoiceRow) { editorRow.value = { ...row }; editorOpen
                 <TableRow v-if="filteredInvoices.length === 0">
                   <TableCell :colspan="10" class="py-16 text-center">
                     <div class="flex flex-col items-center gap-2">
-                      <AlertCircle class="w-8 h-8 text-slate-300" />
-                      <p class="text-sm text-slate-500">No invoices match your filters.</p>
+                      <AlertCircle class="w-8 h-8 text-muted-foreground/50" />
+                      <p class="text-sm text-muted-foreground">No invoices match your filters.</p>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -610,25 +702,26 @@ function openInvoice(row: InvoiceRow) { editorRow.value = { ...row }; editorOpen
                 <TableRow
                   v-for="row in filteredInvoices"
                   :key="row.id"
-                  class="hover:bg-slate-50/70 dark:hover:bg-slate-700/30 transition-colors cursor-pointer"
+                  class="hover:bg-accent/50 transition-colors cursor-pointer"
                   @click="openInvoice(row)"
                 >
                   <!-- Invoice ID -->
-                  <TableCell class="font-mono text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">{{ row.id }}</TableCell>
+                  <TableCell class="font-mono text-xs text-muted-foreground whitespace-nowrap">{{ row.id }}</TableCell>
 
                   <!-- Date -->
-                  <TableCell class="whitespace-nowrap text-sm text-slate-600 dark:text-slate-300">{{ fmtDate(row.date) }}</TableCell>
+                  <TableCell class="whitespace-nowrap text-sm text-muted-foreground">{{ fmtDate(row.date) }}</TableCell>
 
                   <!-- Patient -->
                   <TableCell class="whitespace-nowrap">
                     <div class="flex items-center gap-2">
-                      <div class="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                        <span class="text-primary text-[9px] font-bold">{{ row.patientInitials }}</span>
-                      </div>
+                      <Avatar class="size-6 shrink-0">
+                        <AvatarImage :src="avatarUrl(row.patient)" :alt="row.patient" />
+                        <AvatarFallback class="bg-primary/10 text-primary text-[9px] font-bold">{{ row.patientInitials }}</AvatarFallback>
+                      </Avatar>
                       <div>
-                        <p class="text-sm font-medium text-slate-800 dark:text-slate-100">{{ row.patient }}</p>
-                        <p v-if="row.documentationIncluded" class="text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1 mt-0.5">
-                          <span class="text-slate-300 dark:text-slate-600 leading-none">└</span>
+                        <p class="text-sm font-medium text-foreground">{{ row.patient }}</p>
+                        <p v-if="row.documentationIncluded" class="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                          <span class="text-muted-foreground/50 leading-none">└</span>
                           Documentation included
                         </p>
                       </div>
@@ -638,16 +731,16 @@ function openInvoice(row: InvoiceRow) { editorRow.value = { ...row }; editorOpen
                   <!-- Professional -->
                   <TableCell class="whitespace-nowrap">
                     <div class="flex items-center gap-1.5">
-                      <div class="w-5 h-5 rounded-full bg-slate-200 dark:bg-slate-600 flex items-center justify-center shrink-0">
-                        <span class="text-slate-600 dark:text-slate-300 text-[8px] font-bold">{{ row.doctorInitials }}</span>
+                      <div class="w-5 h-5 rounded-full bg-muted flex items-center justify-center shrink-0">
+                        <span class="text-muted-foreground text-[8px] font-bold">{{ row.doctorInitials }}</span>
                       </div>
-                      <span class="text-sm text-slate-600 dark:text-slate-300">{{ row.doctorName }}</span>
+                      <span class="text-sm text-muted-foreground">{{ row.doctorName }}</span>
                     </div>
                   </TableCell>
 
                   <!-- Type badge -->
                   <TableCell class="whitespace-nowrap">
-                    <span :class="['inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ring-1', typeMeta[row.type] ?? 'bg-slate-50 text-slate-500 ring-slate-200']">{{ row.type }}</span>
+                    <span :class="['inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ring-1', typeMeta[row.type] ?? 'bg-muted text-muted-foreground ring-border']">{{ row.type }}</span>
                   </TableCell>
 
                   <!-- Session Status -->
@@ -660,21 +753,21 @@ function openInvoice(row: InvoiceRow) { editorRow.value = { ...row }; editorOpen
                       <Clock class="w-3.5 h-3.5" />
                       Scheduled
                     </span>
-                    <span v-else class="text-xs text-slate-400">–</span>
+                    <span v-else class="text-xs text-muted-foreground">–</span>
                   </TableCell>
 
                   <!-- Payment -->
                   <TableCell class="whitespace-nowrap">
                     <div v-if="row.paymentMethod" class="text-sm">
-                      <p class="font-medium text-slate-700 dark:text-slate-200">{{ row.paymentMethod }}</p>
-                      <p class="text-xs text-slate-400 dark:text-slate-500">{{ fmtDate(row.paymentDate!) }}</p>
+                      <p class="font-medium text-foreground">{{ row.paymentMethod }}</p>
+                      <p class="text-xs text-muted-foreground">{{ fmtDate(row.paymentDate!) }}</p>
                     </div>
-                    <span v-else class="text-sm text-slate-400">–</span>
+                    <span v-else class="text-sm text-muted-foreground">–</span>
                   </TableCell>
 
                   <!-- Amount -->
-                  <TableCell class="text-right tabular-nums font-semibold text-slate-800 dark:text-slate-100 whitespace-nowrap">
-                    <span class="text-xs text-slate-400 mr-0.5">€</span>{{ row.amount }}
+                  <TableCell class="text-right tabular-nums font-semibold text-foreground whitespace-nowrap">
+                    <span class="text-xs text-muted-foreground mr-0.5">€</span>{{ row.amount }}
                   </TableCell>
 
                   <!-- Billing Status -->
@@ -708,10 +801,10 @@ function openInvoice(row: InvoiceRow) { editorRow.value = { ...row }; editorOpen
   <Dialog v-model:open="editorOpen">
     <DialogContent class="max-w-lg p-0">
       <div v-if="editorRow">
-        <DialogHeader class="px-6 pt-6 pb-4 border-b border-slate-100 dark:border-slate-700">
+        <DialogHeader class="px-6 pt-6 pb-4 border-b border-border/50">
           <div class="flex items-center justify-between">
             <div>
-              <DialogTitle class="text-lg font-bold text-slate-900 dark:text-white">{{ editorRow.id }}</DialogTitle>
+              <DialogTitle class="text-lg font-bold text-foreground">{{ editorRow.id }}</DialogTitle>
               <div class="flex items-center gap-2 mt-1">
                 <Badge variant="outline" :class="['gap-1', invBillingMeta[editorRow.billingStatus].classes]">
                   <Check v-if="editorRow.billingStatus === 'paid'" class="w-3 h-3" />
@@ -729,53 +822,54 @@ function openInvoice(row: InvoiceRow) { editorRow.value = { ...row }; editorOpen
 
         <div class="px-6 py-5 space-y-4">
           <div class="grid grid-cols-2 gap-3 text-sm">
-            <div class="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-3">
-              <p class="text-xs text-slate-400 mb-1">Patient</p>
+            <div class="bg-muted/30 rounded-lg p-3">
+              <p class="text-xs text-muted-foreground mb-1">Patient</p>
               <div class="flex items-center gap-2">
-                <div class="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                  <span class="text-primary text-[9px] font-bold">{{ editorRow.patientInitials }}</span>
-                </div>
-                <span class="font-medium text-slate-800 dark:text-slate-100">{{ editorRow.patient }}</span>
+                <Avatar class="size-6 shrink-0">
+                  <AvatarImage :src="avatarUrl(editorRow.patient)" :alt="editorRow.patient" />
+                  <AvatarFallback class="bg-primary/10 text-primary text-[9px] font-bold">{{ editorRow.patientInitials }}</AvatarFallback>
+                </Avatar>
+                <span class="font-medium text-foreground">{{ editorRow.patient }}</span>
               </div>
             </div>
-            <div class="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-3">
-              <p class="text-xs text-slate-400 mb-1">Professional</p>
-              <p class="font-medium text-slate-800 dark:text-slate-100">{{ editorRow.doctorName }}</p>
+            <div class="bg-muted/30 rounded-lg p-3">
+              <p class="text-xs text-muted-foreground mb-1">Professional</p>
+              <p class="font-medium text-foreground">{{ editorRow.doctorName }}</p>
             </div>
-            <div class="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-3">
-              <p class="text-xs text-slate-400 mb-1">Date</p>
-              <p class="font-medium text-slate-800 dark:text-slate-100">{{ fmtDate(editorRow.date) }}</p>
+            <div class="bg-muted/30 rounded-lg p-3">
+              <p class="text-xs text-muted-foreground mb-1">Date</p>
+              <p class="font-medium text-foreground">{{ fmtDate(editorRow.date) }}</p>
             </div>
-            <div class="bg-slate-50 dark:bg-slate-900/50 rounded-lg p-3">
-              <p class="text-xs text-slate-400 mb-1">Session type</p>
-              <span :class="['inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ring-1', typeMeta[editorRow.type] ?? 'bg-slate-50 text-slate-500 ring-slate-200']">{{ editorRow.type }}</span>
+            <div class="bg-muted/30 rounded-lg p-3">
+              <p class="text-xs text-muted-foreground mb-1">Session type</p>
+              <span :class="['inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ring-1', typeMeta[editorRow.type] ?? 'bg-muted text-muted-foreground ring-border']">{{ editorRow.type }}</span>
             </div>
           </div>
 
-          <div class="border border-slate-100 dark:border-slate-700 rounded-xl divide-y divide-slate-100 dark:divide-slate-700">
+          <div class="border border-border/50 rounded-xl divide-y divide-border/50">
             <div class="flex items-center justify-between px-4 py-3">
-              <span class="text-sm text-slate-600 dark:text-slate-300">Session fee</span>
-              <span class="text-sm font-semibold text-slate-800 dark:text-slate-100 tabular-nums">{{ fmtCurrency(editorRow.amount) }}</span>
+              <span class="text-sm text-muted-foreground">Session fee</span>
+              <span class="text-sm font-semibold text-foreground tabular-nums">{{ fmtCurrency(editorRow.amount) }}</span>
             </div>
             <div v-if="editorRow.documentationIncluded" class="flex items-center justify-between px-4 py-3">
-              <span class="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                <span class="text-slate-300 dark:text-slate-600 text-base leading-none">└</span>
+              <span class="text-sm text-muted-foreground flex items-center gap-1.5">
+                <span class="text-muted-foreground/50 text-base leading-none">└</span>
                 Documentation
               </span>
-              <span class="text-sm text-slate-500 dark:text-slate-400 tabular-nums">€50.00</span>
+              <span class="text-sm text-muted-foreground tabular-nums">€50.00</span>
             </div>
             <div class="flex items-center justify-between px-4 py-3">
-              <span class="text-sm font-bold text-slate-800 dark:text-slate-100">Total</span>
-              <span class="text-sm font-bold text-slate-900 dark:text-white tabular-nums">{{ fmtCurrency(editorRow.amount + (editorRow.documentationIncluded ? 50 : 0)) }}</span>
+              <span class="text-sm font-bold text-foreground">Total</span>
+              <span class="text-sm font-bold text-foreground tabular-nums">{{ fmtCurrency(editorRow.amount + (editorRow.documentationIncluded ? 50 : 0)) }}</span>
             </div>
           </div>
 
-          <div v-if="editorRow.paymentMethod" class="text-sm text-slate-500 dark:text-slate-400">
-            Paid via <strong class="text-slate-700 dark:text-slate-200">{{ editorRow.paymentMethod }}</strong> on {{ fmtDate(editorRow.paymentDate!) }}
+          <div v-if="editorRow.paymentMethod" class="text-sm text-muted-foreground">
+            Paid via <strong class="text-foreground">{{ editorRow.paymentMethod }}</strong> on {{ fmtDate(editorRow.paymentDate!) }}
           </div>
         </div>
 
-        <div class="flex items-center justify-between px-6 pb-6 gap-3">
+        <DialogFooter class="px-6 pb-6 sm:justify-between items-center">
           <Button
             v-if="editorRow.billingStatus !== 'paid'"
             class="bg-green-600 text-white hover:bg-green-700"
@@ -798,8 +892,328 @@ function openInvoice(row: InvoiceRow) { editorRow.value = { ...row }; editorOpen
               PDF
             </Button>
           </div>
+        </DialogFooter>
+      </div>
+    </DialogContent>
+  </Dialog>
+
+  <!-- ══ Doctors: Commission Dialog ═════════════════════════════════════════ -->
+  <Dialog :open="activeDocCard === 'commission'" @update:open="v => { if (!v) activeDocCard = null }">
+    <DialogContent class="max-w-2xl max-h-[85vh] overflow-y-auto p-0">
+      <DialogHeader class="px-6 pt-6 pb-4 border-b border-border/50">
+        <DialogTitle class="text-lg font-bold">Total Commission (YTD)</DialogTitle>
+      </DialogHeader>
+      <div class="px-6 py-5 space-y-5">
+        <div class="grid grid-cols-3 gap-3">
+          <div class="bg-muted/30 rounded-lg p-3 text-center">
+            <p class="text-xs text-muted-foreground mb-1">Total Commission</p>
+            <p class="text-xl font-bold text-foreground tabular-nums">{{ fmtCurrency(totalCommissionYTD) }}</p>
+          </div>
+          <div class="bg-muted/30 rounded-lg p-3 text-center">
+            <p class="text-xs text-muted-foreground mb-1">Doctors</p>
+            <p class="text-xl font-bold text-foreground tabular-nums">{{ doctorRows.length }}</p>
+          </div>
+          <div class="bg-muted/30 rounded-lg p-3 text-center">
+            <p class="text-xs text-muted-foreground mb-1">Avg / Doctor</p>
+            <p class="text-xl font-bold text-foreground tabular-nums">{{ doctorRows.length ? fmtCurrency(totalCommissionYTD / doctorRows.length) : '—' }}</p>
+          </div>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Commission by Doctor</p>
+          <ChartBar
+            :data="doctorVolumeData"
+            :segments="[{ key: 'volume', color: '#6366f1', label: 'Volume' }]"
+            :x-labels="doctorVolumeLabels"
+            class="h-36 w-full"
+          />
+        </div>
+        <div class="space-y-1.5">
+          <div
+            v-for="d in doctorRows"
+            :key="d.id"
+            class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+          >
+            <Avatar class="size-7 shrink-0">
+              <AvatarFallback class="bg-primary/10 text-primary text-[9px] font-bold">{{ d.initials }}</AvatarFallback>
+            </Avatar>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium text-foreground truncate">{{ d.name }}</p>
+              <p class="text-xs text-muted-foreground">{{ d.sessions.length }} sessions · {{ d.commissionPct }}% rate</p>
+            </div>
+            <span class="text-sm font-semibold tabular-nums text-foreground">{{ fmtCurrency(drCommission(d)) }}</span>
+          </div>
         </div>
       </div>
+      <DialogFooter class="px-6 pb-6">
+        <DialogClose as-child><Button variant="outline">Close</Button></DialogClose>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+
+  <!-- ══ Doctors: Pending Bills Dialog ══════════════════════════════════════ -->
+  <Dialog :open="activeDocCard === 'pendingBills'" @update:open="v => { if (!v) activeDocCard = null }">
+    <DialogContent class="max-w-xl max-h-[85vh] overflow-y-auto p-0">
+      <DialogHeader class="px-6 pt-6 pb-4 border-b border-border/50">
+        <DialogTitle class="text-lg font-bold">Pending Bills</DialogTitle>
+      </DialogHeader>
+      <div class="px-6 py-5 space-y-5">
+        <div class="grid grid-cols-2 gap-3">
+          <div class="bg-muted/30 rounded-lg p-3 text-center">
+            <p class="text-xs text-muted-foreground mb-1">Pending Total</p>
+            <p class="text-xl font-bold text-orange-600 tabular-nums">{{ fmtCurrency(pendingBillsTotal) }}</p>
+          </div>
+          <div class="bg-muted/30 rounded-lg p-3 text-center">
+            <p class="text-xs text-muted-foreground mb-1">Doctors Awaiting</p>
+            <p class="text-xl font-bold text-foreground tabular-nums">{{ pendingDoctorCount }}</p>
+          </div>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Doctors with Pending Bills</p>
+          <div class="space-y-1.5">
+            <div
+              v-for="d in pendingDoctors"
+              :key="d.id"
+              class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+            >
+              <Avatar class="size-7 shrink-0">
+                <AvatarImage :src="avatarUrl(d.name)" :alt="d.name" />
+                <AvatarFallback class="bg-primary/10 text-primary text-[9px] font-bold">{{ d.initials }}</AvatarFallback>
+              </Avatar>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium text-foreground truncate">{{ d.name }}</p>
+                <p class="text-xs text-muted-foreground">{{ d.sessions.length }} sessions</p>
+              </div>
+              <Badge variant="outline" :class="drBillMeta[d.billStatus].classes">{{ drBillMeta[d.billStatus].label }}</Badge>
+              <span class="text-sm font-semibold tabular-nums text-orange-600">{{ fmtCurrency(drCommission(d)) }}</span>
+            </div>
+            <p v-if="!pendingDoctors.length" class="text-sm text-muted-foreground text-center py-4">No pending bills</p>
+          </div>
+        </div>
+      </div>
+      <DialogFooter class="px-6 pb-6">
+        <DialogClose as-child><Button variant="outline">Close</Button></DialogClose>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+
+  <!-- ══ Doctors: Session Volume Dialog ════════════════════════════════════= -->
+  <Dialog :open="activeDocCard === 'volume'" @update:open="v => { if (!v) activeDocCard = null }">
+    <DialogContent class="max-w-2xl max-h-[85vh] overflow-y-auto p-0">
+      <DialogHeader class="px-6 pt-6 pb-4 border-b border-border/50">
+        <DialogTitle class="text-lg font-bold">Session Volume</DialogTitle>
+      </DialogHeader>
+      <div class="px-6 py-5 space-y-5">
+        <div class="grid grid-cols-2 gap-3">
+          <div class="bg-muted/30 rounded-lg p-3 text-center">
+            <p class="text-xs text-muted-foreground mb-1">Total Volume</p>
+            <p class="text-xl font-bold text-blue-600 tabular-nums">{{ fmtCurrency(sessionVolumeTotal) }}</p>
+          </div>
+          <div class="bg-muted/30 rounded-lg p-3 text-center">
+            <p class="text-xs text-muted-foreground mb-1">Total Sessions</p>
+            <p class="text-xl font-bold text-foreground tabular-nums">{{ doctorRows.reduce((s, d) => s + d.sessions.length, 0) }}</p>
+          </div>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Volume by Doctor</p>
+          <ChartBar
+            :data="doctorVolumeData"
+            :segments="[{ key: 'volume', color: '#0284c7', label: 'Volume' }]"
+            :x-labels="doctorVolumeLabels"
+            class="h-36 w-full"
+          />
+        </div>
+        <div class="space-y-1.5">
+          <div
+            v-for="d in doctorRows"
+            :key="d.id"
+            class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+          >
+            <Avatar class="size-7 shrink-0">
+              <AvatarFallback class="bg-primary/10 text-primary text-[9px] font-bold">{{ d.initials }}</AvatarFallback>
+            </Avatar>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium text-foreground truncate">{{ d.name }}</p>
+              <p class="text-xs text-muted-foreground">{{ d.sessions.length }} sessions</p>
+            </div>
+            <span class="text-sm font-semibold tabular-nums text-blue-600">{{ fmtCurrency(drVolume(d)) }}</span>
+          </div>
+        </div>
+      </div>
+      <DialogFooter class="px-6 pb-6">
+        <DialogClose as-child><Button variant="outline">Close</Button></DialogClose>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+
+  <!-- ══ Patients: Total Billed Dialog ══════════════════════════════════════ -->
+  <Dialog :open="activePatCard === 'billed'" @update:open="v => { if (!v) activePatCard = null }">
+    <DialogContent class="max-w-2xl max-h-[85vh] overflow-y-auto p-0">
+      <DialogHeader class="px-6 pt-6 pb-4 border-b border-border/50">
+        <DialogTitle class="text-lg font-bold">Total Billed</DialogTitle>
+      </DialogHeader>
+      <div class="px-6 py-5 space-y-5">
+        <div class="grid grid-cols-3 gap-3">
+          <div class="bg-muted/30 rounded-lg p-3 text-center">
+            <p class="text-xs text-muted-foreground mb-1">Total</p>
+            <p class="text-xl font-bold text-foreground tabular-nums">{{ fmtCurrency(totalBilled) }}</p>
+          </div>
+          <div class="bg-muted/30 rounded-lg p-3 text-center">
+            <p class="text-xs text-muted-foreground mb-1">Invoices</p>
+            <p class="text-xl font-bold text-foreground tabular-nums">{{ invoiceRows.length }}</p>
+          </div>
+          <div class="bg-muted/30 rounded-lg p-3 text-center">
+            <p class="text-xs text-muted-foreground mb-1">Avg / Invoice</p>
+            <p class="text-xl font-bold text-foreground tabular-nums">{{ invoiceRows.length ? fmtCurrency(totalBilled / invoiceRows.length) : '—' }}</p>
+          </div>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Payment Status Breakdown</p>
+          <div class="grid grid-cols-2 gap-5 items-center">
+            <ChartDonut :data="patDonutData" :central-label="fmtCurrency(totalBilled)" central-sub-label="billed" class="max-h-[160px]" />
+            <div class="flex flex-col gap-2">
+              <div v-for="d in patDonutData" :key="d.label" class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-sm shrink-0" :style="{ background: d.color }" />
+                <span class="text-sm text-muted-foreground">{{ d.label }}</span>
+                <span class="text-sm font-semibold text-foreground ml-auto tabular-nums">{{ fmtCurrency(d.value) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">All Invoices</p>
+          <div class="space-y-1.5 max-h-52 overflow-y-auto pr-1">
+            <div v-for="r in invoiceRows" :key="r.id" class="flex items-center gap-3 px-3 py-2 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+              <Avatar class="size-6 shrink-0">
+                <AvatarImage :src="avatarUrl(r.patient)" :alt="r.patient" />
+                <AvatarFallback class="bg-primary/10 text-primary text-[9px] font-bold">{{ r.patientInitials }}</AvatarFallback>
+              </Avatar>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium text-foreground truncate">{{ r.patient }}</p>
+                <p class="text-xs text-muted-foreground">{{ fmtDate(r.date) }} · {{ r.doctorName }}</p>
+              </div>
+              <Badge variant="outline" :class="invBillingMeta[r.billingStatus].classes">{{ invBillingMeta[r.billingStatus].label }}</Badge>
+              <span class="text-sm font-semibold tabular-nums text-foreground">{{ fmtCurrency(r.amount) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <DialogFooter class="px-6 pb-6">
+        <DialogClose as-child><Button variant="outline">Close</Button></DialogClose>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+
+  <!-- ══ Patients: Paid Dialog ═══════════════════════════════════════════════ -->
+  <Dialog :open="activePatCard === 'paid'" @update:open="v => { if (!v) activePatCard = null }">
+    <DialogContent class="max-w-xl max-h-[85vh] overflow-y-auto p-0">
+      <DialogHeader class="px-6 pt-6 pb-4 border-b border-border/50">
+        <DialogTitle class="text-lg font-bold">Paid Invoices</DialogTitle>
+      </DialogHeader>
+      <div class="px-6 py-5 space-y-5">
+        <div class="grid grid-cols-3 gap-3">
+          <div class="bg-muted/30 rounded-lg p-3 text-center">
+            <p class="text-xs text-muted-foreground mb-1">Total Paid</p>
+            <p class="text-xl font-bold text-green-600 tabular-nums">{{ fmtCurrency(totalPaid) }}</p>
+          </div>
+          <div class="bg-muted/30 rounded-lg p-3 text-center">
+            <p class="text-xs text-muted-foreground mb-1">Collection Rate</p>
+            <p class="text-xl font-bold text-foreground tabular-nums">{{ totalBilled > 0 ? Math.round(totalPaid / totalBilled * 100) : 0 }}%</p>
+          </div>
+          <div class="bg-muted/30 rounded-lg p-3 text-center">
+            <p class="text-xs text-muted-foreground mb-1">Invoices Paid</p>
+            <p class="text-xl font-bold text-foreground tabular-nums">{{ paidInvoices.length }}</p>
+          </div>
+        </div>
+        <div class="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+          <div v-for="r in paidInvoices" :key="r.id" class="flex items-center gap-3 px-3 py-2 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+            <Avatar class="size-6 shrink-0">
+              <AvatarFallback class="bg-primary/10 text-primary text-[9px] font-bold">{{ r.patientInitials }}</AvatarFallback>
+            </Avatar>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium text-foreground truncate">{{ r.patient }}</p>
+              <p class="text-xs text-muted-foreground">{{ fmtDate(r.date) }} · via {{ r.paymentMethod }}</p>
+            </div>
+            <span class="text-sm font-semibold tabular-nums text-green-600">{{ fmtCurrency(r.amount) }}</span>
+          </div>
+        </div>
+      </div>
+      <DialogFooter class="px-6 pb-6">
+        <DialogClose as-child><Button variant="outline">Close</Button></DialogClose>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+
+  <!-- ══ Patients: Pending Dialog ════════════════════════════════════════════ -->
+  <Dialog :open="activePatCard === 'pending'" @update:open="v => { if (!v) activePatCard = null }">
+    <DialogContent class="max-w-xl max-h-[85vh] overflow-y-auto p-0">
+      <DialogHeader class="px-6 pt-6 pb-4 border-b border-border/50">
+        <DialogTitle class="text-lg font-bold">Pending Invoices</DialogTitle>
+      </DialogHeader>
+      <div class="px-6 py-5 space-y-5">
+        <div class="grid grid-cols-2 gap-3">
+          <div class="bg-muted/30 rounded-lg p-3 text-center">
+            <p class="text-xs text-muted-foreground mb-1">Pending Total</p>
+            <p class="text-xl font-bold text-amber-600 tabular-nums">{{ fmtCurrency(totalPending) }}</p>
+          </div>
+          <div class="bg-muted/30 rounded-lg p-3 text-center">
+            <p class="text-xs text-muted-foreground mb-1">Awaiting Payment</p>
+            <p class="text-xl font-bold text-foreground tabular-nums">{{ pendingInvoices.length }}</p>
+          </div>
+        </div>
+        <div class="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+          <div v-for="r in pendingInvoices" :key="r.id" class="flex items-center gap-3 px-3 py-2 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+            <Avatar class="size-6 shrink-0">
+              <AvatarFallback class="bg-primary/10 text-primary text-[9px] font-bold">{{ r.patientInitials }}</AvatarFallback>
+            </Avatar>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium text-foreground truncate">{{ r.patient }}</p>
+              <p class="text-xs text-muted-foreground">{{ fmtDate(r.date) }} · {{ r.doctorName }}</p>
+            </div>
+            <span class="text-sm font-semibold tabular-nums text-amber-600">{{ fmtCurrency(r.amount) }}</span>
+          </div>
+          <p v-if="!pendingInvoices.length" class="text-sm text-muted-foreground text-center py-4">No pending invoices</p>
+        </div>
+      </div>
+      <DialogFooter class="px-6 pb-6">
+        <DialogClose as-child><Button variant="outline">Close</Button></DialogClose>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+
+  <!-- ══ Patients: Overdue Dialog ════════════════════════════════════════════ -->
+  <Dialog :open="activePatCard === 'overdue'" @update:open="v => { if (!v) activePatCard = null }">
+    <DialogContent class="max-w-xl max-h-[85vh] overflow-y-auto p-0">
+      <DialogHeader class="px-6 pt-6 pb-4 border-b border-border/50">
+        <DialogTitle class="text-lg font-bold">Overdue Invoices</DialogTitle>
+      </DialogHeader>
+      <div class="px-6 py-5 space-y-5">
+        <div class="grid grid-cols-2 gap-3">
+          <div class="bg-muted/30 rounded-lg p-3 text-center">
+            <p class="text-xs text-muted-foreground mb-1">Overdue Total</p>
+            <p class="text-xl font-bold text-red-600 tabular-nums">{{ fmtCurrency(totalOverdue) }}</p>
+          </div>
+          <div class="bg-muted/30 rounded-lg p-3 text-center">
+            <p class="text-xs text-muted-foreground mb-1">Overdue Invoices</p>
+            <p class="text-xl font-bold text-foreground tabular-nums">{{ overdueInvoices.length }}</p>
+          </div>
+        </div>
+        <div class="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+          <div v-for="r in overdueInvoices" :key="r.id" class="flex items-center gap-3 px-3 py-2 rounded-lg bg-red-50 dark:bg-red-950/20 hover:bg-red-100 dark:hover:bg-red-950/30 transition-colors">
+            <Avatar class="size-6 shrink-0">
+              <AvatarFallback class="bg-red-100 text-red-600 text-[9px] font-bold">{{ r.patientInitials }}</AvatarFallback>
+            </Avatar>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium text-foreground truncate">{{ r.patient }}</p>
+              <p class="text-xs text-muted-foreground">{{ fmtDate(r.date) }} · {{ r.doctorName }}</p>
+            </div>
+            <span class="text-sm font-semibold tabular-nums text-red-600">{{ fmtCurrency(r.amount) }}</span>
+          </div>
+          <p v-if="!overdueInvoices.length" class="text-sm text-muted-foreground text-center py-4">No overdue invoices</p>
+        </div>
+      </div>
+      <DialogFooter class="px-6 pb-6">
+        <DialogClose as-child><Button variant="outline">Close</Button></DialogClose>
+      </DialogFooter>
     </DialogContent>
   </Dialog>
 </template>

@@ -57,10 +57,10 @@ onBeforeUnmount(() => { document.removeEventListener('click', handleOutsideClick
 </script>
 
 <template>
-  <div class="flex-1 flex flex-col overflow-hidden bg-white dark:bg-slate-900 min-h-0">
+  <div class="flex-1 flex flex-col overflow-hidden bg-background min-h-0">
 
     <!-- ══ Toolbar ══════════════════════════════════════════════════════════ -->
-    <header class="shrink-0 border-b border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+    <header class="shrink-0 border-b border-border bg-background">
 
       <!-- Row 1: create · nav · date label · settings -->
       <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-2">
@@ -88,7 +88,7 @@ onBeforeUnmount(() => { document.removeEventListener('click', handleOutsideClick
           </Button>
 
           <!-- Date label -->
-          <h2 class="text-base font-normal text-gray-800 dark:text-slate-100 ml-1 select-none whitespace-nowrap">
+          <h2 class="text-base font-normal text-foreground ml-1 select-none whitespace-nowrap">
             {{ currentTitle || '…' }}
           </h2>
         </div>
@@ -138,18 +138,18 @@ onBeforeUnmount(() => { document.removeEventListener('click', handleOutsideClick
 
         <template #fallback>
           <div class="absolute inset-0 flex animate-pulse">
-            <div class="w-14 shrink-0 pt-14 space-y-[47px] pr-2 border-r border-gray-200 dark:border-slate-700">
-              <div v-for="i in 8" :key="i" class="h-2.5 bg-gray-100 dark:bg-slate-700 rounded ml-2" />
+            <div class="w-14 shrink-0 pt-14 space-y-[47px] pr-2 border-r border-border">
+              <div v-for="i in 8" :key="i" class="h-2.5 bg-muted rounded ml-2" />
             </div>
             <div class="flex-1 flex flex-col">
-              <div class="grid grid-cols-5 h-14 border-b border-gray-200 dark:border-slate-700">
-                <div v-for="i in 5" :key="i" class="flex flex-col items-center justify-center gap-1.5 border-r border-gray-200 dark:border-slate-700 last:border-r-0">
-                  <div class="h-2 w-6 bg-gray-100 dark:bg-slate-700 rounded" />
-                  <div class="h-7 w-7 bg-gray-100 dark:bg-slate-700 rounded-full" />
+              <div class="grid grid-cols-5 h-14 border-b border-border">
+                <div v-for="i in 5" :key="i" class="flex flex-col items-center justify-center gap-1.5 border-r border-border last:border-r-0">
+                  <div class="h-2 w-6 bg-muted rounded" />
+                  <div class="h-7 w-7 bg-muted rounded-full" />
                 </div>
               </div>
               <div class="flex-1 grid grid-cols-5">
-                <div v-for="col in 5" :key="col" class="border-r border-gray-100 dark:border-slate-800 last:border-r-0 space-y-2 p-1.5">
+                <div v-for="col in 5" :key="col" class="border-r border-border last:border-r-0 space-y-2 p-1.5">
                   <div v-if="col === 2" class="h-14 rounded-md bg-primary/10" />
                   <div v-if="col === 4" class="h-10 rounded-md bg-emerald-100 dark:bg-emerald-900/50" />
                 </div>
@@ -163,6 +163,7 @@ onBeforeUnmount(() => { document.removeEventListener('click', handleOutsideClick
     <!-- Modals & overlays (teleported to body, order doesn't matter) -->
     <QuickEventModal />
     <EventModal />
+    <EventViewPopover />
     <EventContextMenu />
   </div>
 </template>

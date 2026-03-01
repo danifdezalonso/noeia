@@ -15,6 +15,7 @@ import {
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { Badge } from '~/components/ui/badge'
+import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
 
 definePageMeta({ layout: 'dashboard' })
 
@@ -107,7 +108,7 @@ function calcAge(dob: string) {
 
 const statusMeta: Record<PatientStatus, { label: string; dot: string; badge: string }> = {
   active:     { label: 'Active',     dot: 'bg-green-500', badge: 'border-green-200 text-green-700 bg-green-50'   },
-  inactive:   { label: 'Inactive',   dot: 'bg-slate-400', badge: 'border-slate-200 text-slate-600 bg-slate-50'   },
+  inactive:   { label: 'Inactive',   dot: 'bg-muted-foreground', badge: 'border-border text-muted-foreground bg-muted'   },
   'on-hold':  { label: 'On hold',    dot: 'bg-amber-400', badge: 'border-amber-200 text-amber-700 bg-amber-50'   },
   discharged: { label: 'Discharged', dot: 'bg-rose-400',  badge: 'border-rose-200 text-rose-600 bg-rose-50'      },
 }
@@ -124,8 +125,8 @@ const columns: { key: SortKey; label: string }[] = [
 
       <div class="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Patients</h1>
-          <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">All patients across your clinic.</p>
+          <h1 class="text-2xl font-bold text-foreground tracking-tight">Patients</h1>
+          <p class="text-sm text-muted-foreground mt-0.5">All patients across your clinic.</p>
         </div>
         <Button @click="newPatientModalOpen = true">
           <Plus class="w-4 h-4" /> New Patient
@@ -134,7 +135,7 @@ const columns: { key: SortKey; label: string }[] = [
 
       <div class="flex flex-wrap items-center gap-2.5">
         <div class="relative flex-1 max-w-sm">
-          <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+          <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
           <Input v-model="search" type="text" placeholder="Search by name or email…" class="pl-9" />
         </div>
         <DropdownMenu>
@@ -155,57 +156,57 @@ const columns: { key: SortKey; label: string }[] = [
               @click="statusFilter = opt.value"
             >
               <span v-if="opt.value !== 'all'" :class="['w-2 h-2 rounded-full shrink-0', statusMeta[opt.value as PatientStatus].dot]" />
-              <span v-else class="w-2 h-2 rounded-full shrink-0 bg-slate-200" />
+              <span v-else class="w-2 h-2 rounded-full shrink-0 bg-muted" />
               {{ opt.label }}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <p class="text-sm text-slate-400 ml-auto">{{ filtered.length }} patient{{ filtered.length !== 1 ? 's' : '' }}</p>
+        <p class="text-sm text-muted-foreground ml-auto">{{ filtered.length }} patient{{ filtered.length !== 1 ? 's' : '' }}</p>
       </div>
 
-      <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+      <div class="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
           <Table class="min-w-[700px]">
             <TableHeader>
-              <TableRow class="bg-slate-50/60 hover:bg-slate-50/60">
-                <TableHead v-for="col in columns" :key="col.key" class="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap cursor-pointer hover:text-slate-700 transition-colors select-none" @click="toggleSort(col.key)">
+              <TableRow class="bg-muted/30 hover:bg-muted/30">
+                <TableHead v-for="col in columns" :key="col.key" class="text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap cursor-pointer hover:text-foreground transition-colors select-none" @click="toggleSort(col.key)">
                   <div class="flex items-center gap-1">
                     {{ col.label }}
                     <ChevronUp v-if="sortKey === col.key && sortDir === 'asc'" class="w-3.5 h-3.5 text-primary" />
                     <ChevronDown v-else-if="sortKey === col.key && sortDir === 'desc'" class="w-3.5 h-3.5 text-primary" />
-                    <ChevronsUpDown v-else class="w-3.5 h-3.5 text-slate-300" />
+                    <ChevronsUpDown v-else class="w-3.5 h-3.5 text-muted-foreground/70" />
                   </div>
                 </TableHead>
-                <TableHead class="text-xs font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">Related</TableHead>
-                <TableHead class="text-xs font-semibold text-slate-500 uppercase tracking-wider w-[100px]" />
+                <TableHead class="text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">Related</TableHead>
+                <TableHead class="text-xs font-semibold text-muted-foreground uppercase tracking-wider w-[100px]" />
               </TableRow>
             </TableHeader>
             <TableBody>
               <TableRow v-if="filtered.length === 0">
                 <TableCell colspan="7" class="py-20 text-center">
                   <div class="flex flex-col items-center gap-3">
-                    <div class="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center"><UserRound class="w-6 h-6 text-slate-400" /></div>
-                    <p class="text-sm font-medium text-slate-600">No patients found</p>
+                    <div class="w-12 h-12 rounded-full bg-muted flex items-center justify-center"><UserRound class="w-6 h-6 text-muted-foreground" /></div>
+                    <p class="text-sm font-medium text-muted-foreground">No patients found</p>
                   </div>
                 </TableCell>
               </TableRow>
-              <TableRow v-for="p in filtered" :key="p.id" class="hover:bg-slate-50/70 dark:hover:bg-slate-700/30 transition-colors">
+              <TableRow v-for="p in filtered" :key="p.id" class="hover:bg-accent/50 transition-colors">
                 <TableCell class="whitespace-nowrap">
                   <div class="flex items-center gap-3">
                     <div class="relative shrink-0">
-                      <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center"><span class="text-primary text-[11px] font-bold">{{ p.initials }}</span></div>
-                      <span :class="['absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white', statusMeta[p.status].dot]" />
+                      <Avatar class="size-8"><AvatarImage :src="avatarUrl(p.name)" :alt="p.name" /><AvatarFallback class="bg-primary/10 text-primary text-[11px] font-bold">{{ p.initials }}</AvatarFallback></Avatar>
+                      <span :class="['absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-background', statusMeta[p.status].dot]" />
                     </div>
                     <div>
-                      <p class="font-medium text-slate-800 dark:text-slate-100 leading-tight">{{ p.name }}</p>
-                      <p class="text-[11px] text-slate-400 leading-tight mt-0.5">{{ p.sessionCount }} session{{ p.sessionCount !== 1 ? 's' : '' }}</p>
+                      <p class="font-medium text-foreground leading-tight">{{ p.name }}</p>
+                      <p class="text-[11px] text-muted-foreground leading-tight mt-0.5">{{ p.sessionCount }} session{{ p.sessionCount !== 1 ? 's' : '' }}</p>
                     </div>
                   </div>
                 </TableCell>
-                <TableCell class="whitespace-nowrap"><a :href="`mailto:${p.email}`" class="flex items-center gap-1.5 text-slate-600 hover:text-primary transition-colors group"><Mail class="w-3.5 h-3.5 text-slate-300 group-hover:text-primary/60" /><span class="text-sm">{{ p.email }}</span></a></TableCell>
-                <TableCell class="whitespace-nowrap"><a :href="`tel:${p.phone}`" class="flex items-center gap-1.5 text-slate-600 hover:text-primary transition-colors group"><Phone class="w-3.5 h-3.5 text-slate-300 group-hover:text-primary/60" /><span class="text-sm tabular-nums">{{ p.phone }}</span></a></TableCell>
+                <TableCell class="whitespace-nowrap"><a :href="`mailto:${p.email}`" class="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors group"><Mail class="w-3.5 h-3.5 text-muted-foreground/70 group-hover:text-primary/60" /><span class="text-sm">{{ p.email }}</span></a></TableCell>
+                <TableCell class="whitespace-nowrap"><a :href="`tel:${p.phone}`" class="flex items-center gap-1.5 text-muted-foreground hover:text-primary transition-colors group"><Phone class="w-3.5 h-3.5 text-muted-foreground/70 group-hover:text-primary/60" /><span class="text-sm tabular-nums">{{ p.phone }}</span></a></TableCell>
                 <TableCell class="whitespace-nowrap">
-                  <div class="flex items-center gap-1.5"><CalendarDays class="w-3.5 h-3.5 text-slate-300 shrink-0" /><span class="text-sm text-slate-600">{{ fmtDob(p.dob) }}</span><span class="text-xs text-slate-400 ml-1.5">· {{ calcAge(p.dob) }} y</span></div>
+                  <div class="flex items-center gap-1.5"><CalendarDays class="w-3.5 h-3.5 text-muted-foreground/70 shrink-0" /><span class="text-sm text-muted-foreground">{{ fmtDob(p.dob) }}</span><span class="text-xs text-muted-foreground ml-1.5">· {{ calcAge(p.dob) }} y</span></div>
                 </TableCell>
                 <TableCell class="whitespace-nowrap">
                   <Badge variant="outline" :class="['gap-1.5', statusMeta[p.status].badge]">
@@ -214,9 +215,9 @@ const columns: { key: SortKey; label: string }[] = [
                 </TableCell>
                 <TableCell class="whitespace-nowrap">
                   <div v-if="p.related.length > 0" class="flex flex-col gap-1">
-                    <div v-for="rel in p.related" :key="rel.id" class="flex items-center gap-1.5"><Link2 class="w-3 h-3 text-slate-300 shrink-0" /><span class="text-xs text-slate-600 font-medium">{{ rel.name }}</span><span class="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-full">{{ rel.relationship }}</span></div>
+                    <div v-for="rel in p.related" :key="rel.id" class="flex items-center gap-1.5"><Link2 class="w-3 h-3 text-muted-foreground/70 shrink-0" /><span class="text-xs text-muted-foreground font-medium">{{ rel.name }}</span><span class="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">{{ rel.relationship }}</span></div>
                   </div>
-                  <span v-else class="text-xs text-slate-300">—</span>
+                  <span v-else class="text-xs text-muted-foreground/70">—</span>
                 </TableCell>
                 <TableCell class="whitespace-nowrap">
                   <div class="flex items-center gap-1 justify-end">
@@ -230,11 +231,11 @@ const columns: { key: SortKey; label: string }[] = [
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" class="w-44">
-                        <DropdownMenuLabel class="text-xs text-slate-400 font-normal">Patient actions</DropdownMenuLabel>
+                        <DropdownMenuLabel class="text-xs text-muted-foreground font-normal">Patient actions</DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem class="gap-2 cursor-pointer"><Eye class="w-3.5 h-3.5 text-slate-400" /> View profile</DropdownMenuItem>
-                        <DropdownMenuItem class="gap-2 cursor-pointer"><Pencil class="w-3.5 h-3.5 text-slate-400" /> Edit details</DropdownMenuItem>
-                        <DropdownMenuItem class="gap-2 cursor-pointer" @click="scheduleSession(p)"><CalendarPlus class="w-3.5 h-3.5 text-slate-400" /> Schedule session</DropdownMenuItem>
+                        <DropdownMenuItem class="gap-2 cursor-pointer"><Eye class="w-3.5 h-3.5 text-muted-foreground" /> View profile</DropdownMenuItem>
+                        <DropdownMenuItem class="gap-2 cursor-pointer"><Pencil class="w-3.5 h-3.5 text-muted-foreground" /> Edit details</DropdownMenuItem>
+                        <DropdownMenuItem class="gap-2 cursor-pointer" @click="scheduleSession(p)"><CalendarPlus class="w-3.5 h-3.5 text-muted-foreground" /> Schedule session</DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <template v-if="p.status === 'active'">
                           <DropdownMenuItem class="gap-2 cursor-pointer text-amber-600 focus:text-amber-600 focus:bg-amber-50" @click="setInactive(p.id)"><UserX class="w-3.5 h-3.5" /> Set inactive</DropdownMenuItem>

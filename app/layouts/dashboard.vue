@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { createDashboardShell, SHELL_KEY } from '~/composables/useDashboard'
 import type { NewSession } from '~/components/ScheduleSessionModal.vue'
+import { SidebarProvider, SidebarInset } from '~/components/ui/sidebar'
 
 const shell = createDashboardShell()
 provide(SHELL_KEY, shell)
@@ -35,33 +36,26 @@ function onHeaderSessionSaved(data: NewSession) {
 </script>
 
 <template>
-  <div class="fixed inset-0 flex flex-col overflow-hidden bg-slate-50 dark:bg-slate-950">
-    <ShellHeader />
-    <div class="flex flex-1 overflow-hidden min-h-0 relative">
-
-      <!-- Mobile sidebar backdrop -->
-      <Transition
-        enter-active-class="transition-opacity duration-200"
-        enter-from-class="opacity-0"
-        leave-active-class="transition-opacity duration-200"
-        leave-to-class="opacity-0"
-      >
-        <div
-          v-if="shell.mobileNavOpen.value"
-          class="fixed top-14 inset-x-0 bottom-0 z-30 bg-black/40 md:hidden"
-          @click="shell.mobileNavOpen.value = false"
-        />
-      </Transition>
-
+  <SidebarProvider>
+    <div class="fixed inset-0 flex overflow-hidden bg-background">
+      <!-- Left sidebar -->
       <ShellNav />
 
-      <main class="flex-1 overflow-hidden flex flex-col min-w-0 min-h-0">
-        <slot />
-      </main>
+      <!-- Main content area -->
+      <SidebarInset>
+        <ShellHeader />
+        <main class="flex-1 overflow-hidden flex flex-col min-h-0">
+          <slot />
+        </main>
+      </SidebarInset>
 
+      <!-- Right AI sidebar -->
       <NoeiaSidebar />
+
+      <!-- LinkedIn-style messaging widget -->
+      <MessagingWidget />
     </div>
-  </div>
+  </SidebarProvider>
 
   <!-- ── Global modals (Teleported to body) ─────────────────────────────── -->
   <ScheduleSessionModal

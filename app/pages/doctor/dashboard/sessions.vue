@@ -10,6 +10,9 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '~/components/ui/table'
 import {
+  Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
+} from '~/components/ui/sheet'
+import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuLabel,
 } from '~/components/ui/dropdown-menu'
@@ -18,6 +21,7 @@ import {
 } from '~/components/ui/popover'
 import { Slider } from '~/components/ui/slider'
 import { Button } from '~/components/ui/button'
+import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
 import { Input } from '~/components/ui/input'
 import { Badge } from '~/components/ui/badge'
 import { Checkbox } from '~/components/ui/checkbox'
@@ -337,6 +341,10 @@ function toggleModality(m: Modality) {
   modalityFilter.value = next
 }
 
+// ── Session sheet ──────────────────────────────────────────────────────────
+
+const selectedSession = ref<Session | null>(null)
+
 // ── Schedule new modal ─────────────────────────────────────────────────────
 
 const scheduleModalOpen = ref(false)
@@ -368,8 +376,8 @@ function onSessionSaved(s: import('~/components/ScheduleSessionModal.vue').NewSe
       <!-- ── Page header ─────────────────────────────────────────────────── -->
       <div class="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Sessions</h1>
-          <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Manage your schedule and appointments.</p>
+          <h1 class="text-2xl font-bold text-foreground tracking-tight">Sessions</h1>
+          <p class="text-sm text-muted-foreground mt-0.5">Manage your schedule and appointments.</p>
         </div>
         <Button @click="scheduleModalOpen = true">
           <Plus class="w-4 h-4" />
@@ -382,7 +390,7 @@ function onSessionSaved(s: import('~/components/ScheduleSessionModal.vue').NewSe
 
         <!-- Search -->
         <div class="relative flex-1 max-w-sm">
-          <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+          <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
           <Input
             v-model="search"
             type="text"
@@ -411,8 +419,8 @@ function onSessionSaved(s: import('~/components/ScheduleSessionModal.vue').NewSe
 
           <PopoverContent align="start" class="w-80 p-0 overflow-hidden" :side-offset="6">
             <!-- Panel header -->
-            <div class="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-700">
-              <span class="text-sm font-semibold text-slate-800 dark:text-slate-100">Filters</span>
+            <div class="flex items-center justify-between px-4 py-3 border-b border-border">
+              <span class="text-sm font-semibold text-foreground">Filters</span>
               <Button
                 v-if="activeCount > 0"
                 variant="link"
@@ -428,10 +436,10 @@ function onSessionSaved(s: import('~/components/ScheduleSessionModal.vue').NewSe
 
               <!-- Date range -->
               <section>
-                <p class="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Date range</p>
+                <p class="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Date range</p>
                 <div class="grid grid-cols-2 gap-2">
                   <div>
-                    <label class="block text-xs text-slate-500 dark:text-slate-400 mb-1">From</label>
+                    <label class="block text-xs text-muted-foreground mb-1">From</label>
                     <Input
                       v-model="dateFrom"
                       type="date"
@@ -440,7 +448,7 @@ function onSessionSaved(s: import('~/components/ScheduleSessionModal.vue').NewSe
                     />
                   </div>
                   <div>
-                    <label class="block text-xs text-slate-500 dark:text-slate-400 mb-1">To</label>
+                    <label class="block text-xs text-muted-foreground mb-1">To</label>
                     <Input
                       v-model="dateTo"
                       type="date"
@@ -458,7 +466,7 @@ function onSessionSaved(s: import('~/components/ScheduleSessionModal.vue').NewSe
                       { label: 'This month', from: format(new Date(new Date().getFullYear(), new Date().getMonth(), 1), 'yyyy-MM-dd'), to: format(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0), 'yyyy-MM-dd') },
                     ]"
                     :key="preset.label"
-                    class="px-2 py-0.5 text-[11px] font-medium rounded-md border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+                    class="px-2 py-0.5 text-[11px] font-medium rounded-md border border-border text-foreground bg-card hover:bg-accent transition-colors"
                     @click="dateFrom = preset.from; dateTo = preset.to"
                   >
                     {{ preset.label }}
@@ -466,11 +474,11 @@ function onSessionSaved(s: import('~/components/ScheduleSessionModal.vue').NewSe
                 </div>
               </section>
 
-              <div class="border-t border-slate-100 dark:border-slate-700" />
+              <div class="border-t border-border" />
 
               <!-- Status -->
               <section>
-                <p class="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Status</p>
+                <p class="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Status</p>
                 <div class="space-y-2">
                   <label
                     v-for="(meta, key) in statusMeta"
@@ -489,16 +497,16 @@ function onSessionSaved(s: import('~/components/ScheduleSessionModal.vue').NewSe
                 </div>
               </section>
 
-              <div class="border-t border-slate-100 dark:border-slate-700" />
+              <div class="border-t border-border" />
 
               <!-- Modality -->
               <section>
-                <p class="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Modality</p>
+                <p class="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Modality</p>
                 <div class="space-y-2">
                   <label
                     v-for="opt in [
                       { value: 'online' as Modality, label: 'Online', icon: Video, color: 'text-primary' },
-                      { value: 'inperson' as Modality, label: 'In-person', icon: MapPin, color: 'text-slate-500' },
+                      { value: 'inperson' as Modality, label: 'In-person', icon: MapPin, color: 'text-muted-foreground' },
                     ]"
                     :key="opt.value"
                     class="flex items-center gap-2.5 cursor-pointer"
@@ -509,19 +517,19 @@ function onSessionSaved(s: import('~/components/ScheduleSessionModal.vue').NewSe
                     />
                     <div class="flex items-center gap-1.5">
                       <component :is="opt.icon" :class="['w-3.5 h-3.5', opt.color]" />
-                      <span class="text-sm text-slate-700 dark:text-slate-200">{{ opt.label }}</span>
+                      <span class="text-sm text-foreground">{{ opt.label }}</span>
                     </div>
                   </label>
                 </div>
               </section>
 
-              <div class="border-t border-slate-100 dark:border-slate-700" />
+              <div class="border-t border-border" />
 
               <!-- Fee range -->
               <section>
                 <div class="flex items-center justify-between mb-3">
-                  <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Fee range</p>
-                  <span class="text-xs font-medium text-slate-600 dark:text-slate-300 tabular-nums">
+                  <p class="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Fee range</p>
+                  <span class="text-xs font-medium text-foreground tabular-nums">
                     €{{ feeRange[0] }} – €{{ feeRange[1] }}
                   </span>
                 </div>
@@ -534,31 +542,31 @@ function onSessionSaved(s: import('~/components/ScheduleSessionModal.vue').NewSe
                   @update:model-value="(v) => feeRange = v as [number, number]"
                 />
                 <div class="flex justify-between mt-1">
-                  <span class="text-[10px] text-slate-400">€{{ FEE_MIN }}</span>
-                  <span class="text-[10px] text-slate-400">€{{ FEE_MAX }}+</span>
+                  <span class="text-[10px] text-muted-foreground">€{{ FEE_MIN }}</span>
+                  <span class="text-[10px] text-muted-foreground">€{{ FEE_MAX }}+</span>
                 </div>
               </section>
 
-              <div class="border-t border-slate-100 dark:border-slate-700" />
+              <div class="border-t border-border" />
 
               <!-- Content flags -->
               <section>
-                <p class="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Content</p>
+                <p class="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Content</p>
                 <div class="space-y-2">
                   <label class="flex items-center gap-2.5 cursor-pointer">
                     <Checkbox :checked="hasWithNotes" @update:checked="(v) => hasWithNotes = !!v" />
                     <div class="flex items-center gap-1.5">
-                      <FileText class="w-3.5 h-3.5 text-slate-400" />
-                      <span class="text-sm text-slate-700 dark:text-slate-200">Has notes</span>
+                      <FileText class="w-3.5 h-3.5 text-muted-foreground" />
+                      <span class="text-sm text-foreground">Has notes</span>
                     </div>
                   </label>
                   <label class="flex items-center gap-2.5 cursor-pointer">
                     <Checkbox :checked="hasWithUploads" @update:checked="(v) => hasWithUploads = !!v" />
                     <div class="flex items-center gap-1.5">
-                      <svg class="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <svg class="w-3.5 h-3.5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                       </svg>
-                      <span class="text-sm text-slate-700 dark:text-slate-200">Has uploaded files</span>
+                      <span class="text-sm text-foreground">Has uploaded files</span>
                     </div>
                   </label>
                 </div>
@@ -569,7 +577,7 @@ function onSessionSaved(s: import('~/components/ScheduleSessionModal.vue').NewSe
         </Popover>
 
         <!-- Result count -->
-        <p class="text-sm text-slate-400 ml-auto">
+        <p class="text-sm text-muted-foreground ml-auto">
           {{ filtered.length }} session{{ filtered.length !== 1 ? 's' : '' }}
         </p>
       </div>
@@ -590,7 +598,7 @@ function onSessionSaved(s: import('~/components/ScheduleSessionModal.vue').NewSe
           </button>
         </span>
         <button
-          class="text-xs text-slate-400 hover:text-slate-600 px-1 transition-colors"
+          class="text-xs text-muted-foreground hover:text-foreground px-1 transition-colors"
           @click="clearAllFilters"
         >
           Clear all
@@ -598,33 +606,33 @@ function onSessionSaved(s: import('~/components/ScheduleSessionModal.vue').NewSe
       </div>
 
       <!-- ── Table ───────────────────────────────────────────────────────── -->
-      <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+      <div class="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
           <Table class="min-w-[800px]">
             <TableHeader>
-              <TableRow class="bg-slate-50/60 dark:bg-slate-700/50 hover:bg-slate-50/60 dark:hover:bg-slate-700/50">
+              <TableRow class="bg-muted/50 hover:bg-muted/50">
                 <TableHead
                   v-for="col in columns"
                   :key="col.key"
                   :class="[
-                    'text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap',
-                    col.sortable ? 'cursor-pointer hover:text-slate-700 dark:hover:text-slate-200 transition-colors select-none' : '',
+                    'text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap',
+                    col.sortable ? 'cursor-pointer hover:text-foreground transition-colors select-none' : '',
                   ]"
                   @click="col.sortable && toggleSort(col.key)"
                 >
                   <div class="flex items-center gap-1">
                     {{ col.label }}
-                    <span v-if="col.sortable" class="text-slate-300">
+                    <span v-if="col.sortable" class="text-muted-foreground">
                       <ChevronUp    v-if="sortKey === col.key && sortDir === 'asc'"  class="w-3.5 h-3.5 text-primary" />
                       <ChevronDown  v-else-if="sortKey === col.key && sortDir === 'desc'" class="w-3.5 h-3.5 text-primary" />
                       <ChevronsUpDown v-else class="w-3.5 h-3.5" />
                     </span>
                   </div>
                 </TableHead>
-                <TableHead class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap">
+                <TableHead class="text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">
                   Notes & Files
                 </TableHead>
-                <TableHead class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider whitespace-nowrap w-[140px]">
+                <TableHead class="text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap w-[140px]">
                   Actions
                 </TableHead>
               </TableRow>
@@ -635,11 +643,11 @@ function onSessionSaved(s: import('~/components/ScheduleSessionModal.vue').NewSe
               <TableRow v-if="filtered.length === 0">
                 <TableCell colspan="8" class="px-4 py-16 text-center">
                   <div class="flex flex-col items-center gap-2">
-                    <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">
-                      <Search class="w-5 h-5 text-slate-400" />
+                    <div class="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                      <Search class="w-5 h-5 text-muted-foreground" />
                     </div>
-                    <p class="text-sm font-medium text-slate-500">No sessions found</p>
-                    <p class="text-xs text-slate-400">Try adjusting your search or filters</p>
+                    <p class="text-sm font-medium text-foreground">No sessions found</p>
+                    <p class="text-xs text-muted-foreground">Try adjusting your search or filters</p>
                   </div>
                 </TableCell>
               </TableRow>
@@ -648,37 +656,39 @@ function onSessionSaved(s: import('~/components/ScheduleSessionModal.vue').NewSe
               <TableRow
                 v-for="s in filtered"
                 :key="s.id"
-                class="hover:bg-slate-50/70 dark:hover:bg-slate-700/30 transition-colors"
+                class="hover:bg-accent/50 transition-colors cursor-pointer"
+                @click="selectedSession = s"
               >
                 <!-- Title -->
                 <TableCell class="whitespace-nowrap">
                   <div class="flex items-center gap-2">
                     <component
                       :is="s.modality === 'online' ? Video : MapPin"
-                      :class="['w-3.5 h-3.5 shrink-0', s.modality === 'online' ? 'text-primary' : 'text-slate-400']"
+                      :class="['w-3.5 h-3.5 shrink-0', s.modality === 'online' ? 'text-primary' : 'text-muted-foreground']"
                     />
-                    <span class="font-medium text-slate-800 dark:text-slate-100">{{ s.title }}</span>
+                    <span class="font-medium text-foreground">{{ s.title }}</span>
                   </div>
-                  <p v-if="s.location" class="text-xs text-slate-400 mt-0.5 ml-5.5">{{ s.location }}</p>
+                  <p v-if="s.location" class="text-xs text-muted-foreground mt-0.5 ml-5.5">{{ s.location }}</p>
                 </TableCell>
 
                 <!-- Patient -->
                 <TableCell class="whitespace-nowrap">
                   <div class="flex items-center gap-2.5">
-                    <div class="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                      <span class="text-primary text-[10px] font-bold">{{ s.patient.initials }}</span>
-                    </div>
-                    <span class="text-slate-700 dark:text-slate-200 font-medium">{{ s.patient.name }}</span>
+                    <Avatar class="size-7 shrink-0">
+                      <AvatarImage :src="avatarUrl(s.patient.name)" :alt="s.patient.name" />
+                      <AvatarFallback class="bg-primary/10 text-primary text-[10px] font-bold">{{ s.patient.initials }}</AvatarFallback>
+                    </Avatar>
+                    <span class="text-foreground font-medium">{{ s.patient.name }}</span>
                   </div>
                 </TableCell>
 
                 <!-- Start -->
-                <TableCell class="text-slate-600 dark:text-slate-300 whitespace-nowrap tabular-nums">
+                <TableCell class="text-foreground whitespace-nowrap tabular-nums">
                   {{ fmtDateTime(s.start) }}
                 </TableCell>
 
                 <!-- End -->
-                <TableCell class="text-slate-500 dark:text-slate-400 whitespace-nowrap tabular-nums">
+                <TableCell class="text-muted-foreground whitespace-nowrap tabular-nums">
                   {{ fmtTime(s.end) }}
                 </TableCell>
 
@@ -691,8 +701,8 @@ function onSessionSaved(s: import('~/components/ScheduleSessionModal.vue').NewSe
                 </TableCell>
 
                 <!-- Fee -->
-                <TableCell class="font-medium text-slate-700 dark:text-slate-200 tabular-nums whitespace-nowrap">
-                  <span :class="s.status === 'cancelled' ? 'line-through text-slate-400' : ''">
+                <TableCell class="font-medium text-foreground tabular-nums whitespace-nowrap">
+                  <span :class="s.status === 'cancelled' ? 'line-through text-muted-foreground' : ''">
                     €{{ s.fee }}
                   </span>
                 </TableCell>
@@ -700,21 +710,21 @@ function onSessionSaved(s: import('~/components/ScheduleSessionModal.vue').NewSe
                 <!-- Notes & Files -->
                 <TableCell class="whitespace-nowrap">
                   <div class="flex items-center gap-3">
-                    <span v-if="s.notes > 0" class="flex items-center gap-1 text-xs text-slate-500" :title="`${s.notes} notes`">
-                      <FileText class="w-3.5 h-3.5 text-slate-400" />{{ s.notes }}
+                    <span v-if="s.notes > 0" class="flex items-center gap-1 text-xs text-muted-foreground" :title="`${s.notes} notes`">
+                      <FileText class="w-3.5 h-3.5 text-muted-foreground" />{{ s.notes }}
                     </span>
-                    <span v-if="s.uploads > 0" class="flex items-center gap-1 text-xs text-slate-500" :title="`${s.uploads} files`">
-                      <svg class="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <span v-if="s.uploads > 0" class="flex items-center gap-1 text-xs text-muted-foreground" :title="`${s.uploads} files`">
+                      <svg class="w-3.5 h-3.5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                       </svg>
                       {{ s.uploads }}
                     </span>
-                    <span v-if="s.notes === 0 && s.uploads === 0" class="text-xs text-slate-300">—</span>
+                    <span v-if="s.notes === 0 && s.uploads === 0" class="text-xs text-muted-foreground">—</span>
                   </div>
                 </TableCell>
 
                 <!-- Actions -->
-                <TableCell class="whitespace-nowrap">
+                <TableCell class="whitespace-nowrap" @click.stop>
                   <div class="flex items-center gap-1">
 
                     <template v-if="s.status === 'scheduled'">
@@ -744,10 +754,10 @@ function onSessionSaved(s: import('~/components/ScheduleSessionModal.vue').NewSe
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" class="w-44">
-                        <DropdownMenuLabel class="text-xs text-slate-400 font-normal">Session actions</DropdownMenuLabel>
+                        <DropdownMenuLabel class="text-xs text-muted-foreground font-normal">Session actions</DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem class="gap-2 cursor-pointer"><Eye class="w-3.5 h-3.5 text-slate-400" />View notes</DropdownMenuItem>
-                        <DropdownMenuItem class="gap-2 cursor-pointer"><Pencil class="w-3.5 h-3.5 text-slate-400" />Edit session</DropdownMenuItem>
+                        <DropdownMenuItem class="gap-2 cursor-pointer"><Eye class="w-3.5 h-3.5 text-muted-foreground" />View notes</DropdownMenuItem>
+                        <DropdownMenuItem class="gap-2 cursor-pointer"><Pencil class="w-3.5 h-3.5 text-muted-foreground" />Edit session</DropdownMenuItem>
                         <template v-if="s.status === 'scheduled'">
                           <DropdownMenuSeparator />
                           <DropdownMenuItem class="gap-2 cursor-pointer text-green-600 focus:text-green-600 focus:bg-green-50" @click="markComplete(s.id)"><CheckCircle2 class="w-3.5 h-3.5" />Mark complete</DropdownMenuItem>
@@ -759,7 +769,7 @@ function onSessionSaved(s: import('~/components/ScheduleSessionModal.vue').NewSe
                           <DropdownMenuItem class="gap-2 cursor-pointer text-primary focus:text-primary focus:bg-primary/10" @click="reschedule(s.id)"><CalendarDays class="w-3.5 h-3.5" />Reschedule</DropdownMenuItem>
                         </template>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem class="gap-2 cursor-pointer" @click="reschedule(s.id)"><RotateCcw class="w-3.5 h-3.5 text-slate-400" />Book again</DropdownMenuItem>
+                        <DropdownMenuItem class="gap-2 cursor-pointer" @click="reschedule(s.id)"><RotateCcw class="w-3.5 h-3.5 text-muted-foreground" />Book again</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
 
@@ -773,6 +783,118 @@ function onSessionSaved(s: import('~/components/ScheduleSessionModal.vue').NewSe
 
     </div>
   </div>
+
+  <!-- Session detail Sheet -->
+  <Sheet :open="!!selectedSession" @update:open="(v) => { if (!v) selectedSession = null }">
+    <SheetContent side="right" class="w-full sm:max-w-md flex flex-col gap-0 p-0">
+      <SheetHeader class="px-6 pt-6 pb-4 border-b border-border">
+        <div class="flex items-center gap-2.5 mb-1">
+          <component
+            :is="selectedSession?.modality === 'online' ? Video : MapPin"
+            :class="['w-4 h-4 shrink-0', selectedSession?.modality === 'online' ? 'text-primary' : 'text-muted-foreground']"
+          />
+          <SheetTitle class="text-base font-semibold text-foreground">
+            {{ selectedSession?.title }}
+          </SheetTitle>
+        </div>
+        <SheetDescription class="flex items-center gap-2 text-sm">
+          <Badge
+            v-if="selectedSession"
+            variant="outline"
+            :class="['gap-1.5', statusMeta[selectedSession.status].badge]"
+          >
+            <component :is="statusMeta[selectedSession.status].icon" class="w-3 h-3" />
+            {{ statusMeta[selectedSession.status].label }}
+          </Badge>
+        </SheetDescription>
+      </SheetHeader>
+
+      <div v-if="selectedSession" class="flex-1 overflow-y-auto px-6 py-5 space-y-5">
+
+        <!-- Patient -->
+        <div>
+          <p class="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Patient</p>
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <span class="text-primary text-xs font-bold">{{ selectedSession.patient.initials }}</span>
+            </div>
+            <span class="font-medium text-foreground">{{ selectedSession.patient.name }}</span>
+          </div>
+        </div>
+
+        <!-- Date & time -->
+        <div>
+          <p class="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Date & Time</p>
+          <div class="flex items-center gap-2 text-sm text-foreground">
+            <Clock class="w-4 h-4 text-muted-foreground shrink-0" />
+            <span>{{ fmtDateTime(selectedSession.start) }} – {{ fmtTime(selectedSession.end) }}</span>
+          </div>
+        </div>
+
+        <!-- Modality & location -->
+        <div>
+          <p class="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Modality</p>
+          <div class="flex items-center gap-2 text-sm text-foreground">
+            <component
+              :is="selectedSession.modality === 'online' ? Video : MapPin"
+              :class="['w-4 h-4 shrink-0', selectedSession.modality === 'online' ? 'text-primary' : 'text-muted-foreground']"
+            />
+            <span>{{ selectedSession.modality === 'online' ? 'Online' : 'In-person' }}</span>
+            <span v-if="selectedSession.location" class="text-muted-foreground">· {{ selectedSession.location }}</span>
+          </div>
+        </div>
+
+        <!-- Fee -->
+        <div>
+          <p class="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Fee</p>
+          <p :class="['text-lg font-semibold', selectedSession.status === 'cancelled' ? 'line-through text-muted-foreground' : 'text-foreground']">
+            €{{ selectedSession.fee }}
+          </p>
+        </div>
+
+        <!-- Notes & files -->
+        <div>
+          <p class="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Notes & Files</p>
+          <div class="flex items-center gap-4">
+            <div class="flex items-center gap-1.5 text-sm text-foreground">
+              <FileText class="w-4 h-4 text-muted-foreground" />
+              <span>{{ selectedSession.notes }} note{{ selectedSession.notes !== 1 ? 's' : '' }}</span>
+            </div>
+            <div class="flex items-center gap-1.5 text-sm text-foreground">
+              <svg class="w-4 h-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+              </svg>
+              <span>{{ selectedSession.uploads }} file{{ selectedSession.uploads !== 1 ? 's' : '' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick actions -->
+        <div class="pt-2 border-t border-border">
+          <p class="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">Actions</p>
+          <div class="flex flex-wrap gap-2">
+            <template v-if="selectedSession.status === 'scheduled'">
+              <Button size="sm" variant="outline" class="gap-1.5 text-green-600 border-green-200 hover:bg-green-50" @click="markComplete(selectedSession.id)">
+                <CheckCircle2 class="w-3.5 h-3.5" /> Mark complete
+              </Button>
+              <Button size="sm" variant="outline" class="gap-1.5 text-amber-600 border-amber-200 hover:bg-amber-50" @click="markNoShow(selectedSession.id)">
+                <AlertCircle class="w-3.5 h-3.5" /> No-show
+              </Button>
+              <Button size="sm" variant="outline" class="gap-1.5 text-red-500 border-red-200 hover:bg-red-50" @click="cancelSession(selectedSession.id)">
+                <Ban class="w-3.5 h-3.5" /> Cancel
+              </Button>
+            </template>
+            <template v-else-if="selectedSession.status === 'cancelled' || selectedSession.status === 'no-show'">
+              <Button size="sm" variant="outline" class="gap-1.5" @click="reschedule(selectedSession.id)">
+                <CalendarDays class="w-3.5 h-3.5" /> Reschedule
+              </Button>
+            </template>
+          </div>
+        </div>
+
+      </div>
+    </SheetContent>
+  </Sheet>
 
   <ScheduleSessionModal
     v-if="scheduleModalOpen"
