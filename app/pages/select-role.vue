@@ -24,7 +24,7 @@ const roles = [
 </script>
 
 <template>
-  <div class="min-h-screen grid lg:grid-cols-2 bg-background">
+  <div class="h-screen overflow-hidden grid lg:grid-cols-2 bg-background">
 
     <!-- ── Left: role picker ── -->
     <div class="flex items-center justify-center px-6 py-12">
