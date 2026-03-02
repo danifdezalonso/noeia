@@ -9,14 +9,41 @@ import {
 
 definePageMeta({ layout: false })
 
+const route = useRoute()
+const role = computed(() => (route.query.role as string) || 'doctor')
+
+const roleLabel = computed(() => {
+  if (role.value === 'organization') return 'organization'
+  if (role.value === 'patient') return 'patient'
+  return 'doctor'
+})
+
 const email    = ref('')
 const password = ref('')
 const showPassword = ref(false)
 const loading  = ref(false)
+const emailError = ref('')
+const passwordError = ref('')
+
+function validate() {
+  emailError.value = ''
+  passwordError.value = ''
+  let ok = true
+  if (!email.value) { emailError.value = 'Email is required'; ok = false }
+  else if (!/^\S+@\S+\.\S+$/.test(email.value)) { emailError.value = 'Enter a valid email'; ok = false }
+  if (!password.value) { passwordError.value = 'Password is required'; ok = false }
+  else if (password.value.length < 6) { passwordError.value = 'Password must be at least 6 characters'; ok = false }
+  return ok
+}
 
 async function handleSignIn() {
+  if (!validate()) return
   loading.value = true
-  await navigateTo('/onboarding/doctor')
+  if (role.value === 'organization') {
+    await navigateTo('/onboarding/organization')
+  } else {
+    await navigateTo('/onboarding/doctor')
+  }
   loading.value = false
 }
 </script>
@@ -39,13 +66,24 @@ async function handleSignIn() {
           </NuxtLink>
         </div>
 
+        <!-- Back to role selection -->
+        <NuxtLink to="/select-role" class="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+          </svg>
+          Change role
+        </NuxtLink>
+
         <Card>
           <CardHeader class="text-center">
             <div class="mx-auto mb-2 w-10 h-10 rounded-xl bg-primary flex items-center justify-center lg:hidden">
               <img src="/Noeia_logo_mini.svg" alt="" class="w-5 h-5 brightness-0 invert" />
             </div>
             <CardTitle class="text-2xl">Welcome back</CardTitle>
-            <CardDescription>Sign in to your Noeia account</CardDescription>
+            <CardDescription>
+              Signing in as
+              <span class="text-foreground font-medium capitalize">{{ roleLabel }}</span>
+            </CardDescription>
           </CardHeader>
 
           <CardContent class="space-y-4">
@@ -58,8 +96,15 @@ async function handleSignIn() {
                   type="email"
                   placeholder="you@clinic.com"
                   autocomplete="email"
-                  required
+                  :class="emailError ? 'border-destructive/50 bg-destructive/5 focus-visible:ring-destructive/20' : ''"
+                  @input="emailError = ''"
                 />
+                <p v-if="emailError" class="flex items-center gap-1.5 text-destructive text-xs">
+                  <svg class="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                  </svg>
+                  {{ emailError }}
+                </p>
               </div>
 
               <div class="space-y-1.5">
@@ -74,8 +119,9 @@ async function handleSignIn() {
                     :type="showPassword ? 'text' : 'password'"
                     placeholder="••••••••"
                     autocomplete="current-password"
-                    required
                     class="pr-10"
+                    :class="passwordError ? 'border-destructive/50 bg-destructive/5 focus-visible:ring-destructive/20' : ''"
+                    @input="passwordError = ''"
                   />
                   <button
                     type="button"
@@ -85,6 +131,12 @@ async function handleSignIn() {
                     <component :is="showPassword ? EyeOff : Eye" class="w-4 h-4" />
                   </button>
                 </div>
+                <p v-if="passwordError" class="flex items-center gap-1.5 text-destructive text-xs">
+                  <svg class="w-3.5 h-3.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                  </svg>
+                  {{ passwordError }}
+                </p>
               </div>
 
               <Button type="submit" class="w-full" :disabled="loading">

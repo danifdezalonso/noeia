@@ -77,9 +77,9 @@ const testimonials = [
 
         <!-- CTA -->
         <div class="flex items-center gap-3">
-          <NuxtLink to="/login" class="text-slate-400 hover:text-white text-sm transition-colors">Sign in</NuxtLink>
+          <NuxtLink to="/select-role" class="text-slate-400 hover:text-white text-sm transition-colors">Sign in</NuxtLink>
           <NuxtLink
-            to="/login"
+            to="/select-role"
             class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
           >
             Get early access
@@ -117,7 +117,7 @@ const testimonials = [
           <p class="text-slate-400 text-sm mb-4">Get started — choose your role:</p>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-xl mx-auto lg:mx-0">
             <NuxtLink
-              to="/login"
+              to="/login?role=doctor"
               class="flex flex-col items-center gap-2.5 p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-indigo-500/30 transition-all text-center"
             >
               <div class="w-9 h-9 rounded-lg bg-indigo-500/20 flex items-center justify-center">
@@ -129,7 +129,7 @@ const testimonials = [
               <span class="text-xs text-slate-400 leading-tight">Manage sessions, notes & patients</span>
             </NuxtLink>
             <NuxtLink
-              to="/login"
+              to="/login?role=organization"
               class="flex flex-col items-center gap-2.5 p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-violet-500/30 transition-all text-center"
             >
               <div class="w-9 h-9 rounded-lg bg-violet-500/20 flex items-center justify-center">
@@ -141,7 +141,7 @@ const testimonials = [
               <span class="text-xs text-slate-400 leading-tight">Clinics, teams & billing</span>
             </NuxtLink>
             <NuxtLink
-              to="/login"
+              to="/login?role=patient"
               class="flex flex-col items-center gap-2.5 p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-teal-500/30 transition-all text-center"
             >
               <div class="w-9 h-9 rounded-lg bg-teal-500/20 flex items-center justify-center">

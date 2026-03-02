@@ -206,26 +206,29 @@ const steps = [
 </script>
 
 <template>
-  <div class="min-h-screen bg-background flex flex-col">
+  <div class="min-h-screen grid lg:grid-cols-2 bg-background">
 
-    <!-- Top bar -->
-    <header class="bg-card border-b border-border px-6 py-4 flex items-center justify-between">
-      <img src="/Noeia_logo.svg" alt="Noeia" class="h-7 dark:hidden" />
-      <img src="/Noeia_logo_white.svg" alt="Noeia" class="h-7 hidden dark:block" />
-      <div class="flex items-center gap-3">
+    <!-- ── Left: wizard ── -->
+    <div class="flex flex-col overflow-y-auto">
+
+      <header class="shrink-0 flex items-center justify-between px-6 py-4 border-b border-border">
+        <NuxtLink to="/" class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-xl bg-primary flex items-center justify-center flex-shrink-0">
+            <img src="/Noeia_logo_mini.svg" alt="" class="w-4 h-4 brightness-0 invert" />
+          </div>
+          <img src="/Noeia_logo.svg" alt="Noeia" class="h-5 dark:hidden" />
+          <img src="/Noeia_logo_white.svg" alt="Noeia" class="h-5 hidden dark:block" />
+        </NuxtLink>
         <button
           type="button"
-          class="px-3 py-1.5 text-xs font-semibold bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-          title="Dev only — skip onboarding"
+          class="px-2.5 py-1 text-xs font-medium bg-destructive/10 text-destructive rounded-lg hover:bg-destructive/20 transition-colors"
           @click="router.push('/doctor/dashboard')"
         >
           [DEV] Skip
         </button>
-        <span class="text-muted-foreground text-sm">Doctor Onboarding</span>
-      </div>
-    </header>
+      </header>
 
-    <main class="flex-1 flex flex-col items-center justify-center px-4 py-10">
+      <main class="flex-1 flex flex-col items-center justify-center px-6 py-10">
 
       <!-- ── Success ── -->
       <Transition name="fade">
@@ -632,6 +635,57 @@ const steps = [
 
       </template>
     </main>
+
+    </div><!-- ── end left ── -->
+
+    <!-- ── Right: brand panel ── -->
+    <div class="hidden lg:flex flex-col justify-between bg-sidebar border-l border-border px-10 py-10 relative overflow-hidden">
+      <div class="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--border)/0.4)_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border)/0.4)_1px,transparent_1px)] bg-[size:48px_48px] pointer-events-none" />
+      <div class="absolute top-1/3 right-1/4 w-96 h-96 rounded-full bg-primary/8 blur-[100px] pointer-events-none" />
+
+      <div class="relative">
+        <NuxtLink to="/" class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-primary flex items-center justify-center flex-shrink-0">
+            <img src="/Noeia_logo_mini.svg" alt="" class="w-5 h-5 brightness-0 invert" />
+          </div>
+          <img src="/Noeia_logo.svg" alt="Noeia" class="h-6 dark:hidden" />
+          <img src="/Noeia_logo_white.svg" alt="Noeia" class="h-6 hidden dark:block" />
+        </NuxtLink>
+      </div>
+
+      <div class="relative max-w-sm">
+        <h2 class="text-3xl font-bold text-foreground leading-snug mb-4">
+          Set up your practice,<br />
+          <span class="text-primary">in minutes.</span>
+        </h2>
+        <p class="text-muted-foreground text-sm leading-relaxed mb-8">
+          Your clinical profile takes under 4 minutes. NoeIA adapts to your specialty — from session templates to AI-powered insights.
+        </p>
+        <div class="flex flex-wrap gap-2">
+          <span
+            v-for="f in ['AI session notes', 'Specialty context', 'Patient management', 'Outcome tracking']"
+            :key="f"
+            class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-primary/10 text-primary border border-primary/20"
+          >{{ f }}</span>
+        </div>
+      </div>
+
+      <div class="relative border-t border-border pt-8">
+        <blockquote class="text-sm text-muted-foreground leading-relaxed italic mb-4">
+          "The onboarding took 4 minutes. Four. Minutes. Every other medical platform I've tried has made me fill out the same form seven times. Noeia actually respects my time."
+        </blockquote>
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+            <span class="text-xs font-bold text-primary">SC</span>
+          </div>
+          <div>
+            <p class="text-sm font-semibold text-foreground">Dr. Sofia Chen</p>
+            <p class="text-xs text-muted-foreground">Child & Adolescent Therapist · Toronto</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
