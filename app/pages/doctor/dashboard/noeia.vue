@@ -250,9 +250,10 @@ function wrapText(before: string, after: string) {
   const el   = contextAreaRef.value
   const appt = appointments.value.find(a => a.id === selectedId.value)
   if (!el || !appt) return
-  const s = el.selectionStart
-  const e = el.selectionEnd
-  appt.contextText = appt.contextText.substring(0, s) + before + appt.contextText.substring(s, e) + after + appt.contextText.substring(e)
+  const s    = el.selectionStart
+  const e    = el.selectionEnd
+  const text = el.value
+  appt.contextText = text.substring(0, s) + before + text.substring(s, e) + after + text.substring(e)
   nextTick(() => { el.setSelectionRange(s + before.length, e + before.length); el.focus() })
 }
 
@@ -261,8 +262,9 @@ function insertLinePrefix(prefix: string) {
   const appt = appointments.value.find(a => a.id === selectedId.value)
   if (!el || !appt) return
   const pos       = el.selectionStart
-  const lineStart = appt.contextText.lastIndexOf('\n', pos - 1) + 1
-  appt.contextText = appt.contextText.substring(0, lineStart) + prefix + appt.contextText.substring(lineStart)
+  const text      = el.value
+  const lineStart = text.lastIndexOf('\n', pos - 1) + 1
+  appt.contextText = text.substring(0, lineStart) + prefix + text.substring(lineStart)
   nextTick(() => { el.setSelectionRange(pos + prefix.length, pos + prefix.length); el.focus() })
 }
 
@@ -319,25 +321,8 @@ onMounted(() => {
     <!-- ══ Left sidebar ═══════════════════════════════════════════════════ -->
     <aside class="w-52 sm:w-60 md:w-64 flex flex-col bg-background border-r border-border/50 shrink-0 min-w-0">
 
-      <!-- Tabs -->
-      <div class="flex border-b border-border/50 shrink-0">
-        <button
-          v-for="t in (['schedule', 'past'] as const)"
-          :key="t"
-          :class="[
-            'flex-1 py-3 text-sm font-medium transition-colors',
-            activeTab === t
-              ? 'text-foreground border-b-2 border-primary'
-              : 'text-muted-foreground hover:text-foreground',
-          ]"
-          @click="activeTab = t"
-        >
-          {{ t === 'schedule' ? 'Schedule' : 'Past' }}
-        </button>
-      </div>
-
-      <!-- Mini today's day view (Schedule tab only) -->
-      <div v-if="activeTab === 'schedule'" class="mx-3 mt-2 mb-1 rounded-xl border border-border bg-card overflow-hidden shrink-0">
+      <!-- Mini today's day view -->
+      <div class="mx-3 mt-3 mb-1 rounded-xl border border-border bg-card overflow-hidden shrink-0">
         <div class="px-3 py-1.5 flex items-center justify-between border-b border-border/40">
           <span class="text-[11px] font-semibold text-foreground">Today</span>
           <span class="text-[10px] text-muted-foreground">{{ format(new Date(), 'EEE, MMM d') }}</span>
@@ -375,34 +360,31 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- Appointment list -->
+      <!-- Today's appointment list -->
       <div class="flex-1 overflow-y-auto py-2">
-        <template v-for="([groupLabel, items]) in currentGroups" :key="groupLabel">
-          <p class="px-4 pt-3 pb-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">
-            {{ groupLabel }}
-          </p>
-          <button
-            v-for="appt in items"
-            :key="appt.id"
-            :class="[
-              'w-full flex items-center gap-3 px-3 py-2.5 transition-colors text-left',
-              selectedId === appt.id ? 'bg-primary/5 dark:bg-primary/10' : 'hover:bg-accent',
-            ]"
-            @click="selectAppointment(appt.id)"
-          >
-            <Avatar class="size-8 shrink-0">
-              <AvatarImage :src="avatarUrl(appt.patientName)" :alt="appt.patientName" />
-              <AvatarFallback :class="['text-xs font-bold', appt.avatarBg, appt.avatarText]">{{ appt.initials }}</AvatarFallback>
-            </Avatar>
-            <div class="min-w-0 flex-1">
-              <p :class="['text-sm font-medium truncate leading-tight', selectedId === appt.id ? 'text-primary' : 'text-foreground']">
-                {{ appt.patientName }}
-              </p>
-              <p class="text-xs text-muted-foreground mt-0.5">{{ appt.time }}</p>
-            </div>
-            <div v-if="selectedId === appt.id" class="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
-          </button>
-        </template>
+        <p class="px-4 pt-2 pb-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Today's sessions</p>
+        <button
+          v-for="appt in todayAppointments"
+          :key="appt.id"
+          :class="[
+            'w-full flex items-center gap-3 px-3 py-2.5 transition-colors text-left',
+            selectedId === appt.id ? 'bg-primary/5 dark:bg-primary/10' : 'hover:bg-accent',
+          ]"
+          @click="selectAppointment(appt.id)"
+        >
+          <Avatar class="size-8 shrink-0">
+            <AvatarImage :src="avatarUrl(appt.patientName)" :alt="appt.patientName" />
+            <AvatarFallback :class="['text-xs font-bold', appt.avatarBg, appt.avatarText]">{{ appt.initials }}</AvatarFallback>
+          </Avatar>
+          <div class="min-w-0 flex-1">
+            <p :class="['text-sm font-medium truncate leading-tight', selectedId === appt.id ? 'text-primary' : 'text-foreground']">
+              {{ appt.patientName }}
+            </p>
+            <p class="text-xs text-muted-foreground mt-0.5">{{ appt.time }}</p>
+          </div>
+          <div v-if="selectedId === appt.id" class="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+        </button>
+        <p v-if="todayAppointments.length === 0" class="px-4 py-3 text-xs text-muted-foreground/60">No sessions today</p>
       </div>
     </aside>
 
