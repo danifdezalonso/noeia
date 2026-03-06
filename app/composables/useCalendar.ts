@@ -128,6 +128,9 @@ export const useCalendar = () => {
   // ── Context menu ────────────────────────────────────────────────────────────
   const contextMenu = useState<ContextMenuState | null>('cal-context-menu', () => null)
 
+  // ── NoeIA integration ───────────────────────────────────────────────────────
+  const noeiaLinkedEvent = useState<CalendarEvent | null>('noeia-linked-event', () => null)
+
   // ── Colleague calendars ─────────────────────────────────────────────────────
   const COLLEAGUE_COLORS = ['#0891b2', '#d97706', '#db2777', '#65a30d', '#dc2626', '#7c3aed', '#0d9488']
 
@@ -357,5 +360,6 @@ export const useCalendar = () => {
     openContextMenu, closeContextMenu, setEventColor, toggleEventLabel, duplicateEvent,
     initEvents,
     visibleColleagueIds, colleagues, filteredEvents, toggleColleague,
+    noeiaLinkedEvent,
   }
 }

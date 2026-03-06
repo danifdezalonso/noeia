@@ -52,6 +52,15 @@ const prev = subWeeks(mon, 1)
 
 const appointments = ref<Appointment[]>([
   {
+    id: 'a0', patientName: 'Sofia Martinez', initials: 'SM',
+    avatarBg: 'bg-indigo-100', avatarText: 'text-indigo-700',
+    time: '10:00am', groupLabel: 'Today', tab: 'schedule',
+    inputLanguage: 'English', outputLanguage: 'English',
+    contextText: 'Referred by Dr. García. Generalised anxiety, sleep disturbance. CBT-based approach ongoing.',
+    sessionDate: new Date(), sessionTime: '10:00',
+    sessions: [{ id: 's0', label: 'Session Today', transcript: [] }],
+  },
+  {
     id: 'a1', patientName: 'Maddy Test', initials: 'MT',
     avatarBg: 'bg-violet-100', avatarText: 'text-violet-700',
     time: '4:25pm', groupLabel: 'Today', tab: 'schedule',
@@ -231,7 +240,19 @@ function fmtDateBadge(appt: Appointment) {
 
 const languages = ['English', 'Spanish', 'French', 'German', 'Portuguese', 'Italian']
 
+const { noeiaLinkedEvent } = useCalendar()
+
 onMounted(() => {
+  // Auto-select appointment if navigated from a calendar session
+  const linked = noeiaLinkedEvent.value
+  if (linked?.patientName) {
+    const match = appointments.value.find(
+      a => a.patientName.toLowerCase() === linked.patientName!.toLowerCase(),
+    )
+    if (match) selectAppointment(match.id)
+    noeiaLinkedEvent.value = null
+  }
+
   document.addEventListener('click', () => {
     transcribeOpen.value = false
     copyOpen.value       = false

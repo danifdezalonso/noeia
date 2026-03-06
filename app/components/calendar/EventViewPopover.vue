@@ -2,14 +2,15 @@
 import { useEventListener } from '@vueuse/core'
 import {
   X, Pencil, Trash2, Video, MapPin, AlignLeft, Bell, Lock,
-  Calendar, Clock, ExternalLink,
+  Calendar, Clock, ExternalLink, Sparkles,
 } from 'lucide-vue-next'
 import { format, parseISO } from 'date-fns'
 import { Button } from '~/components/ui/button'
 import { Badge } from '~/components/ui/badge'
 
+const router = useRouter()
 const cal = useCalendar()
-const { viewPopoverOpen, viewPopoverEvent, viewPopoverPos, openEdit, deleteEvent } = cal
+const { viewPopoverOpen, viewPopoverEvent, viewPopoverPos, openEdit, deleteEvent, noeiaLinkedEvent } = cal
 
 // ── Positioning ──────────────────────────────────────────────────────────────
 const popoverStyle = computed(() => {
@@ -75,6 +76,14 @@ function handleDelete() {
   if (!e) return
   close()
   deleteEvent(e.id)
+}
+
+function openInNoeia() {
+  const e = ev.value
+  if (!e) return
+  noeiaLinkedEvent.value = { ...e }
+  close()
+  router.push('/doctor/dashboard/noeia')
 }
 
 useEventListener(document, 'keydown', (e: KeyboardEvent) => {
@@ -186,8 +195,18 @@ useEventListener(document, 'keydown', (e: KeyboardEvent) => {
             <span class="text-muted-foreground">Private</span>
           </div>
 
-          <!-- Divider + Edit button -->
-          <div class="pt-1 border-t border-border">
+          <!-- Divider + footer actions -->
+          <div class="pt-1 border-t border-border space-y-0.5">
+            <!-- Open in NoeIA — only for session events -->
+            <Button
+              v-if="ev.category === 'session'"
+              variant="ghost"
+              class="w-full justify-start text-sm h-8 rounded-lg gap-2 text-primary hover:text-primary hover:bg-primary/8"
+              @click="openInNoeia"
+            >
+              <Sparkles class="w-3.5 h-3.5" />
+              Open in NoeIA
+            </Button>
             <Button variant="ghost" class="w-full justify-start text-sm h-8 rounded-lg gap-2 text-muted-foreground hover:text-foreground" @click="handleEdit">
               <Pencil class="w-3.5 h-3.5" />
               Open full details
