@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { useEventListener } from '@vueuse/core'
 import { X, Clock, User, MapPin, AlignLeft, Bell, Eye, Video, Target, Link2, CalendarDays, Repeat, ClipboardList, XCircle, ChevronDown } from 'lucide-vue-next'
+import { parseDate } from '@internationalized/date'
+import type { DateValue } from 'reka-ui'
 import type { CalendarEvent } from '~/composables/useCalendar'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
@@ -8,6 +10,8 @@ import { Textarea } from '~/components/ui/textarea'
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
 } from '~/components/ui/dropdown-menu'
+import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover'
+import { Calendar } from '~/components/ui/calendar'
 import { Dialog, DialogContent, DialogFooter } from '~/components/ui/dialog'
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -25,6 +29,7 @@ const form = reactive({
   category:             'session' as CalendarEvent['category'],
   title:                '',
   date:                 '',
+  endDate:              '',
   startTime:            '',
   endTime:              '',
   allDay:               false,
@@ -71,12 +76,13 @@ const RECURRENCE_OPTIONS = [
   { value: 'monthly',   label: 'Monthly' },
 ]
 const SESSION_TYPE_OPTIONS = [
-  { value: 'individual', label: 'Individual therapy' },
+  { value: 'individual', label: 'Individual therapy'   },
+  { value: 'couple',     label: 'Couples therapy'      },
+  { value: 'family',     label: 'Family therapy'       },
+  { value: 'group',      label: 'Group session'        },
   { value: 'initial',    label: 'Initial consultation' },
-  { value: 'followup',   label: 'Follow-up session' },
-  { value: 'group',      label: 'Group session' },
-  { value: 'family',     label: 'Family therapy' },
-  { value: 'crisis',     label: 'Crisis intervention' },
+  { value: 'followup',   label: 'Follow-up session'    },
+  { value: 'crisis',     label: 'Crisis intervention'  },
 ]
 const LOCATION_OPTIONS = [
   { value: 'Room 101',            label: 'Room 101' },
@@ -155,11 +161,50 @@ const isDirty = computed(() => {
   return !!(form.location || form.description)
 })
 
+// ── Date picker state ─────────────────────────────────────────────────────────
+const startDatePickerOpen = ref(false)
+const endDatePickerOpen   = ref(false)
+
+function parseDateSafe(iso: string): DateValue | undefined {
+  if (!iso) return undefined
+  try { return parseDate(iso) } catch { return undefined }
+}
+
+const startCalendarValue = computed<DateValue | undefined>(() => parseDateSafe(form.date))
+const endCalendarValue   = computed<DateValue | undefined>(() => parseDateSafe(form.endDate || form.date))
+
+function fmtDateBtn(iso: string): string {
+  if (!iso) return 'Pick date'
+  try { return new Date(iso + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) }
+  catch { return iso }
+}
+
+const startDateLabel = computed(() => fmtDateBtn(form.date))
+const endDateLabel   = computed(() => fmtDateBtn(form.endDate || form.date))
+
+function onStartDateSelect(val: DateValue | undefined) {
+  if (!val) return
+  form.date = `${val.year}-${String(val.month).padStart(2, '0')}-${String(val.day).padStart(2, '0')}`
+  if (!form.endDate || form.endDate < form.date) form.endDate = form.date
+  startDatePickerOpen.value = false
+}
+
+function onEndDateSelect(val: DateValue | undefined) {
+  if (!val) return
+  form.endDate = `${val.year}-${String(val.month).padStart(2, '0')}-${String(val.day).padStart(2, '0')}`
+  endDatePickerOpen.value = false
+}
+
+const isMultiDay = computed(() => !!form.endDate && form.endDate !== form.date)
+
 const duration = computed(() => {
   if (form.allDay || !form.startTime || !form.endTime) return ''
   const [sh = 0, sm = 0] = form.startTime.split(':').map(Number)
   const [eh = 0, em = 0] = form.endTime.split(':').map(Number)
-  const mins = eh * 60 + em - (sh * 60 + sm)
+  const dayDiff = isMultiDay.value
+    ? Math.round((new Date(form.endDate + 'T12:00:00').getTime() - new Date(form.date + 'T12:00:00').getTime()) / 86400000)
+    : 0
+  const mins = dayDiff * 1440 + (eh * 60 + em) - (sh * 60 + sm)
   if (mins <= 0) return ''
   const h = Math.floor(mins / 60); const m = mins % 60
   return h === 0 ? `${m} min` : m ? `${h}h ${m}min` : `${h}h`
@@ -167,11 +212,11 @@ const duration = computed(() => {
 
 const hasConflict = computed(() => {
   if (!form.date || !form.startTime || !form.endTime || form.allDay) return false
-  return checkConflict(`${form.date}T${form.startTime}:00`, `${form.date}T${form.endTime}:00`, editingEvent.value?.id)
+  const endDate = form.endDate || form.date
+  return checkConflict(`${form.date}T${form.startTime}:00`, `${endDate}T${form.endTime}:00`, editingEvent.value?.id)
 })
 
 const filteredPatients = computed(() => {
-  if (!showPatientDropdown.value) return []
   const q = patientSearch.value.trim().toLowerCase()
   if (!q) return mockPatients.filter(p => p.id !== form.patientId)
   return mockPatients.filter(p => p.name.toLowerCase().includes(q) && p.name !== patientSearch.value)
@@ -202,7 +247,7 @@ function generateBookingLink() { return `https://book.noeia.app/${Math.random().
 
 function resetForm() {
   Object.assign(form, {
-    category: 'session', title: '', date: '', startTime: '', endTime: '', allDay: false,
+    category: 'session', title: '', date: '', endDate: '', startTime: '', endTime: '', allDay: false,
     patientId: '', patientName: '', modality: 'online', meetingLinkEnabled: false, meetingLink: '',
     location: '', recurrence: 'none', done: false, description: '', notification: -1,
     visibility: 'default', deadline: '', declineMode: 'all', oooMessage: 'I am currently out of the office.',
@@ -242,9 +287,18 @@ watch(modalOpen, (open) => {
     form.category            = ev.category
     form.title               = ev.title
     form.date                = dateFromIso(ev.start)
+    form.allDay              = ev.allDay ?? false
+    // For allDay events, FC end is exclusive — subtract 1 day to show inclusive end
+    if (ev.allDay) {
+      const excl = new Date(dateFromIso(ev.end) + 'T12:00:00')
+      excl.setDate(excl.getDate() - 1)
+      const pad = (n: number) => String(n).padStart(2, '0')
+      form.endDate = `${excl.getFullYear()}-${pad(excl.getMonth() + 1)}-${pad(excl.getDate())}`
+    } else {
+      form.endDate = dateFromIso(ev.end)
+    }
     form.startTime           = timeFromIso(ev.start)
     form.endTime             = timeFromIso(ev.end)
-    form.allDay              = ev.allDay ?? false
     form.patientId           = ev.patientId  ?? ''
     form.patientName         = ev.patientName ?? ''
     form.modality            = ev.modality    ?? 'online'
@@ -284,6 +338,8 @@ watch(modalOpen, (open) => {
     }
     if (range) {
       form.date      = dateFromIso(range.start)
+      form.endDate   = dateFromIso(range.end) || form.date
+      if (form.endDate < form.date) form.endDate = form.date
       form.startTime = timeFromIso(range.start)
       form.endTime   = timeFromIso(range.end)
     }
@@ -317,7 +373,16 @@ function toggleMeetingLink() {
 
 function buildEventData(): Parameters<typeof saveEvent>[0] {
   const start = form.allDay ? form.date : `${form.date}T${form.startTime}:00`
-  const end   = form.allDay ? form.date : `${form.date}T${form.endTime}:00`
+  // For allDay: store FC-exclusive end (inclusive endDate + 1 day); for timed: use endDate
+  let end: string
+  if (form.allDay) {
+    const endD = new Date((form.endDate || form.date) + 'T12:00:00')
+    endD.setDate(endD.getDate() + 1)
+    const pad = (n: number) => String(n).padStart(2, '0')
+    end = `${endD.getFullYear()}-${pad(endD.getMonth() + 1)}-${pad(endD.getDate())}`
+  } else {
+    end = `${form.endDate || form.date}T${form.endTime}:00`
+  }
   const defaults: Record<string, string> = {
     session: form.patientName ? `Session – ${form.patientName}` : 'Session',
     ooo: 'Out of Office', meeting: 'Meeting', focus: 'Focus Time',
@@ -429,12 +494,13 @@ useEventListener(document, 'keydown', (e: KeyboardEvent) => {
       @escape-key-down.prevent
       @interact-outside="(e) => { e.preventDefault(); tryClose() }"
     >
-      <!-- Header: close + title input -->
+      <!-- Header: close button + title (non-session only) -->
       <div class="flex items-center gap-3 px-5 pt-5 pb-3 shrink-0">
         <Button variant="ghost" size="icon" class="rounded-lg shrink-0" @click="tryClose">
           <X class="w-5 h-5" />
         </Button>
         <input
+          v-if="form.category !== 'session'"
           v-model="form.title"
           type="text"
           :placeholder="form.category === 'ooo' ? 'Out of Office' : form.category === 'focus' ? 'Focus Time' : 'Add title'"
@@ -442,37 +508,118 @@ useEventListener(document, 'keydown', (e: KeyboardEvent) => {
         />
       </div>
 
-      <!-- Category section -->
+      <!-- Category dropdown (same as mini-modal) -->
       <div class="px-5 pb-3 shrink-0">
-        <p class="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2">Type</p>
-        <div class="flex gap-1 flex-wrap">
-          <Button
-            v-for="cat in categories"
-            :key="cat.value"
-            type="button"
-            size="sm"
-            :class="['rounded-full text-xs font-semibold px-3 h-7 transition-colors', form.category === cat.value ? cat.activeClass : 'text-muted-foreground bg-transparent hover:bg-accent border-0']"
-            @click="form.category = cat.value"
-          >
-            {{ cat.label }}
-          </Button>
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger as-child>
+            <Button variant="ghost" size="sm" class="h-8 px-2.5 bg-muted hover:bg-muted/80 gap-2 font-normal">
+              <span class="w-2 h-2 rounded-full shrink-0" :style="{ backgroundColor: activeCategoryColor }" />
+              {{ activeCategoryLabel }}
+              <ChevronDown class="w-3 h-3 text-muted-foreground" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" class="min-w-[170px]">
+            <DropdownMenuItem
+              v-for="cat in categories"
+              :key="cat.value"
+              class="gap-2"
+              @select="form.category = cat.value"
+            >
+              <span class="w-2 h-2 rounded-full shrink-0" :style="{ backgroundColor: cat.hexColor }" />
+              {{ cat.label }}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <!-- Scrollable body -->
       <div class="flex-1 overflow-y-auto px-5 pb-2 space-y-4 min-h-0">
 
+        <!-- ── Patient search (session only) — same style as mini-modal ── -->
+        <div v-if="form.category === 'session'" class="relative pt-1">
+          <User class="absolute left-0 top-[22px] w-4 h-4 text-muted-foreground pointer-events-none" />
+          <input
+            v-model="patientSearch"
+            type="text"
+            placeholder="Search patient…"
+            autocomplete="off"
+            :class="['w-full pl-6 pr-7 text-[22px] font-normal bg-transparent border-b-2 focus:outline-none pb-1 placeholder:text-muted-foreground transition-colors', patientError ? 'border-red-500 text-red-600 dark:text-red-400' : 'border-primary text-foreground']"
+            @focus="showPatientDropdown = true; patientError = false"
+            @blur="onPatientBlur"
+            @input="() => { form.patientId = ''; form.patientName = ''; patientError = false; showPatientDropdown = true }"
+          />
+          <button
+            type="button"
+            class="absolute right-0 top-[14px] h-7 w-7 flex items-center justify-center text-muted-foreground hover:text-foreground"
+            @mousedown.prevent="togglePatientDropdown"
+          >
+            <ChevronDown class="w-4 h-4 transition-transform" :class="showPatientDropdown ? 'rotate-180' : ''" />
+          </button>
+          <!-- Plain dropdown list (avoids reka blur-dismiss) -->
+          <div
+            v-if="showPatientDropdown && filteredPatients.length"
+            class="absolute top-full left-0 right-0 z-10 mt-1 bg-popover border border-border rounded-md shadow-lg py-1 max-h-48 overflow-y-auto"
+          >
+            <div
+              v-for="p in filteredPatients"
+              :key="p.id"
+              class="px-3 py-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground"
+              @mousedown.prevent="selectPatient(p)"
+            >
+              {{ p.name }}
+            </div>
+          </div>
+          <p v-if="patientError" class="mt-1 text-xs text-red-500 font-medium">Patient is required to save a session.</p>
+        </div>
+
         <!-- ── Time section ──────────────────────────────────────────── -->
-        <div class="space-y-3 pt-1">
+        <div class="space-y-2.5 pt-1">
+          <!-- Start row -->
           <div class="flex items-center gap-2 flex-wrap">
             <Clock class="w-4 h-4 text-muted-foreground shrink-0" />
-            <input v-model="form.date" type="date" :disabled="form.allDay" class="px-2.5 py-1.5 text-sm border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-50" />
+            <Popover v-model:open="startDatePickerOpen">
+              <PopoverTrigger as-child>
+                <Button
+                  variant="outline" size="sm"
+                  class="h-8 font-normal text-sm gap-2"
+                  :disabled="form.allDay"
+                  @click.stop
+                >
+                  <CalendarDays class="w-3.5 h-3.5 text-muted-foreground" />
+                  {{ startDateLabel }}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent class="w-auto p-0 shadow-xl" align="start" :side-offset="4">
+                <Calendar :model-value="startCalendarValue" :initial-focus="true" @update:model-value="onStartDateSelect" />
+              </PopoverContent>
+            </Popover>
             <template v-if="!form.allDay">
-              <input v-model="form.startTime" type="time" class="px-2.5 py-1.5 text-sm border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30" />
-              <span class="text-muted-foreground text-sm">–</span>
-              <input v-model="form.endTime" type="time" class="px-2.5 py-1.5 text-sm border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30" />
-              <span v-if="duration" class="text-xs text-muted-foreground font-medium">{{ duration }}</span>
+              <input v-model="form.startTime" type="time" class="time-input px-2.5 py-1.5 text-sm border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30" />
             </template>
+          </div>
+          <!-- End row -->
+          <div class="flex items-center gap-2 flex-wrap pl-6">
+            <Popover v-model:open="endDatePickerOpen">
+              <PopoverTrigger as-child>
+                <Button
+                  variant="outline" size="sm"
+                  class="h-8 font-normal text-sm gap-2"
+                  :class="isMultiDay ? 'text-primary border-primary/40' : ''"
+                  :disabled="form.allDay"
+                  @click.stop
+                >
+                  <CalendarDays class="w-3.5 h-3.5 text-muted-foreground" />
+                  {{ endDateLabel }}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent class="w-auto p-0 shadow-xl" align="start" :side-offset="4">
+                <Calendar :model-value="endCalendarValue" :initial-focus="true" @update:model-value="onEndDateSelect" />
+              </PopoverContent>
+            </Popover>
+            <template v-if="!form.allDay">
+              <input v-model="form.endTime" type="time" class="time-input px-2.5 py-1.5 text-sm border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30" />
+            </template>
+            <span v-if="duration" class="text-xs text-muted-foreground font-medium">{{ duration }}</span>
           </div>
           <!-- All day + Recurrence -->
           <div class="flex items-center gap-4 pl-6 flex-wrap">
@@ -501,35 +648,22 @@ useEventListener(document, 'keydown', (e: KeyboardEvent) => {
 
         <!-- ── SESSION fields ──────────────────────────────────────── -->
         <template v-if="form.category === 'session'">
-          <!-- Patient search with DropdownMenu -->
-          <div class="flex items-start gap-3">
-            <User class="w-4 h-4 text-muted-foreground shrink-0 mt-2" />
-            <div class="flex-1">
-              <DropdownMenu :open="showPatientDropdown && filteredPatients.length > 0" @update:open="(v) => { if (!v) showPatientDropdown = false }">
-                <DropdownMenuTrigger as-child>
-                  <div class="relative">
-                    <Input
-                      v-model="patientSearch"
-                      :class="['pr-8', patientError ? 'border-red-500 focus-visible:ring-red-500/30' : '']"
-                      placeholder="Search patient…"
-                      autocomplete="off"
-                      @focus="showPatientDropdown = true; patientError = false"
-                      @blur="onPatientBlur"
-                      @input="() => { form.patientId = ''; form.patientName = ''; patientError = false; showPatientDropdown = true }"
-                    />
-                    <Button variant="ghost" size="icon" class="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0 text-muted-foreground hover:bg-transparent" @mousedown.prevent="togglePatientDropdown">
-                      <ChevronDown class="w-4 h-4 transition-transform" :class="showPatientDropdown ? 'rotate-180' : ''" />
-                    </Button>
-                  </div>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" class="w-[--reka-dropdown-menu-trigger-width]">
-                  <DropdownMenuItem v-for="p in filteredPatients" :key="p.id" @select="selectPatient(p)">
-                    {{ p.name }}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <p v-if="patientError" class="mt-1 text-xs text-red-500 font-medium">Patient is required to save a session.</p>
-            </div>
+          <!-- Session type -->
+          <div class="flex items-center gap-3">
+            <ClipboardList class="w-4 h-4 text-muted-foreground shrink-0" />
+            <DropdownMenu>
+              <DropdownMenuTrigger as-child>
+                <Button variant="outline" class="flex-1 h-9 justify-between font-normal text-sm">
+                  <span class="truncate" :class="form.sessionType ? 'text-foreground' : 'text-muted-foreground'">{{ sessionTypeLabel }}</span>
+                  <ChevronDown class="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent class="w-[--reka-dropdown-menu-trigger-width]">
+                <DropdownMenuItem class="text-muted-foreground" @select="form.sessionType = ''">Session type (optional)</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem v-for="o in SESSION_TYPE_OPTIONS" :key="o.value" @select="form.sessionType = o.value">{{ o.label }}</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           <!-- Modality -->
@@ -540,24 +674,6 @@ useEventListener(document, 'keydown', (e: KeyboardEvent) => {
                 <TabsTrigger value="inperson" class="flex-1 text-xs">In-person</TabsTrigger>
               </TabsList>
             </Tabs>
-          </div>
-
-          <!-- Session type -->
-          <div class="flex items-center gap-3">
-            <ClipboardList class="w-4 h-4 text-muted-foreground shrink-0" />
-            <DropdownMenu>
-              <DropdownMenuTrigger as-child>
-                <Button variant="outline" class="flex-1 h-9 justify-between font-normal text-sm">
-                  <span class="truncate">{{ sessionTypeLabel }}</span>
-                  <ChevronDown class="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent class="w-[--reka-dropdown-menu-trigger-width]">
-                <DropdownMenuItem class="text-muted-foreground" @select="form.sessionType = ''">Session type (optional)</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem v-for="o in SESSION_TYPE_OPTIONS" :key="o.value" @select="form.sessionType = o.value">{{ o.label }}</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
           </div>
 
           <!-- Location (in-person) -->
@@ -847,3 +963,11 @@ useEventListener(document, 'keydown', (e: KeyboardEvent) => {
     </AlertDialogContent>
   </AlertDialog>
 </template>
+
+<style scoped>
+.time-input::-webkit-calendar-picker-indicator {
+  opacity: 0;
+  pointer-events: none;
+  width: 0;
+}
+</style>

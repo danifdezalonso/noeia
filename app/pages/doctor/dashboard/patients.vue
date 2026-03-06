@@ -2,7 +2,7 @@
 import {
   Search, Plus, ChevronUp, ChevronDown, ChevronsUpDown,
   UserRound, Mail, Phone, CalendarDays, Link2,
-  Pencil, Trash2, Eye, CalendarPlus,
+  Pencil, Trash2, Eye, CalendarPlus, Send, ShieldCheck,
 } from 'lucide-vue-next'
 import { format, parseISO } from 'date-fns'
 import {
@@ -41,6 +41,9 @@ interface Patient {
   related: RelatedPatient[]
   sessionCount: number
   lastSession?: string // ISO date
+  consentSigned: boolean
+  insurance?: string
+  pendingPayments: number
 }
 
 // ── Seed data ──────────────────────────────────────────────────────────────
@@ -52,6 +55,7 @@ const patients = ref<Patient[]>([
     dob: '1990-03-15', status: 'active',
     related: [{ id: 'p4', name: 'Carlos Rivera', relationship: 'Partner' }],
     sessionCount: 14, lastSession: '2026-02-17',
+    consentSigned: true, insurance: 'Sanitas', pendingPayments: 0,
   },
   {
     id: 'p2', name: 'James Wilson', initials: 'JW',
@@ -59,6 +63,7 @@ const patients = ref<Patient[]>([
     dob: '1985-07-22', status: 'active',
     related: [],
     sessionCount: 8, lastSession: '2026-02-17',
+    consentSigned: true, insurance: 'AXA Health', pendingPayments: 85,
   },
   {
     id: 'p3', name: 'Emma Thompson', initials: 'ET',
@@ -66,6 +71,7 @@ const patients = ref<Patient[]>([
     dob: '1994-11-08', status: 'active',
     related: [],
     sessionCount: 21, lastSession: '2026-02-19',
+    consentSigned: true, insurance: undefined, pendingPayments: 0,
   },
   {
     id: 'p4', name: 'Carlos Rivera', initials: 'CR',
@@ -73,6 +79,7 @@ const patients = ref<Patient[]>([
     dob: '1988-05-30', status: 'active',
     related: [{ id: 'p1', name: 'Sofia Martinez', relationship: 'Partner' }],
     sessionCount: 6, lastSession: '2026-02-20',
+    consentSigned: false, insurance: 'Mapfre Salud', pendingPayments: 0,
   },
   {
     id: 'p5', name: 'Aisha Patel', initials: 'AP',
@@ -80,6 +87,7 @@ const patients = ref<Patient[]>([
     dob: '1997-01-14', status: 'active',
     related: [],
     sessionCount: 5, lastSession: '2026-02-20',
+    consentSigned: true, insurance: undefined, pendingPayments: 170,
   },
   {
     id: 'p6', name: 'Noah Chen', initials: 'NC',
@@ -87,6 +95,7 @@ const patients = ref<Patient[]>([
     dob: '1993-09-02', status: 'on-hold',
     related: [],
     sessionCount: 3, lastSession: '2026-01-10',
+    consentSigned: false, insurance: 'Cigna', pendingPayments: 85,
   },
   {
     id: 'p7', name: 'Lucia Fernández', initials: 'LF',
@@ -94,6 +103,7 @@ const patients = ref<Patient[]>([
     dob: '1980-12-25', status: 'active',
     related: [{ id: 'p8', name: "Michael O'Brien", relationship: 'Partner' }],
     sessionCount: 11, lastSession: '2026-02-21',
+    consentSigned: true, insurance: 'DKV', pendingPayments: 0,
   },
   {
     id: 'p8', name: "Michael O'Brien", initials: 'MO',
@@ -101,6 +111,7 @@ const patients = ref<Patient[]>([
     dob: '1979-04-18', status: 'inactive',
     related: [{ id: 'p7', name: 'Lucia Fernández', relationship: 'Partner' }],
     sessionCount: 2, lastSession: '2026-01-28',
+    consentSigned: false, insurance: undefined, pendingPayments: 0,
   },
   {
     id: 'p9', name: 'Hannah Kim', initials: 'HK',
@@ -108,6 +119,7 @@ const patients = ref<Patient[]>([
     dob: '1996-06-10', status: 'active',
     related: [],
     sessionCount: 9, lastSession: '2026-02-19',
+    consentSigned: true, insurance: 'Asisa', pendingPayments: 95,
   },
   {
     id: 'p10', name: 'David Okafor', initials: 'DO',
@@ -115,6 +127,7 @@ const patients = ref<Patient[]>([
     dob: '1982-08-03', status: 'discharged',
     related: [],
     sessionCount: 18, lastSession: '2025-11-15',
+    consentSigned: true, insurance: undefined, pendingPayments: 0,
   },
 ])
 
@@ -216,8 +229,19 @@ function onPatientSaved(data: {
       relationship: r.relationship,
     })),
     sessionCount: 0,
+    consentSigned: false,
+    insurance: data.hasInsurance ? data.insurer : undefined,
+    pendingPayments: 0,
   })
   newPatientModalOpen.value = false
+}
+
+// ── Consent request state ──────────────────────────────────────────────────
+
+const consentRequestSent = ref<Set<string>>(new Set())
+
+function sendConsentRequest(id: string) {
+  consentRequestSent.value = new Set([...consentRequestSent.value, id])
 }
 
 // ── Row actions ────────────────────────────────────────────────────────────
@@ -346,7 +370,7 @@ const columns: { key: SortKey; label: string }[] = [
       <!-- ── Table ───────────────────────────────────────────────────────── -->
       <div class="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
-          <Table class="min-w-[700px]">
+          <Table class="min-w-[1100px]">
             <TableHeader>
               <TableRow class="bg-muted/50 hover:bg-muted/50">
                 <!-- Sortable columns -->
@@ -366,6 +390,21 @@ const columns: { key: SortKey; label: string }[] = [
                   </div>
                 </TableHead>
 
+                <!-- Consent — not sortable -->
+                <TableHead class="text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">
+                  Consent
+                </TableHead>
+
+                <!-- Insurance — not sortable -->
+                <TableHead class="text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">
+                  Insurance
+                </TableHead>
+
+                <!-- Pending payments — not sortable -->
+                <TableHead class="text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">
+                  Pending
+                </TableHead>
+
                 <!-- Related — not sortable -->
                 <TableHead class="text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">
                   Related
@@ -380,7 +419,7 @@ const columns: { key: SortKey; label: string }[] = [
 
               <!-- Empty state -->
               <TableRow v-if="filtered.length === 0">
-                <TableCell colspan="7" class="py-20 text-center">
+                <TableCell colspan="10" class="py-20 text-center">
                   <div class="flex flex-col items-center gap-3">
                     <div class="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
                       <UserRound class="w-6 h-6 text-muted-foreground" />
@@ -471,6 +510,51 @@ const columns: { key: SortKey; label: string }[] = [
                     <span :class="['w-1.5 h-1.5 rounded-full', statusMeta[p.status].dot]" />
                     {{ statusMeta[p.status].label }}
                   </Badge>
+                </TableCell>
+
+                <!-- Consent -->
+                <TableCell class="whitespace-nowrap" @click.stop>
+                  <div class="flex items-center gap-2">
+                    <span
+                      :class="[
+                        'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border',
+                        p.consentSigned
+                          ? 'bg-green-50 text-green-700 border-green-200'
+                          : 'bg-red-50 text-red-600 border-red-200',
+                      ]"
+                    >
+                      <ShieldCheck v-if="p.consentSigned" class="w-3 h-3" />
+                      {{ p.consentSigned ? 'Signed' : 'Missing' }}
+                    </span>
+                    <Button
+                      v-if="!p.consentSigned"
+                      size="sm"
+                      variant="outline"
+                      class="h-6 px-2 text-xs gap-1"
+                      :disabled="consentRequestSent.has(p.id)"
+                      @click="sendConsentRequest(p.id)"
+                    >
+                      <Send class="w-3 h-3" />
+                      {{ consentRequestSent.has(p.id) ? 'Sent' : 'Send' }}
+                    </Button>
+                  </div>
+                </TableCell>
+
+                <!-- Insurance -->
+                <TableCell class="whitespace-nowrap">
+                  <span v-if="p.insurance" class="text-sm text-foreground">{{ p.insurance }}</span>
+                  <span v-else class="text-xs text-muted-foreground">—</span>
+                </TableCell>
+
+                <!-- Pending payments -->
+                <TableCell class="whitespace-nowrap tabular-nums">
+                  <span
+                    v-if="p.pendingPayments > 0"
+                    class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200"
+                  >
+                    €{{ p.pendingPayments }}
+                  </span>
+                  <span v-else class="text-xs text-muted-foreground">—</span>
                 </TableCell>
 
                 <!-- Related -->

@@ -3,9 +3,9 @@ import {
   Search, SlidersHorizontal, Plus, ChevronUp, ChevronDown,
   ChevronsUpDown, FileText, Video, MapPin,
   CheckCircle2, XCircle, Clock, AlertCircle,
-  CalendarDays, Pencil, Ban, Eye, RotateCcw, X,
+  CalendarDays, Pencil, Ban, Eye, RotateCcw, X, User,
 } from 'lucide-vue-next'
-import { format, parseISO, addDays, startOfWeek, subWeeks, isWithinInterval, startOfDay, endOfDay } from 'date-fns'
+import { format, parseISO, addDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subWeeks, isWithinInterval, startOfDay, endOfDay } from 'date-fns'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '~/components/ui/table'
@@ -314,6 +314,71 @@ function reschedule(id: string) {
 function fmtDateTime(isoStr: string) { return format(parseISO(isoStr), 'MMM d, HH:mm') }
 function fmtTime(isoStr: string)     { return format(parseISO(isoStr), 'HH:mm') }
 
+// ── Date quick-filter presets ──────────────────────────────────────────────
+
+const DATE_PRESETS = [
+  { id: 'today',      label: 'Today' },
+  { id: 'this-week',  label: 'This week' },
+  { id: 'last-week',  label: 'Last week' },
+  { id: 'this-month', label: 'This month' },
+] as const
+
+type PresetId = typeof DATE_PRESETS[number]['id']
+
+const activePreset = ref<PresetId | null>(null)
+
+function applyPreset(id: PresetId) {
+  if (activePreset.value === id) {
+    // Toggle off
+    activePreset.value = null
+    dateFrom.value = ''
+    dateTo.value   = ''
+    return
+  }
+  activePreset.value = id
+  const now = new Date()
+  if (id === 'today') {
+    dateFrom.value = format(startOfDay(now),   'yyyy-MM-dd')
+    dateTo.value   = format(endOfDay(now),     'yyyy-MM-dd')
+  } else if (id === 'this-week') {
+    dateFrom.value = format(startOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd')
+    dateTo.value   = format(endOfWeek(now,   { weekStartsOn: 1 }), 'yyyy-MM-dd')
+  } else if (id === 'last-week') {
+    const lw = subWeeks(now, 1)
+    dateFrom.value = format(startOfWeek(lw, { weekStartsOn: 1 }), 'yyyy-MM-dd')
+    dateTo.value   = format(endOfWeek(lw,   { weekStartsOn: 1 }), 'yyyy-MM-dd')
+  } else if (id === 'this-month') {
+    dateFrom.value = format(startOfMonth(now), 'yyyy-MM-dd')
+    dateTo.value   = format(endOfMonth(now),   'yyyy-MM-dd')
+  }
+}
+
+// Clear preset when date filter is changed manually
+watch([dateFrom, dateTo], () => {
+  const now = new Date()
+  if (!dateFrom.value && !dateTo.value) { activePreset.value = null }
+})
+
+// ── Patient profile sheet ──────────────────────────────────────────────────
+
+const selectedPatient = ref<Session['patient'] | null>(null)
+
+const patientSessions = computed(() =>
+  sessions.value
+    .filter(s => s.patient.id === selectedPatient.value?.id)
+    .sort((a, b) => b.start.localeCompare(a.start))
+)
+
+const patientStats = computed(() => {
+  const list = patientSessions.value
+  const completed = list.filter(s => s.status === 'completed')
+  return {
+    total:     list.length,
+    completed: completed.length,
+    totalFee:  completed.reduce((sum, s) => sum + s.fee, 0),
+  }
+})
+
 const statusMeta: Record<SessionStatus, { label: string; badge: string; icon: Component }> = {
   scheduled: { label: 'Scheduled', badge: 'bg-blue-50 text-blue-700 border-blue-200',    icon: Clock        },
   completed: { label: 'Completed', badge: 'bg-green-50 text-green-700 border-green-200', icon: CheckCircle2 },
@@ -385,8 +450,11 @@ function onSessionSaved(s: import('~/components/ScheduleSessionModal.vue').NewSe
         </Button>
       </div>
 
-      <!-- ── Toolbar: search + filter popover ───────────────────────────── -->
-      <div class="flex flex-wrap items-center gap-2.5">
+      <!-- ── Toolbar: search + date presets + filter popover ──────────────── -->
+      <div class="space-y-2.5">
+
+        <!-- Row 1: search + filters -->
+        <div class="flex flex-wrap items-center gap-2.5">
 
         <!-- Search -->
         <div class="relative flex-1 max-w-sm">
@@ -580,7 +648,38 @@ function onSessionSaved(s: import('~/components/ScheduleSessionModal.vue').NewSe
         <p class="text-sm text-muted-foreground ml-auto">
           {{ filtered.length }} session{{ filtered.length !== 1 ? 's' : '' }}
         </p>
-      </div>
+        </div><!-- end row 1 -->
+
+        <!-- Row 2: date quick-filter presets -->
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="text-xs font-medium text-muted-foreground">Date:</span>
+          <button
+            v-for="p in DATE_PRESETS"
+            :key="p.id"
+            :class="[
+              'text-xs px-3 py-1.5 rounded-full border transition-colors',
+              activePreset === p.id
+                ? 'bg-primary text-primary-foreground border-primary'
+                : 'border-border text-muted-foreground hover:text-foreground hover:border-foreground/30 bg-background',
+            ]"
+            @click="applyPreset(p.id)"
+          >
+            {{ p.label }}
+          </button>
+          <div class="flex items-center gap-1.5 ml-2">
+            <Input v-model="dateFrom" type="date" class="h-7 text-xs w-36 px-2" :max="dateTo || undefined" @change="activePreset = null" />
+            <span class="text-xs text-muted-foreground">–</span>
+            <Input v-model="dateTo"   type="date" class="h-7 text-xs w-36 px-2" :min="dateFrom || undefined" @change="activePreset = null" />
+          </div>
+          <button
+            v-if="dateFrom || dateTo"
+            class="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            @click="dateFrom = ''; dateTo = ''; activePreset = null"
+          >
+            <X class="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div><!-- end toolbar space-y wrapper -->
 
       <!-- ── Active filter chips ──────────────────────────────────────────── -->
       <div v-if="activeFilters.length > 0" class="flex flex-wrap gap-1.5 -mt-1">
@@ -623,18 +722,14 @@ function onSessionSaved(s: import('~/components/ScheduleSessionModal.vue').NewSe
                   <div class="flex items-center gap-1">
                     {{ col.label }}
                     <span v-if="col.sortable" class="text-muted-foreground">
-                      <ChevronUp    v-if="sortKey === col.key && sortDir === 'asc'"  class="w-3.5 h-3.5 text-primary" />
-                      <ChevronDown  v-else-if="sortKey === col.key && sortDir === 'desc'" class="w-3.5 h-3.5 text-primary" />
+                      <ChevronUp      v-if="sortKey === col.key && sortDir === 'asc'"   class="w-3.5 h-3.5 text-primary" />
+                      <ChevronDown    v-else-if="sortKey === col.key && sortDir === 'desc'" class="w-3.5 h-3.5 text-primary" />
                       <ChevronsUpDown v-else class="w-3.5 h-3.5" />
                     </span>
                   </div>
                 </TableHead>
-                <TableHead class="text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">
-                  Notes & Files
-                </TableHead>
-                <TableHead class="text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap w-[140px]">
-                  Actions
-                </TableHead>
+                <TableHead class="text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">Notes & Files</TableHead>
+                <TableHead class="text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap w-[140px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
 
@@ -661,34 +756,33 @@ function onSessionSaved(s: import('~/components/ScheduleSessionModal.vue').NewSe
               >
                 <!-- Title -->
                 <TableCell class="whitespace-nowrap">
-                  <div class="flex items-center gap-2">
-                    <component
-                      :is="s.modality === 'online' ? Video : MapPin"
-                      :class="['w-3.5 h-3.5 shrink-0', s.modality === 'online' ? 'text-primary' : 'text-muted-foreground']"
-                    />
+                  <div class="flex items-center gap-1.5">
+                    <Video v-if="s.modality === 'online'" class="w-3.5 h-3.5 text-primary shrink-0" />
+                    <MapPin v-else class="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                     <span class="font-medium text-foreground">{{ s.title }}</span>
                   </div>
-                  <p v-if="s.location" class="text-xs text-muted-foreground mt-0.5 ml-5.5">{{ s.location }}</p>
                 </TableCell>
 
                 <!-- Patient -->
-                <TableCell class="whitespace-nowrap">
+                <TableCell class="whitespace-nowrap" @click.stop>
                   <div class="flex items-center gap-2.5">
                     <Avatar class="size-7 shrink-0">
-                      <AvatarImage :src="avatarUrl(s.patient.name)" :alt="s.patient.name" />
                       <AvatarFallback class="bg-primary/10 text-primary text-[10px] font-bold">{{ s.patient.initials }}</AvatarFallback>
                     </Avatar>
-                    <span class="text-foreground font-medium">{{ s.patient.name }}</span>
+                    <span
+                      class="text-foreground font-medium hover:underline cursor-pointer"
+                      @click="selectedPatient = s.patient"
+                    >{{ s.patient.name }}</span>
                   </div>
                 </TableCell>
 
                 <!-- Start -->
-                <TableCell class="text-foreground whitespace-nowrap tabular-nums">
+                <TableCell class="whitespace-nowrap tabular-nums text-sm text-foreground">
                   {{ fmtDateTime(s.start) }}
                 </TableCell>
 
                 <!-- End -->
-                <TableCell class="text-muted-foreground whitespace-nowrap tabular-nums">
+                <TableCell class="whitespace-nowrap tabular-nums text-sm text-muted-foreground">
                   {{ fmtTime(s.end) }}
                 </TableCell>
 
@@ -889,6 +983,65 @@ function onSessionSaved(s: import('~/components/ScheduleSessionModal.vue').NewSe
                 <CalendarDays class="w-3.5 h-3.5" /> Reschedule
               </Button>
             </template>
+          </div>
+        </div>
+
+      </div>
+    </SheetContent>
+  </Sheet>
+
+  <!-- Patient profile Sheet -->
+  <Sheet :open="!!selectedPatient" @update:open="(v) => { if (!v) selectedPatient = null }">
+    <SheetContent side="right" class="w-full sm:max-w-md flex flex-col gap-0 p-0">
+      <SheetHeader class="px-6 pt-6 pb-4 border-b border-border">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+            <span class="text-primary text-sm font-bold">{{ selectedPatient?.initials }}</span>
+          </div>
+          <div>
+            <SheetTitle class="text-base font-semibold text-foreground">{{ selectedPatient?.name }}</SheetTitle>
+            <SheetDescription class="text-sm text-muted-foreground">Patient profile</SheetDescription>
+          </div>
+        </div>
+      </SheetHeader>
+
+      <div v-if="selectedPatient" class="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+
+        <!-- Stats -->
+        <div class="grid grid-cols-3 gap-3">
+          <div class="bg-muted/50 rounded-lg p-3 text-center">
+            <p class="text-2xl font-bold text-foreground">{{ patientStats.total }}</p>
+            <p class="text-xs text-muted-foreground mt-0.5">Total</p>
+          </div>
+          <div class="bg-muted/50 rounded-lg p-3 text-center">
+            <p class="text-2xl font-bold text-foreground">{{ patientStats.completed }}</p>
+            <p class="text-xs text-muted-foreground mt-0.5">Completed</p>
+          </div>
+          <div class="bg-muted/50 rounded-lg p-3 text-center">
+            <p class="text-2xl font-bold text-foreground">€{{ patientStats.totalFee }}</p>
+            <p class="text-xs text-muted-foreground mt-0.5">Total fees</p>
+          </div>
+        </div>
+
+        <!-- Session list -->
+        <div>
+          <p class="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">Sessions</p>
+          <div class="space-y-2">
+            <div
+              v-for="s in patientSessions"
+              :key="s.id"
+              class="flex items-start justify-between p-3 rounded-lg bg-muted/30 border border-border/50"
+            >
+              <div>
+                <p class="text-sm font-medium text-foreground">{{ s.title }}</p>
+                <p class="text-xs text-muted-foreground mt-0.5">{{ fmtDateTime(s.start) }}</p>
+              </div>
+              <Badge variant="outline" :class="['gap-1.5 shrink-0 ml-2', statusMeta[s.status].badge]">
+                <component :is="statusMeta[s.status].icon" class="w-3 h-3" />
+                {{ statusMeta[s.status].label }}
+              </Badge>
+            </div>
+            <p v-if="patientSessions.length === 0" class="text-sm text-muted-foreground">No sessions yet.</p>
           </div>
         </div>
 

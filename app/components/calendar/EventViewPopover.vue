@@ -40,10 +40,11 @@ const categoryStyle: Record<string, { bg: string; label: string }> = {
 
 const SESSION_TYPE_LABELS: Record<string, string> = {
   individual: 'Individual therapy',
+  couple:     'Couples therapy',
+  family:     'Family therapy',
+  group:      'Group session',
   initial:    'Initial consultation',
   followup:   'Follow-up session',
-  group:      'Group session',
-  family:     'Family therapy',
   crisis:     'Crisis intervention',
 }
 

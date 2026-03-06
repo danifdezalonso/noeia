@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useEventListener } from '@vueuse/core'
-import { X, Clock, User, MapPin, AlignLeft, Stethoscope, Link2, CalendarDays, Video, Users, ChevronDown } from 'lucide-vue-next'
+import { X, Clock, User, MapPin, AlignLeft, Stethoscope, Link2, CalendarDays, Video, Users, ChevronDown, Tag } from 'lucide-vue-next'
 import { parseDate } from '@internationalized/date'
 import type { DateValue } from 'reka-ui'
 import type { CalendarEvent } from '~/composables/useCalendar'
@@ -54,6 +54,16 @@ const LOCATION_OPTIONS = [
   { value: 'Main Street Clinic', label: 'Main Street Clinic' },
 ]
 
+const SESSION_TYPES = [
+  { value: 'individual', label: 'Individual therapy'   },
+  { value: 'couple',     label: 'Couples therapy'      },
+  { value: 'family',     label: 'Family therapy'       },
+  { value: 'group',      label: 'Group session'        },
+  { value: 'initial',    label: 'Initial consultation' },
+  { value: 'followup',   label: 'Follow-up session'    },
+  { value: 'crisis',     label: 'Crisis intervention'  },
+]
+
 // ── Form ──────────────────────────────────────────────────────────────────────
 const form = reactive({
   category: 'session' as CalendarEvent['category'],
@@ -69,9 +79,11 @@ const form = reactive({
   meetingPlatform: '',
   meetingLink: '',
   allDay: false,
-  date: '',
+  date: '',      // start date
+  endDate: '',   // end date (defaults to same as start)
   startTime: '',
   endTime: '',
+  sessionType: '',
 })
 
 const invitees     = ref<string[]>([])
@@ -127,6 +139,7 @@ const activePlatform    = computed(() => PLATFORMS.find(p => p.value === form.me
 const platformLabel     = computed(() => activePlatform.value?.label ?? 'Platform')
 const platformPlaceholder = computed(() => activePlatform.value?.placeholder ?? 'Paste meeting link')
 const locationLabel       = computed(() => LOCATION_OPTIONS.find(o => o.value === form.location)?.label ?? 'Select office…')
+const sessionTypeLabel    = computed(() => SESSION_TYPES.find(t => t.value === form.sessionType)?.label ?? 'Session type (optional)')
 
 // ── Default titles per category ───────────────────────────────────────────────
 const CATEGORY_DEFAULTS: Partial<Record<CalendarEvent['category'], string>> = {
@@ -200,24 +213,43 @@ function selectPatient(p: (typeof mockPatients)[number]) {
 function onPatientBlur() { setTimeout(() => { showPatientDropdown.value = false }, 150) }
 
 // ── Date picker ───────────────────────────────────────────────────────────────
-const datePickerOpen = ref(false)
+const datePickerOpen    = ref(false)
+const endDatePickerOpen = ref(false)
 
 const calendarValue = computed<DateValue | undefined>(() => {
   if (!form.date) return undefined
   try { return parseDate(form.date) } catch { return undefined }
 })
 
+const endCalendarValue = computed<DateValue | undefined>(() => {
+  const d = form.endDate || form.date
+  if (!d) return undefined
+  try { return parseDate(d) } catch { return undefined }
+})
+
+function fmtDateLabel(iso: string) {
+  try {
+    return new Date(iso + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+  } catch { return iso }
+}
+
 function onDateSelect(val: DateValue | undefined) {
   if (!val) return
   form.date = `${val.year}-${String(val.month).padStart(2, '0')}-${String(val.day).padStart(2, '0')}`
+  // Keep endDate in sync if it was equal to (or before) start date
+  if (!form.endDate || form.endDate < form.date) form.endDate = form.date
 }
 
-const dateLabel = computed(() => {
-  if (!form.date) return 'Pick date'
-  try {
-    return new Date(form.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
-  } catch { return form.date }
-})
+function onEndDateSelect(val: DateValue | undefined) {
+  if (!val) return
+  form.endDate = `${val.year}-${String(val.month).padStart(2, '0')}-${String(val.day).padStart(2, '0')}`
+  endDatePickerOpen.value = false
+}
+
+const dateLabel    = computed(() => form.date    ? fmtDateLabel(form.date)    : 'Pick date')
+const endDateLabel = computed(() => form.endDate ? fmtDateLabel(form.endDate) : dateLabel.value)
+
+const isMultiDay = computed(() => !!form.endDate && form.endDate !== form.date)
 
 // ── Invitee helpers ───────────────────────────────────────────────────────────
 function addInvitee() {
@@ -234,7 +266,7 @@ watch(quickModalOpen, (open) => {
       category: 'session', title: '', patientId: '', patientName: '',
       modality: 'online', location: '', description: '', doctorId: '', doctorName: '',
       linkedSessionId: '', meetingPlatform: '', meetingLink: '', allDay: false,
-      date: '', startTime: '', endTime: '',
+      date: '', endDate: '', startTime: '', endTime: '', sessionType: '',
     })
     patientSearch.value = ''
     titleManuallyEdited.value = false
@@ -246,7 +278,10 @@ watch(quickModalOpen, (open) => {
   } else {
     const r = pendingRange.value
     if (r) {
-      form.date   = r.start.split('T')[0] ?? ''
+      form.date    = r.start.split('T')[0] ?? ''
+      form.endDate = r.end.split('T')[0] ?? form.date
+      // If the range end time would roll to the next day, keep same day
+      if (form.endDate < form.date) form.endDate = form.date
       form.allDay = pendingAllDay.value
       if (!pendingAllDay.value) {
         form.startTime = r.start.split('T')[1]?.slice(0, 5) ?? '09:00'
@@ -302,14 +337,14 @@ function handleSave() {
   let start: string
   let end: string
   if (isAllDay) {
-    const d = new Date(form.date + 'T12:00:00')
-    d.setDate(d.getDate() + 1)
+    const endD = new Date((form.endDate || form.date) + 'T12:00:00')
+    endD.setDate(endD.getDate() + 1)
     const pad = (n: number) => String(n).padStart(2, '0')
     start = form.date
-    end   = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+    end   = `${endD.getFullYear()}-${pad(endD.getMonth() + 1)}-${pad(endD.getDate())}`
   } else {
     start = `${form.date}T${form.startTime}:00`
-    end   = `${form.date}T${form.endTime}:00`
+    end   = `${form.endDate || form.date}T${form.endTime}:00`
   }
   const defaults: Record<string, string> = {
     session: form.patientName ? `Session – ${form.patientName}` : 'Session',
@@ -323,6 +358,7 @@ function handleSave() {
     category:        form.category as CalendarEvent['category'],
     patientId:       form.category === 'session' && form.patientId   ? form.patientId   : undefined,
     patientName:     form.category === 'session' && form.patientName ? form.patientName : undefined,
+    sessionType:     form.category === 'session' && form.sessionType ? form.sessionType : undefined,
     modality:        showModality.value ? form.modality : undefined,
     location:        showLocation.value ? form.location || undefined : undefined,
     meetingLink:     showOnlineMeeting.value ? form.meetingLink || undefined : undefined,
@@ -339,8 +375,10 @@ function handleSave() {
 }
 
 function handleMoreOptions() {
-  const start = form.date ? `${form.date}T${form.startTime}:00` : pendingRange.value?.start
-  const end   = form.date ? `${form.date}T${form.endTime}:00`   : pendingRange.value?.end
+  const startD = form.date || pendingRange.value?.start?.split('T')[0]
+  const endD   = form.endDate || form.date || pendingRange.value?.end?.split('T')[0]
+  const start  = startD ? `${startD}T${form.startTime || '09:00'}:00` : pendingRange.value?.start
+  const end    = endD   ? `${endD}T${form.endTime || '10:00'}:00`     : pendingRange.value?.end
   openFullModal({
     category:    form.category as CalendarEvent['category'],
     title:       form.title,
@@ -348,6 +386,7 @@ function handleMoreOptions() {
     end,
     patientId:   form.patientId   || undefined,
     patientName: form.patientName || undefined,
+    sessionType: form.category === 'session' && form.sessionType ? form.sessionType : undefined,
     modality:    showModality.value ? form.modality : undefined,
     location:    showLocation.value ? form.location || undefined : undefined,
     description: showDescription.value ? form.description || undefined : undefined,
@@ -455,15 +494,25 @@ function handleMoreOptions() {
                 </div>
               </div>
               <p v-if="patientError" class="mt-1 text-xs text-red-500 font-medium">Patient is required to save a session.</p>
-              <!-- Auto-generated title (secondary, editable) -->
-              <input
-                ref="titleInputRef"
-                v-model="form.title"
-                type="text"
-                placeholder="Title (auto-filled from patient)"
-                class="w-full mt-2 text-sm text-muted-foreground bg-transparent focus:outline-none focus:text-foreground placeholder:text-muted-foreground/50 transition-colors"
-                @input="titleManuallyEdited = true"
-              />
+              <!-- Session type -->
+              <div class="flex items-center gap-2 mt-3">
+                <Tag class="w-4 h-4 text-muted-foreground shrink-0" />
+                <DropdownMenu>
+                  <DropdownMenuTrigger as-child>
+                    <Button variant="outline" size="sm" class="flex-1 h-8 justify-between font-normal text-sm">
+                      <span class="truncate" :class="form.sessionType ? 'text-foreground' : 'text-muted-foreground'">{{ sessionTypeLabel }}</span>
+                      <ChevronDown class="w-3 h-3 text-muted-foreground shrink-0" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent class="w-[--reka-dropdown-menu-trigger-width]">
+                    <DropdownMenuItem class="text-muted-foreground" @select="form.sessionType = ''">Session type (optional)</DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem v-for="t in SESSION_TYPES" :key="t.value" @select="form.sessionType = t.value">
+                      {{ t.label }}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
           </template>
 
@@ -492,7 +541,10 @@ function handleMoreOptions() {
                     class="h-8 px-0 gap-0 overflow-hidden rounded-full font-normal text-sm border-border"
                   >
                     <span class="px-3 border-r border-border font-medium text-foreground">{{ dateLabel }}</span>
-                    <span class="px-3 text-muted-foreground">{{ form.startTime || '—' }} – {{ form.endTime || '—' }}</span>
+                    <span class="px-3 text-muted-foreground">
+                      {{ form.startTime || '—' }} –
+                      <template v-if="isMultiDay">{{ endDateLabel }} </template>{{ form.endTime || '—' }}
+                    </span>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent class="w-72 p-0 shadow-xl overflow-hidden" align="start" :side-offset="8" @mousedown.stop>
@@ -511,6 +563,24 @@ function handleMoreOptions() {
                         <Clock class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
                         <input v-model="form.endTime" type="time" class="time-input w-full pl-9 pr-3 h-9 rounded-lg border border-input bg-background text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring" />
                       </div>
+                    </div>
+                    <!-- End date (multi-day support) -->
+                    <div class="border-t border-border pt-2.5">
+                      <p class="text-xs font-medium text-muted-foreground mb-1.5">
+                        End date
+                        <span class="font-normal text-muted-foreground/60 ml-1">{{ isMultiDay ? endDateLabel : '(same day)' }}</span>
+                      </p>
+                      <Popover v-model:open="endDatePickerOpen">
+                        <PopoverTrigger as-child>
+                          <Button variant="outline" size="sm" class="w-full h-8 font-normal text-sm justify-start" @mousedown.stop>
+                            <CalendarDays class="w-3.5 h-3.5 mr-2 text-muted-foreground" />
+                            {{ endDateLabel }}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent class="w-auto p-0 shadow-xl" align="start" :side-offset="4" @mousedown.stop>
+                          <Calendar :model-value="endCalendarValue" :initial-focus="true" @update:model-value="onEndDateSelect" />
+                        </PopoverContent>
+                      </Popover>
                     </div>
                   </div>
                 </PopoverContent>
@@ -721,8 +791,9 @@ function handleMoreOptions() {
 </template>
 
 <style scoped>
-/* Hide the native browser clock/picker icon inside <input type="time"> */
 .time-input::-webkit-calendar-picker-indicator {
-  display: none;
+  opacity: 0;
+  pointer-events: none;
+  width: 0;
 }
 </style>

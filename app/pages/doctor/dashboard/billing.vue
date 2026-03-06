@@ -3,11 +3,14 @@ import {
   Download, Plus, Search, ChevronDown, Eye, EyeOff,
   Info, FileText, X, Check, Send, AlertCircle,
   ChevronsUpDown, ChevronUp, SlidersHorizontal,
+  Video, MapPin, CreditCard, ChevronRight, CalendarDays, GripVertical,
 } from 'lucide-vue-next'
-import { format, parseISO } from 'date-fns'
+import { format, parseISO, startOfMonth, subMonths, startOfYear, endOfYear } from 'date-fns'
+import { parseDate } from '@internationalized/date'
+import type { DateValue } from 'reka-ui'
 import { ChartBar, ChartDonut, ChartAreaInteractive } from '~/components/ui/chart'
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow,
 } from '~/components/ui/table'
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
@@ -22,6 +25,8 @@ import { Input } from '~/components/ui/input'
 import { Badge } from '~/components/ui/badge'
 import { Checkbox } from '~/components/ui/checkbox'
 import { Card, CardContent } from '~/components/ui/card'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '~/components/ui/collapsible'
+import { Calendar } from '~/components/ui/calendar'
 
 
 definePageMeta({ layout: 'dashboard' })
@@ -36,6 +41,8 @@ type Modality      = 'online' | 'inperson'
 interface BillingRow {
   id: string
   date: string
+  sessionStart: string   // ISO datetime
+  sessionEnd: string     // ISO datetime
   patient: string
   patientInitials: string
   professional: string
@@ -44,29 +51,31 @@ interface BillingRow {
   sessionStatus: SessionStatus
   paymentStatus: PaymentStatus
   amount: number
-  clinicPct: number
+  clinicPct: number      // kept for computation, 40 = 40%
   billStatus: BillStatus
   notes: string
   duration: number
+  paymentMethod?: 'card' | 'cash' | 'transfer' | 'insurance'
+  paymentDate?: string   // yyyy-MM-dd
 }
 
 // ── Seed data ──────────────────────────────────────────────────────────────
 
 const rows = ref<BillingRow[]>([
-  { id: 'B001', date: '2026-02-03', patient: 'Sofia Martinez',   patientInitials: 'SM', professional: 'Dr. Torres', type: 'Individual',  modality: 'online',   sessionStatus: 'completed', paymentStatus: 'paid',    amount: 85,  clinicPct: 20, billStatus: 'paid',    notes: 'Anxiety follow-up',         duration: 50 },
-  { id: 'B002', date: '2026-02-05', patient: 'James Wilson',     patientInitials: 'JW', professional: 'Dr. Torres', type: 'Individual',  modality: 'inperson', sessionStatus: 'completed', paymentStatus: 'paid',    amount: 120, clinicPct: 25, billStatus: 'paid',    notes: 'Initial assessment',        duration: 60 },
-  { id: 'B003', date: '2026-02-07', patient: 'Emma Thompson',    patientInitials: 'ET', professional: 'Dr. Torres', type: 'Individual',  modality: 'online',   sessionStatus: 'completed', paymentStatus: 'paid',    amount: 85,  clinicPct: 20, billStatus: 'paid',    notes: 'CBT session',               duration: 50 },
-  { id: 'B004', date: '2026-02-10', patient: 'Carlos Rivera',    patientInitials: 'CR', professional: 'Dr. Torres', type: 'Individual',  modality: 'online',   sessionStatus: 'completed', paymentStatus: 'pending', amount: 85,  clinicPct: 20, billStatus: 'sent',    notes: 'Anxiety follow-up',         duration: 50 },
-  { id: 'B005', date: '2026-02-12', patient: 'Aisha Patel',      patientInitials: 'AP', professional: 'Dr. Torres', type: 'Individual',  modality: 'inperson', sessionStatus: 'completed', paymentStatus: 'paid',    amount: 95,  clinicPct: 20, billStatus: 'paid',    notes: 'Trauma processing',         duration: 50 },
-  { id: 'B006', date: '2026-02-12', patient: 'Hannah Kim',       patientInitials: 'HK', professional: 'Dr. Torres', type: 'Individual',  modality: 'inperson', sessionStatus: 'completed', paymentStatus: 'paid',    amount: 95,  clinicPct: 20, billStatus: 'paid',    notes: 'Sleep disorder consult',    duration: 60 },
-  { id: 'B007', date: '2026-02-14', patient: 'Noah Chen',        patientInitials: 'NC', professional: 'Dr. Torres', type: 'Individual',  modality: 'online',   sessionStatus: 'no-show',   paymentStatus: 'pending', amount: 85,  clinicPct: 20, billStatus: 'draft',   notes: 'Mindfulness — no-show',     duration: 50 },
-  { id: 'B008', date: '2026-02-17', patient: 'Sofia Martinez',   patientInitials: 'SM', professional: 'Dr. Torres', type: 'Individual',  modality: 'online',   sessionStatus: 'completed', paymentStatus: 'paid',    amount: 85,  clinicPct: 20, billStatus: 'paid',    notes: 'Weekly check-in',           duration: 50 },
-  { id: 'B009', date: '2026-02-17', patient: 'James Wilson',     patientInitials: 'JW', professional: 'Dr. Torres', type: 'Individual',  modality: 'inperson', sessionStatus: 'completed', paymentStatus: 'pending', amount: 120, clinicPct: 25, billStatus: 'sent',    notes: 'Initial assessment #2',     duration: 60 },
-  { id: 'B010', date: '2026-02-19', patient: 'Emma Thompson',    patientInitials: 'ET', professional: 'Dr. Torres', type: 'Individual',  modality: 'online',   sessionStatus: 'completed', paymentStatus: 'paid',    amount: 85,  clinicPct: 20, billStatus: 'paid',    notes: 'CBT session',               duration: 50 },
-  { id: 'B011', date: '2026-02-19', patient: 'Hannah Kim',       patientInitials: 'HK', professional: 'Dr. Torres', type: 'Individual',  modality: 'inperson', sessionStatus: 'completed', paymentStatus: 'overdue', amount: 95,  clinicPct: 20, billStatus: 'overdue', notes: 'Sleep follow-up',           duration: 50 },
-  { id: 'B012', date: '2026-02-20', patient: 'David Okafor',     patientInitials: 'DO', professional: 'Dr. Torres', type: 'Individual',  modality: 'online',   sessionStatus: 'no-show',   paymentStatus: 'waived',  amount: 85,  clinicPct: 20, billStatus: 'draft',   notes: 'Grief counseling — missed', duration: 50 },
-  { id: 'B013', date: '2026-02-21', patient: 'Carlos Rivera',    patientInitials: 'CR', professional: 'Dr. Torres', type: 'Individual',  modality: 'online',   sessionStatus: 'scheduled', paymentStatus: 'pending', amount: 85,  clinicPct: 20, billStatus: 'draft',   notes: 'Anxiety follow-up',         duration: 50 },
-  { id: 'B014', date: '2026-02-21', patient: 'Lucia Fernández',  patientInitials: 'LF', professional: 'Dr. Torres', type: 'Couples',     modality: 'inperson', sessionStatus: 'scheduled', paymentStatus: 'pending', amount: 150, clinicPct: 25, billStatus: 'draft',   notes: 'Couples therapy',           duration: 90 },
+  { id: 'B001', date: '2026-02-03', sessionStart: '2026-02-03T10:00:00', sessionEnd: '2026-02-03T10:50:00', patient: 'Sofia Martinez',  patientInitials: 'SM', professional: 'Dr. Torres', type: 'Individual', modality: 'online',   sessionStatus: 'completed', paymentStatus: 'paid',    amount: 85,  clinicPct: 40, billStatus: 'paid',    notes: 'Anxiety follow-up',         duration: 50, paymentMethod: 'card',     paymentDate: '2026-02-03' },
+  { id: 'B002', date: '2026-02-05', sessionStart: '2026-02-05T14:00:00', sessionEnd: '2026-02-05T15:00:00', patient: 'James Wilson',    patientInitials: 'JW', professional: 'Dr. Torres', type: 'Individual', modality: 'inperson', sessionStatus: 'completed', paymentStatus: 'paid',    amount: 120, clinicPct: 40, billStatus: 'paid',    notes: 'Initial assessment',        duration: 60, paymentMethod: 'transfer', paymentDate: '2026-02-05' },
+  { id: 'B003', date: '2026-02-07', sessionStart: '2026-02-07T11:00:00', sessionEnd: '2026-02-07T11:50:00', patient: 'Emma Thompson',   patientInitials: 'ET', professional: 'Dr. Torres', type: 'Individual', modality: 'online',   sessionStatus: 'completed', paymentStatus: 'paid',    amount: 85,  clinicPct: 40, billStatus: 'paid',    notes: 'CBT session',               duration: 50, paymentMethod: 'card',     paymentDate: '2026-02-07' },
+  { id: 'B004', date: '2026-02-10', sessionStart: '2026-02-10T09:00:00', sessionEnd: '2026-02-10T09:50:00', patient: 'Carlos Rivera',   patientInitials: 'CR', professional: 'Dr. Torres', type: 'Individual', modality: 'online',   sessionStatus: 'completed', paymentStatus: 'pending', amount: 85,  clinicPct: 40, billStatus: 'sent',    notes: 'Anxiety follow-up',         duration: 50, paymentMethod: undefined,  paymentDate: undefined },
+  { id: 'B005', date: '2026-02-12', sessionStart: '2026-02-12T15:00:00', sessionEnd: '2026-02-12T15:50:00', patient: 'Aisha Patel',     patientInitials: 'AP', professional: 'Dr. Torres', type: 'Individual', modality: 'inperson', sessionStatus: 'completed', paymentStatus: 'paid',    amount: 95,  clinicPct: 40, billStatus: 'paid',    notes: 'Trauma processing',         duration: 50, paymentMethod: 'cash',     paymentDate: '2026-02-12' },
+  { id: 'B006', date: '2026-02-12', sessionStart: '2026-02-12T09:00:00', sessionEnd: '2026-02-12T10:00:00', patient: 'Hannah Kim',      patientInitials: 'HK', professional: 'Dr. Torres', type: 'Individual', modality: 'inperson', sessionStatus: 'completed', paymentStatus: 'paid',    amount: 95,  clinicPct: 40, billStatus: 'paid',    notes: 'Sleep disorder consult',    duration: 60, paymentMethod: 'insurance',paymentDate: '2026-02-12' },
+  { id: 'B007', date: '2026-02-14', sessionStart: '2026-02-14T11:00:00', sessionEnd: '2026-02-14T11:50:00', patient: 'Noah Chen',       patientInitials: 'NC', professional: 'Dr. Torres', type: 'Individual', modality: 'online',   sessionStatus: 'no-show',   paymentStatus: 'pending', amount: 85,  clinicPct: 40, billStatus: 'draft',   notes: 'Mindfulness — no-show',     duration: 50, paymentMethod: undefined,  paymentDate: undefined },
+  { id: 'B008', date: '2026-02-17', sessionStart: '2026-02-17T10:00:00', sessionEnd: '2026-02-17T10:50:00', patient: 'Sofia Martinez',  patientInitials: 'SM', professional: 'Dr. Torres', type: 'Individual', modality: 'online',   sessionStatus: 'completed', paymentStatus: 'paid',    amount: 85,  clinicPct: 40, billStatus: 'paid',    notes: 'Weekly check-in',           duration: 50, paymentMethod: 'card',     paymentDate: '2026-02-17' },
+  { id: 'B009', date: '2026-02-17', sessionStart: '2026-02-17T14:00:00', sessionEnd: '2026-02-17T15:00:00', patient: 'James Wilson',    patientInitials: 'JW', professional: 'Dr. Torres', type: 'Individual', modality: 'inperson', sessionStatus: 'completed', paymentStatus: 'pending', amount: 120, clinicPct: 40, billStatus: 'sent',    notes: 'Initial assessment #2',     duration: 60, paymentMethod: undefined,  paymentDate: undefined },
+  { id: 'B010', date: '2026-02-19', sessionStart: '2026-02-19T11:00:00', sessionEnd: '2026-02-19T11:50:00', patient: 'Emma Thompson',   patientInitials: 'ET', professional: 'Dr. Torres', type: 'Individual', modality: 'online',   sessionStatus: 'completed', paymentStatus: 'paid',    amount: 85,  clinicPct: 40, billStatus: 'paid',    notes: 'CBT session',               duration: 50, paymentMethod: 'transfer', paymentDate: '2026-02-19' },
+  { id: 'B011', date: '2026-02-19', sessionStart: '2026-02-19T09:00:00', sessionEnd: '2026-02-19T09:50:00', patient: 'Hannah Kim',      patientInitials: 'HK', professional: 'Dr. Torres', type: 'Individual', modality: 'inperson', sessionStatus: 'completed', paymentStatus: 'overdue', amount: 95,  clinicPct: 40, billStatus: 'overdue', notes: 'Sleep follow-up',           duration: 50, paymentMethod: undefined,  paymentDate: undefined },
+  { id: 'B012', date: '2026-02-20', sessionStart: '2026-02-20T20:00:00', sessionEnd: '2026-02-20T20:50:00', patient: 'David Okafor',    patientInitials: 'DO', professional: 'Dr. Torres', type: 'Individual', modality: 'online',   sessionStatus: 'no-show',   paymentStatus: 'waived',  amount: 85,  clinicPct: 40, billStatus: 'draft',   notes: 'Grief counseling — missed', duration: 50, paymentMethod: undefined,  paymentDate: undefined },
+  { id: 'B013', date: '2026-02-21', sessionStart: '2026-02-21T09:00:00', sessionEnd: '2026-02-21T09:50:00', patient: 'Carlos Rivera',   patientInitials: 'CR', professional: 'Dr. Torres', type: 'Individual', modality: 'online',   sessionStatus: 'scheduled', paymentStatus: 'pending', amount: 85,  clinicPct: 40, billStatus: 'draft',   notes: 'Anxiety follow-up',         duration: 50, paymentMethod: undefined,  paymentDate: undefined },
+  { id: 'B014', date: '2026-02-21', sessionStart: '2026-02-21T14:00:00', sessionEnd: '2026-02-21T15:30:00', patient: 'Lucia Fernández', patientInitials: 'LF', professional: 'Dr. Torres', type: 'Couples',    modality: 'inperson', sessionStatus: 'scheduled', paymentStatus: 'pending', amount: 150, clinicPct: 40, billStatus: 'draft',   notes: 'Couples therapy',           duration: 90, paymentMethod: undefined,  paymentDate: undefined },
 ])
 
 // ── Stats ──────────────────────────────────────────────────────────────────
@@ -75,7 +84,8 @@ const totalBilled  = computed(() => rows.value.reduce((s, r) => s + r.amount, 0)
 const totalPaid    = computed(() => rows.value.filter(r => r.paymentStatus === 'paid').reduce((s, r) => s + r.amount, 0))
 const totalPending = computed(() => rows.value.filter(r => r.paymentStatus === 'pending' || r.paymentStatus === 'overdue').reduce((s, r) => s + r.amount, 0))
 
-const showValues = ref(true)
+const showValues  = ref(true)
+const chartsOpen  = ref(false)
 
 const sparkBilledData  = [170,120,85,85,95,85,85,180,85,235].map(v => ({ v }))
 const sparkPaidData    = [170,120,85,0,95,0,85,85,0,0].map(v => ({ v }))
@@ -178,8 +188,9 @@ const pendingByPatient = computed(() => {
 
 // ── Filters ────────────────────────────────────────────────────────────────
 
-const dateFrom     = ref('2026-02-01')
-const dateTo       = ref('2026-02-21')
+const _now  = new Date()
+const dateFrom = ref(format(startOfMonth(_now), 'yyyy-MM-dd'))
+const dateTo   = ref(format(_now,               'yyyy-MM-dd'))
 const search       = ref('')
 const patientFilter  = ref('all')
 const typeFilter     = ref('all')
@@ -188,13 +199,98 @@ const statusFilter   = ref('all')
 const uniquePatients = computed(() => [...new Set(rows.value.map(r => r.patient))].sort())
 const uniqueTypes    = computed(() => [...new Set(rows.value.map(r => r.type))].sort())
 
-// Columns visibility
-const visibleCols = ref({
-  id: true, date: true, patient: true, professional: false,
-  type: true, sessionStatus: true, payment: true, amount: true,
-  clinicPct: true, billStatus: true,
+// ── Column definitions (order + visibility) ────────────────────────────────
+
+interface ColDef { key: string; label: string; visible: boolean }
+
+const colDefs = ref<ColDef[]>([
+  { key: 'id',                 label: 'ID',          visible: true  },
+  { key: 'date',               label: 'Date',         visible: true  },
+  { key: 'patient',            label: 'Patient',      visible: true  },
+  { key: 'professional',       label: 'Professional', visible: false },
+  { key: 'type',               label: 'Type',         visible: true  },
+  { key: 'modality',           label: 'Modality',     visible: true  },
+  { key: 'sessionTimes',       label: 'Start / End',  visible: true  },
+  { key: 'sessionStatus',      label: 'Session',      visible: true  },
+  { key: 'payment',            label: 'Payment',      visible: true  },
+  { key: 'amount',             label: 'Price',        visible: true  },
+  { key: 'centerAmount',       label: 'Center 40%',   visible: true  },
+  { key: 'professionalAmount', label: 'Prof. 60%',    visible: true  },
+  { key: 'paymentMethod',      label: 'Method',       visible: true  },
+  { key: 'paymentDate',        label: 'Paid on',      visible: false },
+  { key: 'billStatus',         label: 'Billing',      visible: true  },
+])
+
+const visibleColDefs = computed(() => colDefs.value.filter(c => c.visible))
+
+const SORTABLE_KEYS = new Set(['id', 'date', 'patient', 'type', 'sessionStatus', 'paymentStatus', 'amount', 'billStatus'])
+
+// Drag-to-reorder
+const dragKey = ref<string | null>(null)
+function onColDragStart(key: string) { dragKey.value = key }
+function onColDrop(targetKey: string) {
+  if (!dragKey.value || dragKey.value === targetKey) return
+  const arr = [...colDefs.value]
+  const fromIdx = arr.findIndex(c => c.key === dragKey.value)
+  const toIdx   = arr.findIndex(c => c.key === targetKey)
+  arr.splice(toIdx, 0, arr.splice(fromIdx, 1)[0])
+  colDefs.value = arr
+  dragKey.value = null
+}
+
+// ── Date-picker state ──────────────────────────────────────────────────────
+
+const dateFromOpen = ref(false)
+const dateToOpen   = ref(false)
+
+const dateFromValue = computed<DateValue | undefined>(() => {
+  if (!dateFrom.value) return undefined
+  try { return parseDate(dateFrom.value) } catch { return undefined }
 })
-const colsOpen = ref(false)
+const dateToValue = computed<DateValue | undefined>(() => {
+  if (!dateTo.value) return undefined
+  try { return parseDate(dateTo.value) } catch { return undefined }
+})
+function onFromSelect(v: DateValue) { dateFrom.value = v.toString(); dateFromOpen.value = false; activePreset.value = null }
+function onToSelect(v: DateValue)   { dateTo.value   = v.toString(); dateToOpen.value   = false; activePreset.value = null }
+
+// ── Date presets ───────────────────────────────────────────────────────────
+
+const DATE_PRESETS = [
+  { id: 'this-month',        label: 'This month' },
+  { id: 'past-month',        label: 'Past month' },
+  { id: 'past-three-months', label: 'Past 3 months' },
+  { id: 'full-year',         label: 'Full year' },
+] as const
+
+type PresetId = typeof DATE_PRESETS[number]['id']
+
+const activePreset = ref<PresetId | null>('this-month')
+
+function applyPreset(id: PresetId) {
+  if (activePreset.value === id) {
+    activePreset.value = null
+    dateFrom.value = ''
+    dateTo.value   = ''
+    return
+  }
+  activePreset.value = id
+  const now = new Date()
+  if (id === 'this-month') {
+    dateFrom.value = format(startOfMonth(now), 'yyyy-MM-dd')
+    dateTo.value   = format(now,               'yyyy-MM-dd')
+  } else if (id === 'past-month') {
+    const pm = subMonths(now, 1)
+    dateFrom.value = format(startOfMonth(pm), 'yyyy-MM-dd')
+    dateTo.value   = format(new Date(pm.getFullYear(), pm.getMonth() + 1, 0), 'yyyy-MM-dd')
+  } else if (id === 'past-three-months') {
+    dateFrom.value = format(startOfMonth(subMonths(now, 2)), 'yyyy-MM-dd')
+    dateTo.value   = format(now, 'yyyy-MM-dd')
+  } else if (id === 'full-year') {
+    dateFrom.value = format(startOfYear(now), 'yyyy-MM-dd')
+    dateTo.value   = format(endOfYear(now),   'yyyy-MM-dd')
+  }
+}
 
 // ── Sorting ────────────────────────────────────────────────────────────────
 
@@ -306,17 +402,27 @@ const billStatusMeta: Record<BillStatus, { label: string; badge: string }> = {
 
 function fmtCurrency(n: number) { return `€${n.toFixed(2)}` }
 function fmtDate(d: string) { return format(parseISO(d), 'MMM d, yyyy') }
+function fmtTime(iso: string) { return format(parseISO(iso), 'HH:mm') }
 
-const sortableCols: { key: SortKey; label: string }[] = [
-  { key: 'id',            label: 'ID'              },
-  { key: 'date',          label: 'Date'            },
-  { key: 'patient',       label: 'Patient'         },
-  { key: 'type',          label: 'Type'            },
-  { key: 'sessionStatus', label: 'Session Status'  },
-  { key: 'paymentStatus', label: 'Payment'         },
-  { key: 'amount',        label: 'Amount'          },
-  { key: 'billStatus',    label: 'Billing'         },
-]
+const paymentMethodLabel: Record<string, string> = {
+  card: 'Card', cash: 'Cash', transfer: 'Transfer', insurance: 'Insurance',
+}
+
+// ── Filtered-range summary ─────────────────────────────────────────────────
+
+const filteredTotal        = computed(() => filtered.value.reduce((s, r) => s + r.amount, 0))
+const filteredCenter       = computed(() => filtered.value.reduce((s, r) => s + Math.round(r.amount * r.clinicPct / 100), 0))
+const filteredProfessional = computed(() => filteredTotal.value - filteredCenter.value)
+const filteredToInvoice    = computed(() => filtered.value.filter(r => r.billStatus === 'draft').reduce((s, r) => s + r.amount, 0))
+const filteredToInvoiceCount = computed(() => filtered.value.filter(r => r.billStatus === 'draft').length)
+
+function createInvoiceForFiltered() {
+  const ids = filtered.value.filter(r => r.billStatus === 'draft').map(r => r.id)
+  if (!ids.length) return
+  selected.value = new Set(ids)
+  openConsolidated()
+}
+
 
 const clinicShare = computed(() => editorRow.value ? Math.round(editorRow.value.amount * editorRow.value.clinicPct / 100) : 0)
 const therapistShare = computed(() => editorRow.value ? editorRow.value.amount - clinicShare.value : 0)
@@ -344,48 +450,75 @@ const therapistShare = computed(() => editorRow.value ? editorRow.value.amount -
         </div>
       </div>
 
-      <!-- ── Summary cards ───────────────────────────────────────────────── -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <Card
-          v-for="card in [
-            { key: 'billed',  label: 'Total Billed (Month)', value: totalBilled,  sparkData: sparkBilledData,  lineColor: '#6366f1' },
-            { key: 'paid',    label: 'Paid',                 value: totalPaid,    sparkData: sparkPaidData,    lineColor: '#22c55e' },
-            { key: 'pending', label: 'Pending',              value: totalPending, sparkData: sparkPendingData, lineColor: '#f97316' },
-          ]"
-          :key="card.label"
-          class="cursor-pointer hover:shadow-md transition-shadow"
-          @click="activeCardDialog = (card.key as any)"
-        >
-          <CardContent class="flex gap-4 p-4">
-            <div class="flex-1 min-w-0">
-              <p class="text-xs text-muted-foreground font-medium mb-1">{{ card.label }}</p>
-              <div class="flex items-center gap-2">
-                <p class="text-2xl font-bold tabular-nums text-foreground">
-                  {{ showValues ? fmtCurrency(card.value) : '€ ···' }}
-                </p>
-                <Button variant="ghost" size="icon-sm" @click.stop="showValues = !showValues">
-                  <component :is="showValues ? Eye : EyeOff" class="w-4 h-4 text-muted-foreground" />
-                </Button>
-              </div>
-            </div>
-            <!-- SVG Sparkline -->
-            <div class="w-24 h-12 flex-shrink-0">
-              <svg viewBox="0 0 96 48" class="w-full h-full overflow-visible">
-                <path :d="toAreaPath(card.sparkData)" :fill="card.lineColor" fill-opacity="0.12" />
-                <path :d="toSparkPath(card.sparkData)" :stroke="card.lineColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <!-- ── Charts (collapsible) ────────────────────────────────────────── -->
+      <Collapsible v-model:open="chartsOpen">
+        <div class="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
 
-      <!-- ── Area chart ──────────────────────────────────────────────────── -->
-      <ChartAreaInteractive
-        :data="billingAreaData"
-        :series="billedSeries"
-        title="Billed vs Paid"
-        description="Daily billing activity for the last 3 months"
-      />
+          <!-- Trigger header -->
+          <CollapsibleTrigger class="w-full flex items-center justify-between px-4 py-3 hover:bg-accent/50 transition-colors">
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-semibold text-foreground">Overview Charts</span>
+              <span class="text-xs text-muted-foreground">
+                {{ showValues ? `${fmtCurrency(totalBilled)} billed · ${fmtCurrency(totalPaid)} paid` : '€ ···' }}
+              </span>
+            </div>
+            <ChevronRight
+              class="w-4 h-4 text-muted-foreground transition-transform duration-200"
+              :class="chartsOpen ? 'rotate-90' : ''"
+            />
+          </CollapsibleTrigger>
+
+          <!-- Collapsible content -->
+          <CollapsibleContent>
+            <div class="px-4 pb-4 space-y-4 border-t border-border/50">
+
+              <!-- Summary cards -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
+                <Card
+                  v-for="card in [
+                    { key: 'billed',  label: 'Total Billed (Month)', value: totalBilled,  sparkData: sparkBilledData,  lineColor: '#6366f1' },
+                    { key: 'paid',    label: 'Paid',                 value: totalPaid,    sparkData: sparkPaidData,    lineColor: '#22c55e' },
+                    { key: 'pending', label: 'Pending',              value: totalPending, sparkData: sparkPendingData, lineColor: '#f97316' },
+                  ]"
+                  :key="card.label"
+                  class="cursor-pointer hover:shadow-md transition-shadow"
+                  @click="activeCardDialog = (card.key as any)"
+                >
+                  <CardContent class="flex gap-4 p-4">
+                    <div class="flex-1 min-w-0">
+                      <p class="text-xs text-muted-foreground font-medium mb-1">{{ card.label }}</p>
+                      <div class="flex items-center gap-2">
+                        <p class="text-2xl font-bold tabular-nums text-foreground">
+                          {{ showValues ? fmtCurrency(card.value) : '€ ···' }}
+                        </p>
+                        <Button variant="ghost" size="icon-sm" @click.stop="showValues = !showValues">
+                          <component :is="showValues ? Eye : EyeOff" class="w-4 h-4 text-muted-foreground" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div class="w-24 h-12 flex-shrink-0">
+                      <svg viewBox="0 0 96 48" class="w-full h-full overflow-visible">
+                        <path :d="toAreaPath(card.sparkData)" :fill="card.lineColor" fill-opacity="0.12" />
+                        <path :d="toSparkPath(card.sparkData)" :stroke="card.lineColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+                      </svg>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <!-- Area chart -->
+              <ChartAreaInteractive
+                :data="billingAreaData"
+                :series="billedSeries"
+                title="Billed vs Paid"
+                description="Daily billing activity for the last 3 months"
+              />
+
+            </div>
+          </CollapsibleContent>
+
+        </div>
+      </Collapsible>
 
       <!-- ── Filters ─────────────────────────────────────────────────────── -->
       <div class="space-y-2.5">
@@ -447,32 +580,102 @@ const therapistShare = computed(() => editorRow.value ? editorRow.value.amount -
           </DropdownMenu>
 
           <!-- Columns toggle -->
-          <div class="relative ml-auto">
-            <Button variant="outline" @click.stop="colsOpen = !colsOpen">
-              <SlidersHorizontal class="w-3.5 h-3.5" />
-              Columns
-            </Button>
-            <Transition enter-active-class="transition duration-100 ease-out" enter-from-class="opacity-0 scale-95" enter-to-class="opacity-100 scale-100" leave-active-class="transition duration-75 ease-in" leave-from-class="opacity-100" leave-to-class="opacity-0">
-              <div v-if="colsOpen" class="absolute right-0 top-full mt-1.5 z-20 w-44 bg-card rounded-xl border border-border shadow-lg overflow-hidden p-2" @click.stop>
-                <label v-for="(val, key) in visibleCols" :key="key" class="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-accent cursor-pointer">
-                  <Checkbox :checked="visibleCols[key]" @update:checked="(v) => visibleCols[key] = !!v" />
-                  <span class="text-sm text-foreground capitalize">{{ key === 'clinicPct' ? 'Clinic %' : key === 'billStatus' ? 'Billing' : key }}</span>
-                </label>
+          <Popover>
+            <PopoverTrigger as-child>
+              <Button variant="outline" class="ml-auto">
+                <SlidersHorizontal class="w-3.5 h-3.5" />
+                Columns
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" class="w-52 p-2" :side-offset="6">
+              <p class="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-2 mb-2">Drag to reorder</p>
+              <div
+                v-for="col in colDefs"
+                :key="col.key"
+                draggable="true"
+                :class="[
+                  'flex items-center gap-2 px-2 py-1.5 rounded-lg transition-colors select-none',
+                  dragKey === col.key ? 'opacity-40 bg-accent' : 'hover:bg-accent',
+                ]"
+                @dragstart="onColDragStart(col.key)"
+                @dragover.prevent
+                @drop.prevent="onColDrop(col.key)"
+                @dragend="dragKey = null"
+              >
+                <GripVertical class="w-3.5 h-3.5 text-muted-foreground/50 shrink-0 cursor-grab" />
+                <Checkbox :checked="col.visible" @update:checked="col.visible = !!$event" />
+                <span class="text-sm text-foreground flex-1 truncate">{{ col.label }}</span>
               </div>
-            </Transition>
-          </div>
+            </PopoverContent>
+          </Popover>
 
           <!-- Result count -->
           <p class="text-sm text-muted-foreground">{{ filtered.length }} sessions</p>
         </div>
 
-        <!-- Row 2: date range -->
+        <!-- Row 2: date range (presets + calendar pickers) -->
         <div class="flex flex-wrap items-center gap-2.5">
-          <div class="flex items-center gap-2 text-sm text-foreground">
-            <label class="text-xs text-muted-foreground">From</label>
-            <Input v-model="dateFrom" type="date" class="h-8 text-sm" />
-            <label class="text-xs text-muted-foreground">To</label>
-            <Input v-model="dateTo" type="date" class="h-8 text-sm" />
+
+          <!-- Preset tags -->
+          <button
+            v-for="p in DATE_PRESETS"
+            :key="p.id"
+            :class="[
+              'text-xs px-3 py-1.5 rounded-full border transition-colors',
+              activePreset === p.id
+                ? 'bg-primary text-primary-foreground border-primary'
+                : 'border-border text-muted-foreground hover:text-foreground hover:border-foreground/30 bg-background',
+            ]"
+            @click="applyPreset(p.id)"
+          >{{ p.label }}</button>
+
+          <div class="flex items-center gap-2">
+
+            <!-- From -->
+            <Popover v-model:open="dateFromOpen">
+              <PopoverTrigger as-child>
+                <Button
+                  variant="outline"
+                  :class="['gap-2 h-9 text-sm font-normal', !dateFrom ? 'text-muted-foreground' : '']"
+                >
+                  <CalendarDays class="w-4 h-4" />
+                  {{ dateFrom ? format(parseISO(dateFrom), 'MMM d, yyyy') : 'From date' }}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent class="w-auto p-0" align="start" :side-offset="6">
+                <Calendar
+                  :model-value="dateFromValue"
+                  :max-value="dateToValue"
+                  @update:model-value="v => v && onFromSelect(v)"
+                />
+              </PopoverContent>
+            </Popover>
+
+            <span class="text-muted-foreground text-sm">→</span>
+
+            <!-- To -->
+            <Popover v-model:open="dateToOpen">
+              <PopoverTrigger as-child>
+                <Button
+                  variant="outline"
+                  :class="['gap-2 h-9 text-sm font-normal', !dateTo ? 'text-muted-foreground' : '']"
+                >
+                  <CalendarDays class="w-4 h-4" />
+                  {{ dateTo ? format(parseISO(dateTo), 'MMM d, yyyy') : 'To date' }}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent class="w-auto p-0" align="start" :side-offset="6">
+                <Calendar
+                  :model-value="dateToValue"
+                  :min-value="dateFromValue"
+                  @update:model-value="v => v && onToSelect(v)"
+                />
+              </PopoverContent>
+            </Popover>
+
+            <Button v-if="dateFrom || dateTo" variant="ghost" size="icon-sm" @click="dateFrom = ''; dateTo = ''; activePreset = null">
+              <X class="w-3.5 h-3.5" />
+            </Button>
           </div>
           <!-- Bulk actions -->
           <div v-if="selected.size > 0" class="flex items-center gap-2 ml-2">
@@ -489,45 +692,68 @@ const therapistShare = computed(() => editorRow.value ? editorRow.value.amount -
         </div>
       </div>
 
+      <!-- ── Filtered summary ───────────────────────────────────────────── -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+
+        <!-- Total invoiced -->
+        <div class="bg-card rounded-xl border border-border p-4 flex flex-col gap-1">
+          <p class="text-xs text-muted-foreground font-medium">Total invoiced</p>
+          <p class="text-2xl font-bold tabular-nums text-foreground">{{ showValues ? fmtCurrency(filteredTotal) : '€ ···' }}</p>
+          <p class="text-xs text-muted-foreground">{{ filtered.length }} session{{ filtered.length !== 1 ? 's' : '' }} in range</p>
+        </div>
+
+        <!-- Center commission -->
+        <div class="bg-card rounded-xl border border-border p-4 flex flex-col gap-1">
+          <p class="text-xs text-muted-foreground font-medium">Center commission (40%)</p>
+          <p class="text-2xl font-bold tabular-nums text-foreground">{{ showValues ? fmtCurrency(filteredCenter) : '€ ···' }}</p>
+          <p class="text-xs text-muted-foreground">Your net: <span class="font-medium text-green-600">{{ showValues ? fmtCurrency(filteredProfessional) : '€ ···' }}</span></p>
+        </div>
+
+        <!-- To invoice -->
+        <div class="bg-card rounded-xl border border-border p-4 flex flex-col gap-1">
+          <p class="text-xs text-muted-foreground font-medium">To invoice</p>
+          <p class="text-2xl font-bold tabular-nums text-foreground">{{ showValues ? fmtCurrency(filteredToInvoice) : '€ ···' }}</p>
+          <div class="flex items-center justify-between mt-0.5">
+            <p class="text-xs text-muted-foreground">{{ filteredToInvoiceCount }} draft session{{ filteredToInvoiceCount !== 1 ? 's' : '' }}</p>
+            <Button
+              v-if="filteredToInvoiceCount > 0"
+              size="sm"
+              class="h-7 text-xs gap-1"
+              @click="createInvoiceForFiltered"
+            >
+              <FileText class="w-3 h-3" />
+              Create bill
+            </Button>
+          </div>
+        </div>
+
+      </div>
+
       <!-- ── Table ───────────────────────────────────────────────────────── -->
       <div class="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
-          <Table class="min-w-[900px]">
+          <Table class="min-w-[1400px]">
             <TableHeader>
               <TableRow class="bg-muted/50 hover:bg-muted/50">
-                <!-- Checkbox -->
                 <TableHead class="w-10">
                   <Checkbox :checked="allSelected" class="mx-auto" @update:checked="toggleAll" />
                 </TableHead>
-
-                <!-- Sortable columns -->
-                <TableHead
-                  v-for="col in sortableCols.filter(c => visibleCols[c.key as keyof typeof visibleCols] !== false)"
-                  :key="col.key"
-                  class="text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap cursor-pointer hover:text-foreground transition-colors select-none"
-                  @click="toggleSort(col.key)"
-                >
-                  <div class="flex items-center gap-1">
-                    {{ col.label }}
-                    <span v-if="col.key === 'billStatus'" class="relative group">
-                      <Info class="w-3 h-3 text-muted-foreground hover:text-foreground" />
-                    </span>
-                    <ChevronUp v-if="sortKey === col.key && sortDir === 'asc'" class="w-3.5 h-3.5 text-primary" />
-                    <ChevronDown v-else-if="sortKey === col.key && sortDir === 'desc'" class="w-3.5 h-3.5 text-primary" />
-                    <ChevronsUpDown v-else class="w-3.5 h-3.5 text-muted-foreground/70" />
-                  </div>
-                </TableHead>
-                <!-- Clinic % header -->
-                <TableHead v-if="visibleCols.clinicPct" class="text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">
-                  <div class="flex items-center gap-1 group relative">
-                    Clinic %
-                    <Info class="w-3 h-3 text-muted-foreground" />
-                    <div class="absolute left-0 top-5 z-30 hidden group-hover:block w-52 p-2.5 bg-foreground text-background text-xs rounded-lg shadow-lg leading-relaxed">
-                      Revenue split between the clinic and the assigned professional. Configure in Settings → Billing.
+                <template v-for="col in visibleColDefs" :key="col.key">
+                  <TableHead
+                    :class="['text-xs font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap transition-colors select-none', SORTABLE_KEYS.has(col.key) ? 'cursor-pointer hover:text-foreground' : '']"
+                    @click="SORTABLE_KEYS.has(col.key) && toggleSort(col.key as SortKey)"
+                  >
+                    <div class="flex items-center gap-1">
+                      {{ col.label }}
+                      <template v-if="SORTABLE_KEYS.has(col.key)">
+                        <ChevronUp v-if="sortKey === col.key && sortDir === 'asc'" class="w-3.5 h-3.5 text-primary" />
+                        <ChevronDown v-else-if="sortKey === col.key && sortDir === 'desc'" class="w-3.5 h-3.5 text-primary" />
+                        <ChevronsUpDown v-else class="w-3.5 h-3.5 text-muted-foreground/70" />
+                      </template>
+                      <Info v-if="col.key === 'centerAmount'" class="w-3 h-3 text-muted-foreground ml-0.5" />
                     </div>
-                  </div>
-                </TableHead>
-                <!-- Actions -->
+                  </TableHead>
+                </template>
                 <TableHead class="w-12" />
               </TableRow>
             </TableHeader>
@@ -535,7 +761,7 @@ const therapistShare = computed(() => editorRow.value ? editorRow.value.amount -
             <TableBody>
               <!-- Empty state -->
               <TableRow v-if="filtered.length === 0">
-                <TableCell :colspan="12" class="py-16 text-center">
+                <TableCell colspan="17" class="py-16 text-center">
                   <div class="flex flex-col items-center gap-2">
                     <AlertCircle class="w-8 h-8 text-muted-foreground/50" />
                     <p class="text-sm text-muted-foreground">No sessions found matching your filters.</p>
@@ -550,47 +776,72 @@ const therapistShare = computed(() => editorRow.value ? editorRow.value.amount -
                 :class="['hover:bg-accent/50 transition-colors cursor-pointer', selected.has(row.id) ? 'bg-primary/5' : '']"
                 @click="openEditor(row)"
               >
-                <!-- Checkbox -->
                 <TableCell @click.stop>
                   <Checkbox :checked="selected.has(row.id)" class="mx-auto" @update:checked="toggleRow(row.id)" />
                 </TableCell>
-
-                <TableCell v-if="visibleCols.id" class="font-mono text-xs text-muted-foreground whitespace-nowrap">{{ row.id }}</TableCell>
-                <TableCell v-if="visibleCols.date" class="whitespace-nowrap text-muted-foreground text-sm">{{ fmtDate(row.date) }}</TableCell>
-                <TableCell v-if="visibleCols.patient" class="whitespace-nowrap">
-                  <div class="flex items-center gap-2">
-                    <Avatar class="size-6 shrink-0">
-                      <AvatarImage :src="avatarUrl(row.patient)" :alt="row.patient" />
-                      <AvatarFallback class="bg-primary/10 text-primary text-[9px] font-bold">{{ row.patientInitials }}</AvatarFallback>
-                    </Avatar>
-                    <span class="text-sm font-medium text-foreground">{{ row.patient }}</span>
-                  </div>
-                </TableCell>
-                <TableCell v-if="visibleCols.professional" class="whitespace-nowrap text-sm text-muted-foreground">{{ row.professional }}</TableCell>
-                <TableCell v-if="visibleCols.type" class="whitespace-nowrap text-sm text-muted-foreground">{{ row.type }}</TableCell>
-                <TableCell v-if="visibleCols.sessionStatus" class="whitespace-nowrap">
-                  <Badge variant="outline" :class="sessionStatusMeta[row.sessionStatus].badge">
-                    {{ sessionStatusMeta[row.sessionStatus].label }}
-                  </Badge>
-                </TableCell>
-                <TableCell v-if="visibleCols.payment" class="whitespace-nowrap">
-                  <Badge variant="outline" :class="paymentStatusMeta[row.paymentStatus].badge">
-                    {{ paymentStatusMeta[row.paymentStatus].label }}
-                  </Badge>
-                </TableCell>
-                <TableCell v-if="visibleCols.amount" class="whitespace-nowrap font-semibold text-foreground tabular-nums">
-                  {{ fmtCurrency(row.amount) }}
-                </TableCell>
-                <TableCell v-if="visibleCols.clinicPct" class="whitespace-nowrap text-sm text-muted-foreground tabular-nums">
-                  {{ row.clinicPct }}%
-                </TableCell>
-                <TableCell v-if="visibleCols.billStatus" class="whitespace-nowrap">
-                  <Badge variant="outline" :class="billStatusMeta[row.billStatus].badge">
-                    {{ billStatusMeta[row.billStatus].label }}
-                  </Badge>
-                </TableCell>
-
-                <!-- Row actions -->
+                <template v-for="col in visibleColDefs" :key="col.key">
+                  <TableCell v-if="col.key === 'id'" class="font-mono text-xs text-muted-foreground whitespace-nowrap">{{ row.id }}</TableCell>
+                  <TableCell v-else-if="col.key === 'date'" class="whitespace-nowrap text-sm text-muted-foreground">{{ fmtDate(row.date) }}</TableCell>
+                  <TableCell v-else-if="col.key === 'patient'" class="whitespace-nowrap">
+                    <div class="flex items-center gap-2">
+                      <Avatar class="size-6 shrink-0">
+                        <AvatarFallback class="bg-primary/10 text-primary text-[9px] font-bold">{{ row.patientInitials }}</AvatarFallback>
+                      </Avatar>
+                      <span class="text-sm font-medium text-foreground">{{ row.patient }}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell v-else-if="col.key === 'professional'" class="whitespace-nowrap text-sm text-muted-foreground">{{ row.professional }}</TableCell>
+                  <TableCell v-else-if="col.key === 'type'" class="whitespace-nowrap text-sm text-muted-foreground">{{ row.type }}</TableCell>
+                  <TableCell v-else-if="col.key === 'modality'" class="whitespace-nowrap">
+                    <div class="flex items-center gap-1.5 text-sm">
+                      <Video v-if="row.modality === 'online'" class="w-3.5 h-3.5 text-primary shrink-0" />
+                      <MapPin v-else class="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                      <span :class="row.modality === 'online' ? 'text-primary' : 'text-muted-foreground'">
+                        {{ row.modality === 'online' ? 'Online' : 'In-person' }}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell v-else-if="col.key === 'sessionTimes'" class="whitespace-nowrap tabular-nums text-sm">
+                    <span class="text-foreground">{{ fmtTime(row.sessionStart) }}</span>
+                    <span class="text-muted-foreground mx-1">–</span>
+                    <span class="text-muted-foreground">{{ fmtTime(row.sessionEnd) }}</span>
+                    <span class="text-xs text-muted-foreground ml-1">({{ row.duration }}min)</span>
+                  </TableCell>
+                  <TableCell v-else-if="col.key === 'sessionStatus'" class="whitespace-nowrap">
+                    <Badge variant="outline" :class="sessionStatusMeta[row.sessionStatus].badge">
+                      {{ sessionStatusMeta[row.sessionStatus].label }}
+                    </Badge>
+                  </TableCell>
+                  <TableCell v-else-if="col.key === 'payment'" class="whitespace-nowrap">
+                    <Badge variant="outline" :class="paymentStatusMeta[row.paymentStatus].badge">
+                      {{ paymentStatusMeta[row.paymentStatus].label }}
+                    </Badge>
+                  </TableCell>
+                  <TableCell v-else-if="col.key === 'amount'" class="whitespace-nowrap font-semibold text-foreground tabular-nums">
+                    {{ fmtCurrency(row.amount) }}
+                  </TableCell>
+                  <TableCell v-else-if="col.key === 'centerAmount'" class="whitespace-nowrap text-sm text-muted-foreground tabular-nums">
+                    {{ fmtCurrency(Math.round(row.amount * row.clinicPct / 100)) }}
+                  </TableCell>
+                  <TableCell v-else-if="col.key === 'professionalAmount'" class="whitespace-nowrap text-sm font-medium text-green-600 tabular-nums">
+                    {{ fmtCurrency(row.amount - Math.round(row.amount * row.clinicPct / 100)) }}
+                  </TableCell>
+                  <TableCell v-else-if="col.key === 'paymentMethod'" class="whitespace-nowrap">
+                    <span v-if="row.paymentMethod" class="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                      <CreditCard class="w-3 h-3" />
+                      {{ paymentMethodLabel[row.paymentMethod] }}
+                    </span>
+                    <span v-else class="text-xs text-muted-foreground">—</span>
+                  </TableCell>
+                  <TableCell v-else-if="col.key === 'paymentDate'" class="whitespace-nowrap text-sm text-muted-foreground tabular-nums">
+                    {{ row.paymentDate ? fmtDate(row.paymentDate) : '—' }}
+                  </TableCell>
+                  <TableCell v-else-if="col.key === 'billStatus'" class="whitespace-nowrap">
+                    <Badge variant="outline" :class="billStatusMeta[row.billStatus].badge">
+                      {{ billStatusMeta[row.billStatus].label }}
+                    </Badge>
+                  </TableCell>
+                </template>
                 <TableCell class="whitespace-nowrap" @click.stop>
                   <Button variant="ghost" size="icon-sm" @click.stop="openEditor(row)">
                     <FileText class="w-4 h-4" />
@@ -598,6 +849,30 @@ const therapistShare = computed(() => editorRow.value ? editorRow.value.amount -
                 </TableCell>
               </TableRow>
             </TableBody>
+
+            <!-- ── Table footer (totals) ─────────────────────────────────── -->
+            <TableFooter>
+              <TableRow class="bg-muted/40 hover:bg-muted/40 border-t-2 border-border font-medium">
+                <TableCell class="text-xs font-semibold text-muted-foreground py-3">
+                  {{ filtered.length }}
+                </TableCell>
+                <template v-for="(col, idx) in visibleColDefs" :key="col.key">
+                  <TableCell v-if="col.key === 'amount'" class="font-bold text-foreground tabular-nums">
+                    {{ fmtCurrency(filteredTotal) }}
+                  </TableCell>
+                  <TableCell v-else-if="col.key === 'centerAmount'" class="text-muted-foreground tabular-nums">
+                    {{ fmtCurrency(filteredCenter) }}
+                  </TableCell>
+                  <TableCell v-else-if="col.key === 'professionalAmount'" class="text-green-600 font-semibold tabular-nums">
+                    {{ fmtCurrency(filteredProfessional) }}
+                  </TableCell>
+                  <TableCell v-else-if="idx === 0" class="text-xs font-semibold text-muted-foreground">Totals</TableCell>
+                  <TableCell v-else />
+                </template>
+                <TableCell />
+              </TableRow>
+            </TableFooter>
+
           </Table>
         </div>
       </div>
