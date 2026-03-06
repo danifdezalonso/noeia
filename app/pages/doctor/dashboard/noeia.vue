@@ -1,15 +1,22 @@
 <script setup lang="ts">
 import {
-  Trash2, Zap, Plus, Send, Sparkles, ChevronDown, ChevronLeft, ChevronRight,
+  Trash2, Plus, Send, Sparkles, ChevronDown, ChevronLeft, ChevronRight,
   Mic, Undo2, Redo2, Copy, Paperclip, UserRound, LayoutGrid, Pencil,
   Languages, CalendarDays, Volume2, MoreHorizontal, Phone, Video,
+  Bold, Italic, Underline, Strikethrough, List, Heading1, Settings2,
 } from 'lucide-vue-next'
 import {
   format, addDays, startOfWeek, subWeeks, addMonths, subMonths,
   startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isSameMonth, isToday,
 } from 'date-fns'
+import { nextTick } from 'vue'
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover'
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuTrigger,
+  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuCheckboxItem,
+  DropdownMenuRadioGroup, DropdownMenuRadioItem,
+} from '~/components/ui/dropdown-menu'
 
 definePageMeta({ layout: 'dashboard' })
 
@@ -133,6 +140,15 @@ const activeTab  = ref<'schedule' | 'past'>('schedule')
 const selectedId = ref('a1')
 const contentTab = ref('context')
 
+// AI configuration
+const aiConfig = reactive({
+  style: 'clinical' as 'clinical' | 'formal' | 'conversational',
+  expressionType: 'technical' as 'technical' | 'plain' | 'mixed',
+  bulletPoints: true,
+  quotes: false,
+  abbreviations: false,
+})
+
 const isRecording    = ref(false)
 const transcribeOpen = ref(false)
 const copyOpen       = ref(false)
@@ -160,6 +176,21 @@ function groups(tab: 'schedule' | 'past') {
 }
 
 const currentGroups = computed(() => groups(activeTab.value))
+
+// ── Sidebar mini day calendar ───────────────────────────────────────────────
+
+const HOUR_H    = 22
+const DAY_START = 8
+const HOUR_RANGE = Array.from({ length: 11 }, (_, i) => i + DAY_START) // 8..18
+
+const todayAppointments = computed(() =>
+  appointments.value.filter(a => isToday(a.sessionDate)),
+)
+
+function timeToY(t: string): number {
+  const [h, m] = t.split(':').map(Number)
+  return Math.max(0, ((h - DAY_START) + m / 60) * HOUR_H)
+}
 
 // ── Calendar grid ──────────────────────────────────────────────────────────
 
@@ -214,6 +245,27 @@ function finishSession() {
 const contextAreaRef = ref<HTMLTextAreaElement>()
 function undoContext() { contextAreaRef.value?.focus(); document.execCommand('undo') }
 function redoContext()  { contextAreaRef.value?.focus(); document.execCommand('redo') }
+
+function wrapText(before: string, after: string) {
+  const el   = contextAreaRef.value
+  const appt = appointments.value.find(a => a.id === selectedId.value)
+  if (!el || !appt) return
+  const s = el.selectionStart
+  const e = el.selectionEnd
+  appt.contextText = appt.contextText.substring(0, s) + before + appt.contextText.substring(s, e) + after + appt.contextText.substring(e)
+  nextTick(() => { el.setSelectionRange(s + before.length, e + before.length); el.focus() })
+}
+
+function insertLinePrefix(prefix: string) {
+  const el   = contextAreaRef.value
+  const appt = appointments.value.find(a => a.id === selectedId.value)
+  if (!el || !appt) return
+  const pos       = el.selectionStart
+  const lineStart = appt.contextText.lastIndexOf('\n', pos - 1) + 1
+  appt.contextText = appt.contextText.substring(0, lineStart) + prefix + appt.contextText.substring(lineStart)
+  nextTick(() => { el.setSelectionRange(pos + prefix.length, pos + prefix.length); el.focus() })
+}
+
 function copyContext()  {
   if (selected.value) navigator.clipboard.writeText(selected.value.contextText)
   copyOpen.value = false
@@ -282,6 +334,45 @@ onMounted(() => {
         >
           {{ t === 'schedule' ? 'Schedule' : 'Past' }}
         </button>
+      </div>
+
+      <!-- Mini today's day view (Schedule tab only) -->
+      <div v-if="activeTab === 'schedule'" class="mx-3 mt-2 mb-1 rounded-xl border border-border bg-card overflow-hidden shrink-0">
+        <div class="px-3 py-1.5 flex items-center justify-between border-b border-border/40">
+          <span class="text-[11px] font-semibold text-foreground">Today</span>
+          <span class="text-[10px] text-muted-foreground">{{ format(new Date(), 'EEE, MMM d') }}</span>
+        </div>
+        <div class="relative overflow-y-auto" :style="`height:${HOUR_H * HOUR_RANGE.length}px; max-height:168px`">
+          <!-- Hour lines -->
+          <div
+            v-for="h in HOUR_RANGE"
+            :key="h"
+            class="absolute w-full flex items-start pointer-events-none"
+            :style="`top:${(h - DAY_START) * HOUR_H}px; height:${HOUR_H}px`"
+          >
+            <span class="text-[9px] text-muted-foreground/50 w-7 pl-1 shrink-0 pt-0.5 leading-none">{{ h }}</span>
+            <div class="flex-1 border-t border-border/25 mt-2" />
+          </div>
+          <!-- Appointment blocks -->
+          <div
+            v-for="appt in todayAppointments"
+            :key="appt.id"
+            :style="`position:absolute; top:${timeToY(appt.sessionTime)}px; left:28px; right:4px; height:${HOUR_H - 3}px`"
+            :class="[
+              'rounded flex items-center px-1.5 cursor-pointer transition-colors text-[10px] font-medium truncate',
+              selectedId === appt.id
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-primary/15 text-primary hover:bg-primary/25',
+            ]"
+            @click="selectAppointment(appt.id)"
+          >
+            {{ appt.patientName }}
+          </div>
+          <!-- Empty state -->
+          <div v-if="todayAppointments.length === 0" class="absolute inset-0 flex items-center justify-center">
+            <span class="text-[10px] text-muted-foreground/50">No sessions today</span>
+          </div>
+        </div>
       </div>
 
       <!-- Appointment list -->
@@ -487,11 +578,6 @@ onMounted(() => {
             </PopoverContent>
           </Popover>
 
-          <!-- Trial badge -->
-          <span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-sm font-semibold">
-            <Zap class="w-3.5 h-3.5" />
-            14 days
-          </span>
         </div>
       </header>
 
@@ -532,8 +618,39 @@ onMounted(() => {
           <div class="flex-1 flex flex-col bg-card rounded-2xl border border-border shadow-sm overflow-hidden min-h-0">
 
             <!-- Toolbar row -->
-            <div class="shrink-0 flex items-center justify-end gap-2 px-4 py-2 border-b border-border/50">
+            <div class="shrink-0 flex items-center justify-between gap-2 px-4 py-2 border-b border-border/50">
 
+              <!-- AI Configuration dropdown -->
+              <DropdownMenu>
+                <DropdownMenuTrigger as-child>
+                  <button class="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-muted-foreground hover:bg-accent hover:text-foreground rounded-lg border border-border transition-colors">
+                    <Settings2 class="w-3.5 h-3.5" />
+                    AI Config
+                    <ChevronDown class="w-3 h-3 opacity-60" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" class="w-52">
+                  <DropdownMenuLabel class="text-xs text-muted-foreground">Writing Style</DropdownMenuLabel>
+                  <DropdownMenuRadioGroup v-model="aiConfig.style">
+                    <DropdownMenuRadioItem value="clinical">Clinical</DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="formal">Formal</DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="conversational">Conversational</DropdownMenuRadioItem>
+                  </DropdownMenuRadioGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel class="text-xs text-muted-foreground">Expression Type</DropdownMenuLabel>
+                  <DropdownMenuRadioGroup v-model="aiConfig.expressionType">
+                    <DropdownMenuRadioItem value="technical">Technical</DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="plain">Plain language</DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="mixed">Mixed</DropdownMenuRadioItem>
+                  </DropdownMenuRadioGroup>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuCheckboxItem v-model:checked="aiConfig.bulletPoints">Bullet points</DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem v-model:checked="aiConfig.quotes">Include quotes</DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem v-model:checked="aiConfig.abbreviations">Use abbreviations</DropdownMenuCheckboxItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <div class="flex items-center gap-2">
               <!-- Mic group -->
               <div class="relative flex items-center border border-border rounded-lg overflow-visible" @click.stop>
                 <button class="p-2 text-muted-foreground hover:bg-accent transition-colors" title="Voice input">
@@ -579,6 +696,30 @@ onMounted(() => {
                   </div>
                 </Transition>
               </div>
+              </div><!-- end right group -->
+            </div>
+
+            <!-- Writing format toolbar -->
+            <div class="shrink-0 flex items-center gap-0.5 px-3 py-1.5 border-b border-border/30">
+              <button class="w-7 h-7 rounded flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors" title="Bold" @click="wrapText('**', '**')">
+                <Bold class="w-3.5 h-3.5" />
+              </button>
+              <button class="w-7 h-7 rounded flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors" title="Italic" @click="wrapText('*', '*')">
+                <Italic class="w-3.5 h-3.5" />
+              </button>
+              <button class="w-7 h-7 rounded flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors" title="Underline" @click="wrapText('<u>', '</u>')">
+                <Underline class="w-3.5 h-3.5" />
+              </button>
+              <button class="w-7 h-7 rounded flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors" title="Strikethrough" @click="wrapText('~~', '~~')">
+                <Strikethrough class="w-3.5 h-3.5" />
+              </button>
+              <div class="w-px h-4 bg-border mx-1" />
+              <button class="w-7 h-7 rounded flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors" title="Bullet list" @click="insertLinePrefix('- ')">
+                <List class="w-3.5 h-3.5" />
+              </button>
+              <button class="w-7 h-7 rounded flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors" title="Heading" @click="insertLinePrefix('## ')">
+                <Heading1 class="w-3.5 h-3.5" />
+              </button>
             </div>
 
             <!-- Textarea -->
