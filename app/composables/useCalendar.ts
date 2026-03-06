@@ -128,6 +128,35 @@ export const useCalendar = () => {
   // ── Context menu ────────────────────────────────────────────────────────────
   const contextMenu = useState<ContextMenuState | null>('cal-context-menu', () => null)
 
+  // ── Colleague calendars ─────────────────────────────────────────────────────
+  const COLLEAGUE_COLORS = ['#0891b2', '#d97706', '#db2777', '#65a30d', '#dc2626', '#7c3aed', '#0d9488']
+
+  const visibleColleagueIds = useState<string[]>('cal-visible-colleagues', () => [])
+
+  const colleagues = computed(() => {
+    const map = new Map<string, string>()
+    events.value.forEach(ev => {
+      if (ev.doctorId && ev.doctorName && !map.has(ev.doctorId))
+        map.set(ev.doctorId, ev.doctorName)
+    })
+    return Array.from(map.entries()).map(([id, name], i) => ({
+      id,
+      name,
+      color: COLLEAGUE_COLORS[i % COLLEAGUE_COLORS.length]!,
+    }))
+  })
+
+  const filteredEvents = computed(() =>
+    events.value.filter(ev => !ev.doctorId || visibleColleagueIds.value.includes(ev.doctorId))
+  )
+
+  function toggleColleague(id: string) {
+    const idx = visibleColleagueIds.value.indexOf(id)
+    visibleColleagueIds.value = idx === -1
+      ? [...visibleColleagueIds.value, id]
+      : visibleColleagueIds.value.filter(i => i !== id)
+  }
+
   // ── Display settings ────────────────────────────────────────────────────────
   const hideWeekends = useState<boolean>('cal-hide-weekends',  () => true)
   const showWeekNums = useState<boolean>('cal-week-numbers',   () => false)
@@ -327,5 +356,6 @@ export const useCalendar = () => {
     toggleTaskDone,
     openContextMenu, closeContextMenu, setEventColor, toggleEventLabel, duplicateEvent,
     initEvents,
+    visibleColleagueIds, colleagues, filteredEvents, toggleColleague,
   }
 }

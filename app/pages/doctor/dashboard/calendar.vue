@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ChevronLeft, ChevronRight, Plus, Settings2 } from 'lucide-vue-next'
+import { ChevronLeft, ChevronRight, Plus, Settings2, Eye } from 'lucide-vue-next'
 import { Button } from '~/components/ui/button'
 import { ToggleGroup, ToggleGroupItem } from '~/components/ui/toggle-group'
 
@@ -41,15 +41,30 @@ function createNew() {
 }
 
 // ── Settings panel ─────────────────────────────────────────────────────────
-const settingsOpen      = ref(false)
+const settingsOpen       = ref(false)
 const settingsTriggerRef = ref<HTMLElement>()
 
-function toggleSettings() { settingsOpen.value = !settingsOpen.value }
-function closeSettings()   { settingsOpen.value = false }
+function toggleSettings() {
+  settingsOpen.value = !settingsOpen.value
+  if (settingsOpen.value) colleaguesPanelOpen.value = false
+}
+function closeSettings() { settingsOpen.value = false }
+
+// ── Colleagues panel ────────────────────────────────────────────────────────
+const colleaguesPanelOpen       = ref(false)
+const colleaguesTriggerRef = ref<HTMLElement>()
+
+function toggleColleaguesPanel() {
+  colleaguesPanelOpen.value = !colleaguesPanelOpen.value
+  if (colleaguesPanelOpen.value) settingsOpen.value = false
+}
+function closeColleaguesPanel() { colleaguesPanelOpen.value = false }
 
 function handleOutsideClick(e: MouseEvent) {
   if (settingsOpen.value && settingsTriggerRef.value && !settingsTriggerRef.value.contains(e.target as Node))
     settingsOpen.value = false
+  if (colleaguesPanelOpen.value && colleaguesTriggerRef.value && !colleaguesTriggerRef.value.contains(e.target as Node))
+    colleaguesPanelOpen.value = false
 }
 
 onMounted(() => { document.addEventListener('click', handleOutsideClick) })
@@ -93,19 +108,39 @@ onBeforeUnmount(() => { document.removeEventListener('click', handleOutsideClick
           </h2>
         </div>
 
-        <!-- Right: settings gear -->
-        <div ref="settingsTriggerRef" class="relative">
-          <Button
-            variant="ghost"
-            size="icon"
-            class="rounded-full"
-            :class="settingsOpen ? 'bg-primary/10 text-primary' : ''"
-            title="Calendar settings"
-            @click.stop="toggleSettings"
-          >
-            <Settings2 class="w-4 h-4" />
-          </Button>
-          <CalendarSettings :open="settingsOpen" @close="closeSettings" />
+        <!-- Right: colleagues + settings -->
+        <div class="flex items-center gap-1">
+
+          <!-- Colleagues panel -->
+          <div ref="colleaguesTriggerRef" class="relative">
+            <Button
+              variant="ghost"
+              size="icon"
+              class="rounded-full"
+              :class="colleaguesPanelOpen ? 'bg-primary/10 text-primary' : ''"
+              title="View colleagues' calendars"
+              @click.stop="toggleColleaguesPanel"
+            >
+              <Eye class="w-4 h-4" />
+            </Button>
+            <ColleagueCalendarsPanel :open="colleaguesPanelOpen" @close="closeColleaguesPanel" />
+          </div>
+
+          <!-- Settings gear -->
+          <div ref="settingsTriggerRef" class="relative">
+            <Button
+              variant="ghost"
+              size="icon"
+              class="rounded-full"
+              :class="settingsOpen ? 'bg-primary/10 text-primary' : ''"
+              title="Calendar settings"
+              @click.stop="toggleSettings"
+            >
+              <Settings2 class="w-4 h-4" />
+            </Button>
+            <CalendarSettings :open="settingsOpen" @close="closeSettings" />
+          </div>
+
         </div>
       </div>
 

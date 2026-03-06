@@ -17,10 +17,17 @@ const {
   viewMode, currentTitle,
   hideWeekends, showWeekNums, slotDuration, workHours,
   openQuickCreate, openEventView, moveEvent, toggleTaskDone, openContextMenu,
+  filteredEvents, colleagues,
 } = cal
 
-// Use prop events if provided, otherwise fall back to composable events
-const activeEvents = computed(() => props.events ?? cal.events.value)
+// Use prop events if provided, otherwise fall back to filtered composable events
+const activeEvents = computed(() => props.events ?? filteredEvents.value)
+
+const colleagueColorMap = computed(() => {
+  const m = new Map<string, string>()
+  colleagues.value.forEach(c => m.set(c.id, c.color))
+  return m
+})
 
 const calendarRef   = ref<InstanceType<typeof FullCalendar>>()
 const showMoveConfirm = ref(false)
@@ -58,7 +65,8 @@ function toLocalIso(date: Date): string {
 const fcEvents = computed(() =>
   activeEvents.value.map((ev) => {
     const style = categoryStyle[ev.category] ?? { bg: '#6b7280', text: '#ffffff' }
-    const bg = ev.color ?? style.bg
+    const colleagueColor = ev.doctorId ? colleagueColorMap.value.get(ev.doctorId) : undefined
+    const bg = colleagueColor ?? ev.color ?? style.bg
     return {
       id: ev.id,
       title: ev.title,
