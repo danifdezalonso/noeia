@@ -2,9 +2,9 @@
 import { useEventListener } from '@vueuse/core'
 import {
   X, Pencil, Trash2, Video, MapPin, AlignLeft, Bell, Lock,
-  Calendar, Clock, ExternalLink, Sparkles,
+  Calendar, ExternalLink, Sparkles, Tag,
 } from 'lucide-vue-next'
-import { format, parseISO } from 'date-fns'
+import { format, parseISO, isSameDay } from 'date-fns'
 import { Button } from '~/components/ui/button'
 import { Badge } from '~/components/ui/badge'
 
@@ -16,7 +16,7 @@ const { viewPopoverOpen, viewPopoverEvent, viewPopoverPos, openEdit, deleteEvent
 const popoverStyle = computed(() => {
   const pos = viewPopoverPos.value
   if (!pos || typeof window === 'undefined') return {}
-  const W = 320; const estH = 360; const m = 12
+  const W = 320; const estH = 480; const m = 12
   let left = pos.x + 14
   let top  = pos.y - 60
   if (left + W > window.innerWidth  - m) left = pos.x - W - 14
@@ -38,6 +38,15 @@ const categoryStyle: Record<string, { bg: string; label: string }> = {
   documentation: { bg: '#64748b', label: 'Documentation' },
 }
 
+const SESSION_TYPE_LABELS: Record<string, string> = {
+  individual: 'Individual therapy',
+  initial:    'Initial consultation',
+  followup:   'Follow-up session',
+  group:      'Group session',
+  family:     'Family therapy',
+  crisis:     'Crisis intervention',
+}
+
 const catInfo = computed(() => {
   if (!ev.value) return { bg: '#6b7280', label: '' }
   return categoryStyle[ev.value.category] ?? { bg: '#6b7280', label: ev.value.category }
@@ -47,16 +56,22 @@ function fmtDateRange(e: typeof ev.value) {
   if (!e) return ''
   try {
     if (e.allDay) {
-      return format(parseISO(e.start + 'T12:00:00'), 'EEEE, MMM d')
+      const startD = parseISO(e.start + 'T12:00:00')
+      const endD   = parseISO(e.end   + 'T12:00:00')
+      // allDay end from FC is exclusive (next day), adjust back
+      const endAdj = new Date(endD.getTime() - 24 * 60 * 60 * 1000)
+      if (isSameDay(startD, endAdj))
+        return format(startD, 'EEEE, MMM d')
+      return `${format(startD, 'EEE, MMM d')} – ${format(endAdj, 'EEE, MMM d')}`
     }
     const start = parseISO(e.start)
     const end   = parseISO(e.end)
-    const day   = format(start, 'EEEE, MMM d')
-    const s     = format(start, 'HH:mm')
-    const en    = format(end, 'HH:mm')
     const mins  = (end.getTime() - start.getTime()) / 60000
     const dur   = mins >= 60 ? `${Math.floor(mins / 60)}h${mins % 60 ? ` ${mins % 60}m` : ''}` : `${mins}m`
-    return `${day} · ${s} – ${en} (${dur})`
+    if (!isSameDay(start, end)) {
+      return `${format(start, 'EEE, MMM d, HH:mm')} → ${format(end, 'EEE, MMM d, HH:mm')}`
+    }
+    return `${format(start, 'EEEE, MMM d')} · ${format(start, 'HH:mm')} – ${format(end, 'HH:mm')} (${dur})`
   } catch { return e.start }
 }
 
@@ -149,6 +164,12 @@ useEventListener(document, 'keydown', (e: KeyboardEvent) => {
           <div class="flex items-start gap-2.5 text-sm text-foreground">
             <Calendar class="w-3.5 h-3.5 mt-0.5 text-muted-foreground shrink-0" />
             <span>{{ dateRange }}</span>
+          </div>
+
+          <!-- Session type -->
+          <div v-if="ev.category === 'session' && ev.sessionType" class="flex items-center gap-2.5 text-sm text-foreground">
+            <Tag class="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+            <span class="text-muted-foreground">{{ SESSION_TYPE_LABELS[ev.sessionType] ?? ev.sessionType }}</span>
           </div>
 
           <!-- Online -->
