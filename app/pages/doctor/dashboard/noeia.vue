@@ -327,35 +327,37 @@ onMounted(() => {
           <span class="text-[11px] font-semibold text-foreground">Today</span>
           <span class="text-[10px] text-muted-foreground">{{ format(new Date(), 'EEE, MMM d') }}</span>
         </div>
-        <div class="relative overflow-y-auto" :style="`height:${HOUR_H * HOUR_RANGE.length}px; max-height:168px`">
-          <!-- Hour lines -->
-          <div
-            v-for="h in HOUR_RANGE"
-            :key="h"
-            class="absolute w-full flex items-start pointer-events-none"
-            :style="`top:${(h - DAY_START) * HOUR_H}px; height:${HOUR_H}px`"
-          >
-            <span class="text-[9px] text-muted-foreground/50 w-7 pl-1 shrink-0 pt-0.5 leading-none">{{ h }}</span>
-            <div class="flex-1 border-t border-border/25 mt-2" />
-          </div>
-          <!-- Appointment blocks -->
-          <div
-            v-for="appt in todayAppointments"
-            :key="appt.id"
-            :style="`position:absolute; top:${timeToY(appt.sessionTime)}px; left:28px; right:4px; height:${HOUR_H - 3}px`"
-            :class="[
-              'rounded flex items-center px-1.5 cursor-pointer transition-colors text-[10px] font-medium truncate',
-              selectedId === appt.id
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-primary/15 text-primary hover:bg-primary/25',
-            ]"
-            @click="selectAppointment(appt.id)"
-          >
-            {{ appt.patientName }}
-          </div>
-          <!-- Empty state -->
-          <div v-if="todayAppointments.length === 0" class="absolute inset-0 flex items-center justify-center">
-            <span class="text-[10px] text-muted-foreground/50">No sessions today</span>
+        <div class="overflow-y-auto" style="max-height:168px">
+          <div class="relative" :style="`height:${HOUR_H * HOUR_RANGE.length}px`">
+            <!-- Hour lines -->
+            <div
+              v-for="h in HOUR_RANGE"
+              :key="h"
+              class="absolute w-full flex items-start pointer-events-none"
+              :style="`top:${(h - DAY_START) * HOUR_H}px; height:${HOUR_H}px`"
+            >
+              <span class="text-[9px] text-muted-foreground/50 w-7 pl-1 shrink-0 pt-0.5 leading-none">{{ h }}</span>
+              <div class="flex-1 border-t border-border/25 mt-2" />
+            </div>
+            <!-- Appointment blocks -->
+            <div
+              v-for="appt in todayAppointments"
+              :key="appt.id"
+              :style="`position:absolute; top:${timeToY(appt.sessionTime)}px; left:28px; right:4px; height:${HOUR_H - 3}px`"
+              :class="[
+                'rounded flex items-center px-1.5 cursor-pointer transition-colors text-[10px] font-medium truncate',
+                selectedId === appt.id
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-primary/15 text-primary hover:bg-primary/25',
+              ]"
+              @click="selectAppointment(appt.id)"
+            >
+              {{ appt.patientName }}
+            </div>
+            <!-- Empty state -->
+            <div v-if="todayAppointments.length === 0" class="absolute inset-0 flex items-center justify-center">
+              <span class="text-[10px] text-muted-foreground/50">No sessions today</span>
+            </div>
           </div>
         </div>
       </div>
@@ -448,12 +450,6 @@ onMounted(() => {
               </Transition>
             </div>
 
-            <button
-              class="px-4 py-1.5 bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-medium rounded-lg transition-colors"
-              @click="finishSession"
-            >
-              Finish Session
-            </button>
           </div>
         </div>
 
@@ -682,26 +678,14 @@ onMounted(() => {
             </div>
 
             <!-- Writing format toolbar -->
-            <div class="shrink-0 flex items-center gap-0.5 px-3 py-1.5 border-b border-border/30">
-              <button class="w-7 h-7 rounded flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors" title="Bold" @click="wrapText('**', '**')">
-                <Bold class="w-3.5 h-3.5" />
-              </button>
-              <button class="w-7 h-7 rounded flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors" title="Italic" @click="wrapText('*', '*')">
-                <Italic class="w-3.5 h-3.5" />
-              </button>
-              <button class="w-7 h-7 rounded flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors" title="Underline" @click="wrapText('<u>', '</u>')">
-                <Underline class="w-3.5 h-3.5" />
-              </button>
-              <button class="w-7 h-7 rounded flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors" title="Strikethrough" @click="wrapText('~~', '~~')">
-                <Strikethrough class="w-3.5 h-3.5" />
-              </button>
-              <div class="w-px h-4 bg-border mx-1" />
-              <button class="w-7 h-7 rounded flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors" title="Bullet list" @click="insertLinePrefix('- ')">
-                <List class="w-3.5 h-3.5" />
-              </button>
-              <button class="w-7 h-7 rounded flex items-center justify-center text-muted-foreground hover:bg-accent hover:text-foreground transition-colors" title="Heading" @click="insertLinePrefix('## ')">
-                <Heading1 class="w-3.5 h-3.5" />
-              </button>
+            <div class="shrink-0 px-3 py-1.5 border-b border-border/30" style="display:flex; flex-direction:row; align-items:center; gap:2px">
+              <button style="display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px" class="rounded text-muted-foreground hover:bg-accent hover:text-foreground transition-colors" title="Bold" @click="wrapText('**', '**')"><Bold class="w-3.5 h-3.5" /></button>
+              <button style="display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px" class="rounded text-muted-foreground hover:bg-accent hover:text-foreground transition-colors" title="Italic" @click="wrapText('*', '*')"><Italic class="w-3.5 h-3.5" /></button>
+              <button style="display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px" class="rounded text-muted-foreground hover:bg-accent hover:text-foreground transition-colors" title="Underline" @click="wrapText('<u>', '</u>')"><Underline class="w-3.5 h-3.5" /></button>
+              <button style="display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px" class="rounded text-muted-foreground hover:bg-accent hover:text-foreground transition-colors" title="Strikethrough" @click="wrapText('~~', '~~')"><Strikethrough class="w-3.5 h-3.5" /></button>
+              <div style="width:1px; height:16px; background:var(--border); margin:0 4px; flex-shrink:0" />
+              <button style="display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px" class="rounded text-muted-foreground hover:bg-accent hover:text-foreground transition-colors" title="Bullet list" @click="insertLinePrefix('- ')"><List class="w-3.5 h-3.5" /></button>
+              <button style="display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px" class="rounded text-muted-foreground hover:bg-accent hover:text-foreground transition-colors" title="Heading" @click="insertLinePrefix('## ')"><Heading1 class="w-3.5 h-3.5" /></button>
             </div>
 
             <!-- Textarea -->
