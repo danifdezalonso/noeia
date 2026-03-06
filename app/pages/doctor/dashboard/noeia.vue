@@ -4,6 +4,7 @@ import {
   Mic, Undo2, Redo2, Copy, Paperclip, UserRound, LayoutGrid, Pencil,
   Languages, CalendarDays, Volume2, MoreHorizontal, Phone, Video,
   Bold, Italic, Underline, Strikethrough, List, Heading1, Settings2,
+  PanelLeftClose, PanelLeftOpen,
 } from 'lucide-vue-next'
 import {
   format, addDays, startOfWeek, subWeeks, addMonths, subMonths,
@@ -149,6 +150,7 @@ const aiConfig = reactive({
   abbreviations: false,
 })
 
+const calSidebarOpen = ref(true)
 const isRecording    = ref(false)
 const transcribeOpen = ref(false)
 const copyOpen       = ref(false)
@@ -179,17 +181,17 @@ const currentGroups = computed(() => groups(activeTab.value))
 
 // ── Sidebar mini day calendar ───────────────────────────────────────────────
 
-const HOUR_H    = 22
-const DAY_START = 8
-const HOUR_RANGE = Array.from({ length: 11 }, (_, i) => i + DAY_START) // 8..18
+const HOUR_RANGE = [8,9,10,11,12,13,14,15,16,17,18,19]
 
 const todayAppointments = computed(() =>
   appointments.value.filter(a => isToday(a.sessionDate)),
 )
 
-function timeToY(t: string): number {
-  const [h, m] = t.split(':').map(Number)
-  return Math.max(0, ((h - DAY_START) + m / 60) * HOUR_H)
+function appointmentsAtHour(h: number) {
+  return todayAppointments.value.filter(a => {
+    const hour = parseInt(a.sessionTime.split(':')[0] ?? '0', 10)
+    return hour === h
+  })
 }
 
 // ── Calendar grid ──────────────────────────────────────────────────────────
@@ -319,7 +321,13 @@ onMounted(() => {
   <div class="flex-1 flex overflow-hidden min-h-0">
 
     <!-- ══ Left sidebar ═══════════════════════════════════════════════════ -->
-    <aside class="w-52 sm:w-60 md:w-64 flex flex-col bg-background border-r border-border/50 shrink-0 min-w-0">
+    <Transition
+      enter-active-class="transition-all duration-200 ease-out"
+      leave-active-class="transition-all duration-150 ease-in"
+      enter-from-class="opacity-0 -translate-x-4"
+      leave-to-class="opacity-0 -translate-x-4"
+    >
+    <aside v-show="calSidebarOpen" class="w-52 sm:w-60 md:w-64 flex flex-col bg-background border-r border-border/50 shrink-0 min-w-0">
 
       <!-- Mini today's day view -->
       <div class="mx-3 mt-3 mb-1 rounded-xl border border-border bg-card overflow-hidden shrink-0">
@@ -327,37 +335,31 @@ onMounted(() => {
           <span class="text-[11px] font-semibold text-foreground">Today</span>
           <span class="text-[10px] text-muted-foreground">{{ format(new Date(), 'EEE, MMM d') }}</span>
         </div>
-        <div class="overflow-y-auto" style="max-height:168px">
-          <div class="relative" :style="`height:${HOUR_H * HOUR_RANGE.length}px`">
-            <!-- Hour lines -->
-            <div
-              v-for="h in HOUR_RANGE"
-              :key="h"
-              class="absolute w-full flex items-start pointer-events-none"
-              :style="`top:${(h - DAY_START) * HOUR_H}px; height:${HOUR_H}px`"
-            >
-              <span class="text-[9px] text-muted-foreground/50 w-7 pl-1 shrink-0 pt-0.5 leading-none">{{ h }}</span>
-              <div class="flex-1 border-t border-border/25 mt-2" />
+        <div class="overflow-y-auto" style="max-height:160px">
+          <!-- Hour rows -->
+          <div
+            v-for="h in HOUR_RANGE"
+            :key="h"
+            class="flex items-stretch border-t border-border/20"
+            style="height:22px"
+          >
+            <span class="text-[9px] text-muted-foreground/50 w-8 pl-1.5 shrink-0 flex items-center">{{ h }}</span>
+            <div class="flex-1 relative">
+              <button
+                v-for="appt in appointmentsAtHour(h)"
+                :key="appt.id"
+                :class="[
+                  'absolute inset-y-0.5 inset-x-0.5 rounded px-1.5 text-[9px] font-medium truncate w-full text-left',
+                  selectedId === appt.id
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-primary/30 text-primary hover:bg-primary/50',
+                ]"
+                @click="selectAppointment(appt.id)"
+              >{{ appt.patientName }}</button>
             </div>
-            <!-- Appointment blocks -->
-            <div
-              v-for="appt in todayAppointments"
-              :key="appt.id"
-              :style="`position:absolute; top:${timeToY(appt.sessionTime)}px; left:28px; right:4px; height:${HOUR_H - 3}px`"
-              :class="[
-                'rounded flex items-center px-1.5 cursor-pointer transition-colors text-[10px] font-medium truncate',
-                selectedId === appt.id
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-primary/15 text-primary hover:bg-primary/25',
-              ]"
-              @click="selectAppointment(appt.id)"
-            >
-              {{ appt.patientName }}
-            </div>
-            <!-- Empty state -->
-            <div v-if="todayAppointments.length === 0" class="absolute inset-0 flex items-center justify-center">
-              <span class="text-[10px] text-muted-foreground/50">No sessions today</span>
-            </div>
+          </div>
+          <div v-if="todayAppointments.length === 0" class="py-2 text-center">
+            <span class="text-[10px] text-muted-foreground/50">No sessions today</span>
           </div>
         </div>
       </div>
@@ -389,6 +391,7 @@ onMounted(() => {
         <p v-if="todayAppointments.length === 0" class="px-4 py-3 text-xs text-muted-foreground/60">No sessions today</p>
       </div>
     </aside>
+    </Transition>
 
     <!-- ══ Main area ══════════════════════════════════════════════════════ -->
     <main class="flex-1 flex flex-col min-w-0 bg-muted/30">
@@ -399,6 +402,14 @@ onMounted(() => {
         <!-- Row 1: patient name + trash + right actions -->
         <div class="flex items-center justify-between gap-4">
           <div class="flex items-center gap-2 min-w-0">
+            <button
+              class="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors shrink-0"
+              :title="calSidebarOpen ? 'Hide sidebar' : 'Show sidebar'"
+              @click="calSidebarOpen = !calSidebarOpen"
+            >
+              <PanelLeftClose v-if="calSidebarOpen" class="w-4 h-4" />
+              <PanelLeftOpen v-else class="w-4 h-4" />
+            </button>
             <h2 class="text-xl font-bold text-foreground truncate">{{ selected.patientName }}</h2>
             <button class="p-1 rounded text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors shrink-0" title="Delete session">
               <Trash2 class="w-4 h-4" />
