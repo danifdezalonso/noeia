@@ -206,6 +206,7 @@ const copyOpen       = ref(false)
 const micOpen        = ref(false)
 const noeInput          = ref('')
 const noeMessages       = ref<{ role: 'user' | 'noe'; text: string }[]>([])
+const noeThinking       = ref(false)
 const noeActiveResponse = ref<{ text: string; userQuery: string } | null>({
   userQuery: 'Summarize this session',
   text: 'Session Summary — Elena Vasquez, Session 12\n\nElena presented with reduced anxiety symptoms this week (PHQ-7: 8, down from 12). She reported successfully using the breathing technique during a conflict with her sister. Key themes: fear of abandonment, difficulty asserting needs, and ongoing progress with grounding exercises.\n\nInterventions used: CBT cognitive restructuring, mindfulness breathing, behavioral activation planning.\n\nClinical plan: Continue weekly sessions. Assign thought record journaling for catastrophizing patterns. Consider introducing EMDR for early attachment trauma in the next session.',
@@ -446,15 +447,16 @@ function copyContext() {
 function sendNoe() {
   if (!noeInput.value.trim()) return
   const query = noeInput.value
-  noeMessages.value.push({ role: 'user', text: query })
   noeInput.value = ''
   noeActiveResponse.value = null
+  noeThinking.value = true
   setTimeout(() => {
+    noeThinking.value = false
     noeActiveResponse.value = {
       userQuery: query,
       text: 'I\'ve reviewed the session context. Would you like me to draft a SOAP note, generate a summary, or suggest next steps for this patient?',
     }
-  }, 800)
+  }, 1200)
 }
 
 function copyNoeText() {
@@ -1163,56 +1165,60 @@ onMounted(() => {
 
       <!-- ── Noe AI bar ───────────────────────────────────────────────────── -->
       <div class="shrink-0 bg-background border-t border-border px-4 py-3">
-        <!-- User message history (above response card) -->
-        <div v-if="noeMessages.length > 0" class="mb-2 max-h-20 overflow-y-auto space-y-1 px-1">
-          <div v-for="(msg, i) in noeMessages.filter(m => m.role === 'user')" :key="i" class="flex justify-end">
-            <div class="max-w-[85%] px-3 py-1.5 rounded-xl text-xs bg-muted text-foreground">{{ msg.text }}</div>
-          </div>
-        </div>
 
-        <!-- Active AI response card -->
-        <div v-if="noeActiveResponse" class="mb-3 rounded-xl border border-primary/20 bg-primary/5 overflow-hidden">
-          <!-- Card header -->
-          <div class="flex items-center justify-between px-3 py-2 border-b border-primary/10">
-            <div class="flex items-center gap-1.5">
-              <div class="w-4 h-4 rounded-md bg-primary flex items-center justify-center">
-                <Sparkles class="w-2.5 h-2.5 text-primary-foreground" />
-              </div>
-              <span class="text-xs font-semibold text-primary">Noe</span>
+        <!-- Unified card: response/thinking + input bound together -->
+        <div :class="['border border-border bg-card shadow-sm overflow-hidden', (noeActiveResponse || noeThinking) ? 'rounded-xl' : 'rounded-xl']">
+
+          <!-- Thinking state -->
+          <div v-if="noeThinking && !noeActiveResponse" class="px-3 py-2.5 border-b border-border/50 flex items-center gap-2">
+            <div class="w-4 h-4 rounded-md bg-primary flex items-center justify-center shrink-0">
+              <Sparkles class="w-2.5 h-2.5 text-primary-foreground" />
             </div>
-            <button class="w-5 h-5 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors" @click="noeActiveResponse = null">
-              <X class="w-3 h-3" />
-            </button>
+            <div class="flex items-center gap-1">
+              <span class="thinking-dot" />
+              <span class="thinking-dot" style="animation-delay:0.2s" />
+              <span class="thinking-dot" style="animation-delay:0.4s" />
+            </div>
           </div>
-          <!-- Response text -->
-          <div class="px-3 py-2.5 text-xs text-foreground leading-relaxed max-h-44 overflow-y-auto whitespace-pre-line">{{ noeActiveResponse.text }}</div>
-          <!-- Action buttons -->
-          <div class="flex items-center gap-1 px-3 py-2 border-t border-primary/10 flex-wrap">
-            <button class="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium rounded-lg bg-background border border-border text-foreground hover:bg-accent transition-colors" @click="copyNoeText">
-              <Copy class="w-3 h-3" />
-              Copy text
-            </button>
-            <button class="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium rounded-lg bg-background border border-border text-foreground hover:bg-accent transition-colors" @click="addToNote">
-              <FilePlus class="w-3 h-3" />
-              Add to note
-            </button>
-            <button class="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium rounded-lg bg-background border border-border text-foreground hover:bg-accent transition-colors" @click="replaceNote">
-              <FileEdit class="w-3 h-3" />
-              Replace note
-            </button>
-            <button class="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium rounded-lg bg-background border border-border text-foreground hover:bg-accent transition-colors" @click="addNoeTab">
-              <Plus class="w-3 h-3" />
-              New tab
-            </button>
-            <button class="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium rounded-lg bg-muted text-muted-foreground hover:text-foreground hover:bg-accent transition-colors ml-auto" @click="regenerateNoe">
-              <RefreshCw class="w-3 h-3" />
-              Regenerate
-            </button>
-          </div>
-        </div>
 
-        <!-- Input bar -->
-        <div class="flex items-center gap-2 bg-muted/50 border border-border rounded-xl px-3 py-2 focus-within:ring-2 focus-within:ring-ring/50 focus-within:border-transparent transition-all">
+          <!-- Active AI response -->
+          <template v-if="noeActiveResponse">
+            <!-- Card header -->
+            <div class="flex items-center justify-between px-3 py-2 border-b border-border/50">
+              <div class="flex items-center gap-1.5">
+                <div class="w-4 h-4 rounded-md bg-primary flex items-center justify-center">
+                  <Sparkles class="w-2.5 h-2.5 text-primary-foreground" />
+                </div>
+                <span class="text-xs font-semibold text-foreground">Noe</span>
+              </div>
+              <button class="w-5 h-5 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors" @click="noeActiveResponse = null">
+                <X class="w-3 h-3" />
+              </button>
+            </div>
+            <!-- Response text -->
+            <div class="px-3 py-2.5 text-xs text-foreground leading-relaxed max-h-44 overflow-y-auto whitespace-pre-line border-b border-border/50">{{ noeActiveResponse.text }}</div>
+            <!-- Action buttons -->
+            <div class="flex items-center gap-1 px-3 py-2 border-b border-border/50 flex-wrap">
+              <button class="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium rounded-lg bg-background border border-border text-foreground hover:bg-accent transition-colors" @click="copyNoeText">
+                <Copy class="w-3 h-3" />Copy text
+              </button>
+              <button class="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium rounded-lg bg-background border border-border text-foreground hover:bg-accent transition-colors" @click="addToNote">
+                <FilePlus class="w-3 h-3" />Add to note
+              </button>
+              <button class="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium rounded-lg bg-background border border-border text-foreground hover:bg-accent transition-colors" @click="replaceNote">
+                <FileEdit class="w-3 h-3" />Replace note
+              </button>
+              <button class="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium rounded-lg bg-background border border-border text-foreground hover:bg-accent transition-colors" @click="addNoeTab">
+                <Plus class="w-3 h-3" />New tab
+              </button>
+              <button class="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium rounded-lg bg-muted text-muted-foreground hover:text-foreground hover:bg-accent transition-colors ml-auto" @click="regenerateNoe">
+                <RefreshCw class="w-3 h-3" />Regenerate
+              </button>
+            </div>
+          </template>
+
+          <!-- Input bar (always at bottom, flush to card) -->
+          <div class="flex items-center gap-2 px-3 py-2">
           <div class="w-5 h-5 rounded-lg bg-primary flex items-center justify-center shrink-0">
             <Sparkles class="w-3 h-3 text-primary-foreground" />
           </div>
@@ -1234,6 +1240,7 @@ onMounted(() => {
             <Send class="w-3.5 h-3.5" />
           </button>
         </div>
+        </div><!-- end unified card -->
       </div>
 
     </main>
@@ -1426,6 +1433,19 @@ onMounted(() => {
   border-radius: 2px;
   background: #FEF08A;
   color: #000;
+}
+
+.thinking-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--muted-foreground);
+  animation: thinking-bounce 1.2s ease-in-out infinite;
+}
+@keyframes thinking-bounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-4px); opacity: 1; }
 }
 
 .noeia-editor:empty::before {

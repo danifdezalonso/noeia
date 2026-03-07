@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import {
-  Edit3, ChevronUp, ChevronDown, X, Send, Minus,
+  Edit3, ChevronUp, ChevronDown, X, Send, Minus, MessageSquareDot,
 } from 'lucide-vue-next'
 import { format, isToday, isYesterday } from 'date-fns'
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
@@ -8,6 +8,10 @@ import { Input } from '~/components/ui/input'
 
 const { conversations, selectConversation, sendMessage: _send } = useMessages()
 const { persona } = usePersona()
+
+// ── Dismissed state (shared with messages page) ────────────────────────────
+const widgetDismissed = useState('messaging-widget-dismissed', () => false)
+function dismiss() { widgetDismissed.value = true }
 
 // ── Hub state ─────────────────────────────────────────────────────────────
 const hubOpen    = ref(false)
@@ -121,6 +125,7 @@ function fmtTime(d: Date) {
 <template>
   <!-- ── Hub ──────────────────────────────────────────────────────────────── -->
   <div
+    v-if="!widgetDismissed"
     class="fixed bottom-0 z-50 flex flex-col pointer-events-none"
     :style="{ right: `${HUB_RIGHT}px`, width: `${HUB_WIDTH}px` }"
   >
@@ -215,6 +220,10 @@ function fmtTime(d: Date) {
       <button class="p-1 rounded text-muted-foreground hover:text-foreground transition-colors shrink-0" @click.stop="toggleHub">
         <ChevronDown v-if="hubOpen" class="w-3.5 h-3.5" />
         <ChevronUp v-else class="w-3.5 h-3.5" />
+      </button>
+
+      <button class="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors shrink-0" title="Dismiss" @click.stop="dismiss">
+        <X class="w-3.5 h-3.5" />
       </button>
     </div>
   </div>

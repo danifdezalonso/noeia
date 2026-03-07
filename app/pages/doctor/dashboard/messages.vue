@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {
   Search, Phone, Video, MoreHorizontal, Paperclip, Smile, Send,
-  Check, CheckCheck,
+  Check, CheckCheck, MessageSquareDot,
 } from 'lucide-vue-next'
 import { format, isToday, isYesterday } from 'date-fns'
 import { Button } from '~/components/ui/button'
@@ -12,6 +12,7 @@ import { Badge } from '~/components/ui/badge'
 definePageMeta({ layout: 'dashboard' })
 
 const { conversations, selectConversation: _select, sendMessage: _send } = useMessages()
+const widgetDismissed = useState('messaging-widget-dismissed', () => false)
 
 // ── State ──────────────────────────────────────────────────────────────────
 
@@ -89,9 +90,14 @@ watch(() => selected.value?.messages.length, () => {
       <!-- Header -->
       <div class="flex items-center justify-between px-4 py-4 border-b border-border shrink-0">
         <h2 class="text-base font-bold text-foreground">Messages</h2>
-        <Button variant="ghost" size="icon">
-          <MoreHorizontal class="w-4 h-4" />
-        </Button>
+        <div class="flex items-center gap-1">
+          <Button v-if="widgetDismissed" variant="ghost" size="icon" title="Open messaging widget" @click="widgetDismissed = false">
+            <MessageSquareDot class="w-4 h-4" />
+          </Button>
+          <Button variant="ghost" size="icon">
+            <MoreHorizontal class="w-4 h-4" />
+          </Button>
+        </div>
       </div>
 
       <!-- Search -->
