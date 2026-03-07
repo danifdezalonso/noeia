@@ -2,9 +2,10 @@
 import {
   LayoutDashboard, Calendar, ClipboardList, Users,
   MessageSquare, Receipt, Sparkles, Settings,
-  Sun, Moon, Stethoscope, Building2, ChevronUp,
-  User, CreditCard, LogOut,
+  Sun, Moon, Stethoscope, Building2, ChevronUp, ChevronDown,
+  User, CreditCard, LogOut, LayoutTemplate, Globe, CalendarClock, FlaskConical,
 } from 'lucide-vue-next'
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '~/components/ui/collapsible'
 import { useDark, useToggle } from '@vueuse/core'
 import { SHELL_KEY } from '~/composables/useDashboard'
 import {
@@ -33,6 +34,10 @@ const iconMap: Record<string, Component> = {
   LayoutDashboard, Calendar, ClipboardList, Users,
   MessageSquare, Receipt, Sparkles, Stethoscope, Building2,
 }
+
+// NoeIA collapsible — expand whenever on any noeia sub-route
+const noeiaOpen = ref(route.path.includes('/noeia'))
+watch(() => route.path, p => { if (p.includes('/noeia')) noeiaOpen.value = true })
 
 function isActive(path: string) {
   if (path === '/organization/dashboard' || path === '/doctor/dashboard') {
@@ -74,19 +79,93 @@ const profileSubLabel = computed(() =>
         <SidebarGroupLabel>Platform</SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
-            <SidebarMenuItem v-for="item in shell.navItems.value" :key="item.id">
-              <SidebarMenuButton
-                as-child
-                :is-active="isActive(item.path)"
-                :tooltip="item.label"
-                @click="mobileOpen = false"
-              >
+            <SidebarMenuItem v-for="item in shell.navItems.value.filter(i => i.section !== 'organization')" :key="item.id">
+
+              <!-- NoeIA: collapsible with My Templates + Community sub-items -->
+              <template v-if="item.icon === 'Sparkles'">
+                <Collapsible v-model:open="noeiaOpen" class="w-full">
+                  <CollapsibleTrigger as-child>
+                    <SidebarMenuButton
+                      :is-active="isActive(item.path)"
+                      :tooltip="item.label"
+                      @click="mobileOpen = false; navigateTo(item.path)"
+                    >
+                      <Sparkles />
+                      <span>{{ item.label }}</span>
+                      <ChevronDown
+                        v-if="!iconOnly"
+                        :class="['ml-auto w-3.5 h-3.5 shrink-0 transition-transform duration-200', noeiaOpen ? 'rotate-180' : '']"
+                      />
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent v-if="!iconOnly">
+                    <div class="mt-0.5 ml-2 border-l border-sidebar-border pl-3 py-0.5 space-y-0.5">
+                      <NuxtLink
+                        v-for="sub in [
+                          { label: 'Sessions',     path: item.path,                          icon: CalendarClock  },
+                          { label: 'Evidence',     path: item.path + '/evidence',            icon: FlaskConical   },
+                          { label: 'My templates', path: item.path + '/my-templates',        icon: LayoutTemplate },
+                          { label: 'Community',    path: item.path + '/community',           icon: Globe          },
+                        ]"
+                        :key="sub.label"
+                        :to="sub.path"
+                        class="flex items-center gap-2 px-2 py-1.5 text-sm rounded-md transition-colors"
+                        :class="[
+                          route.path === sub.path || (sub.label === 'Sessions' && route.path === item.path)
+                            ? 'text-sidebar-foreground bg-sidebar-accent font-medium'
+                            : 'text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent'
+                        ]"
+                        @click="mobileOpen = false"
+                      >
+                        <component :is="sub.icon" class="w-3.5 h-3.5 shrink-0" />
+                        {{ sub.label }}
+                      </NuxtLink>
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              </template>
+
+              <!-- Regular nav items -->
+              <template v-else>
+                <SidebarMenuButton
+                  as-child
+                  :is-active="isActive(item.path)"
+                  :tooltip="item.label"
+                  @click="mobileOpen = false"
+                >
+                  <NuxtLink :to="item.path">
+                    <component :is="iconMap[item.icon]" />
+                    <span>{{ item.label }}</span>
+                  </NuxtLink>
+                </SidebarMenuButton>
+                <SidebarMenuBadge v-if="item.badge">{{ item.badge }}</SidebarMenuBadge>
+              </template>
+
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroupContent>
+      </SidebarGroup>
+      <SidebarGroup>
+        <SidebarGroupLabel>Organization</SidebarGroupLabel>
+        <SidebarGroupContent>
+          <SidebarMenu>
+            <!-- Org-section items from navItems (e.g. Office for org persona) -->
+            <SidebarMenuItem v-for="item in shell.navItems.value.filter(i => i.section === 'organization')" :key="item.id">
+              <SidebarMenuButton as-child :is-active="isActive(item.path)" :tooltip="item.label" @click="mobileOpen = false">
                 <NuxtLink :to="item.path">
                   <component :is="iconMap[item.icon]" />
                   <span>{{ item.label }}</span>
                 </NuxtLink>
               </SidebarMenuButton>
-              <SidebarMenuBadge v-if="item.badge">{{ item.badge }}</SidebarMenuBadge>
+            </SidebarMenuItem>
+            <!-- Team (doctor persona) -->
+            <SidebarMenuItem v-if="persona.role === 'doctor'">
+              <SidebarMenuButton as-child :is-active="isActive('/doctor/dashboard/team')" tooltip="Team" @click="mobileOpen = false">
+                <NuxtLink to="/doctor/dashboard/team">
+                  <Users />
+                  <span>Team</span>
+                </NuxtLink>
+              </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroupContent>
