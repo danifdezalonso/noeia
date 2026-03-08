@@ -8,13 +8,14 @@ import {
   ExternalLink, PenLine, Zap, RotateCcw,
   LayoutTemplate, Search, ArrowUpDown, FileText, User, Globe,
   RefreshCw, FilePlus, FileEdit, Check,
+  ListChecks, Share2, MessageSquareMore, CheckCircle2,
 } from 'lucide-vue-next'
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '~/components/ui/dialog'
 import {
   format, addDays, startOfWeek, subWeeks, addMonths, subMonths,
   startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isSameMonth, isToday,
 } from 'date-fns'
-import { nextTick } from 'vue'
+import { nextTick, type Component } from 'vue'
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover'
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
 import { Switch } from '~/components/ui/switch'
@@ -28,6 +29,15 @@ interface TranscriptLine {
   speaker: 'therapist' | 'patient'
   time: string
   text: string
+}
+
+type TaskCategory = 'document' | 'coordinate' | 'communicate' | 'review'
+
+interface AiTask {
+  id: string
+  text: string
+  done: boolean
+  category: TaskCategory
 }
 
 interface SessionRecord {
@@ -47,6 +57,7 @@ interface Appointment {
   time: string
   groupLabel: string
   tab: 'schedule' | 'past'
+  tasks: AiTask[]
   inputLanguage: string
   outputLanguage: string
   contextText: string
@@ -69,6 +80,12 @@ const appointments = ref<Appointment[]>([
     contextText: 'Referred by Dr. García. Generalised anxiety, sleep disturbance. CBT-based approach ongoing.',
     sessionDate: new Date(), sessionTime: '10:00',
     sessions: [{ id: 's0', label: 'Session Today', noteText: '', transcript: [] }],
+    tasks: [
+      { id: 't0', text: 'Administer seasonal flu vaccine', done: true,  category: 'document' },
+      { id: 't1', text: 'Add Ventolin inhaler to patient record', done: false, category: 'document' },
+      { id: 't2', text: 'Arrange spirometry test at respiratory clinic for next Thursday 9am', done: false, category: 'coordinate' },
+      { id: 't3', text: 'Call Dr. Thompson to arrange psychology appointment', done: false, category: 'communicate' },
+    ],
   },
   {
     id: 'a1', patientName: 'Maddy Test', initials: 'MT',
@@ -78,6 +95,7 @@ const appointments = ref<Appointment[]>([
     contextText: '',
     sessionDate: new Date(), sessionTime: '01:54',
     sessions: [{ id: 's1', label: 'Session Feb 21', noteText: '', transcript: [] }],
+    tasks: [],
   },
   {
     id: 'a2', patientName: 'Maddy Test', initials: 'MT',
@@ -87,6 +105,7 @@ const appointments = ref<Appointment[]>([
     contextText: 'Patient reported improvement in sleep patterns last week. Continue CBT techniques for anxiety management.\n\nReferral from Dr. García (GP). Original complaint: generalised anxiety, sleep disturbance.',
     sessionDate: addDays(mon, 1), sessionTime: '14:00',
     sessions: [{ id: 's2', label: 'Session Feb 22', noteText: '', transcript: [] }],
+    tasks: [],
   },
   {
     id: 'a3', patientName: 'John Doe', initials: 'JD',
@@ -96,6 +115,7 @@ const appointments = ref<Appointment[]>([
     contextText: '',
     sessionDate: addDays(mon, 3), sessionTime: '10:00',
     sessions: [{ id: 's3', label: 'Session Feb 24', noteText: '', transcript: [] }],
+    tasks: [],
   },
   {
     id: 'a4', patientName: 'Maddy Test', initials: 'MT',
@@ -116,6 +136,10 @@ const appointments = ref<Appointment[]>([
         { speaker: 'patient',   time: '15:08', text: 'I think writing things down before bed helped. I stop ruminating once it\'s on paper.' },
       ],
     }],
+    tasks: [
+      { id: 't7', text: 'Reinforce sleep hygiene handout at next session', done: false, category: 'document' },
+      { id: 't8', text: 'Review journalling technique — check consistency', done: true, category: 'review' },
+    ],
   },
   {
     id: 'a5', patientName: 'John Doe', initials: 'JD',
@@ -134,6 +158,7 @@ const appointments = ref<Appointment[]>([
         { speaker: 'patient',   time: '11:05', text: 'It\'s been building for about six months. A promotion that I now regret taking.' },
       ],
     }],
+    tasks: [],
   },
 ])
 
@@ -173,7 +198,34 @@ function saveEditName() {
   editNameOpen.value = false
 }
 
-// Templates
+// ── Tasks panel ────────────────────────────────────────────────────────────
+const tasksOpen    = ref(false)
+const addingTask   = ref(false)
+const newTaskText  = ref('')
+const newTaskCat   = ref<TaskCategory>('document')
+
+const categoryConfig: Record<TaskCategory, { label: string; icon: Component; color: string; bg: string }> = {
+  document:    { label: 'Document',    icon: FileText,          color: 'text-green-700 dark:text-green-400',  bg: 'bg-green-100 dark:bg-green-900/30' },
+  coordinate:  { label: 'Coordinate',  icon: Share2,            color: 'text-purple-700 dark:text-purple-400', bg: 'bg-purple-100 dark:bg-purple-900/30' },
+  communicate: { label: 'Communicate', icon: MessageSquareMore, color: 'text-orange-600 dark:text-orange-400', bg: 'bg-orange-100 dark:bg-orange-900/30' },
+  review:      { label: 'Review',      icon: ListChecks,        color: 'text-sky-700 dark:text-sky-400',      bg: 'bg-sky-100 dark:bg-sky-900/30' },
+}
+
+function addTask() {
+  if (!newTaskText.value.trim()) return
+  const appt = appointments.value.find(a => a.id === selectedId.value)
+  if (!appt) return
+  appt.tasks.push({
+    id: `t${Date.now()}`,
+    text: newTaskText.value.trim(),
+    done: false,
+    category: newTaskCat.value,
+  })
+  newTaskText.value = ''
+  addingTask.value = false
+}
+
+// ── Templates ───────────────────────────────────────────────────────────────
 const templateOpen    = ref(false)
 const templateSearch  = ref('')
 const hidePro         = ref(false)
@@ -207,10 +259,7 @@ const micOpen        = ref(false)
 const noeInput          = ref('')
 const noeMessages       = ref<{ role: 'user' | 'noe'; text: string }[]>([])
 const noeThinking       = ref(false)
-const noeActiveResponse = ref<{ text: string; userQuery: string } | null>({
-  userQuery: 'Summarize this session',
-  text: 'Session Summary — Elena Vasquez, Session 12\n\nElena presented with reduced anxiety symptoms this week (PHQ-7: 8, down from 12). She reported successfully using the breathing technique during a conflict with her sister. Key themes: fear of abandonment, difficulty asserting needs, and ongoing progress with grounding exercises.\n\nInterventions used: CBT cognitive restructuring, mindfulness breathing, behavioral activation planning.\n\nClinical plan: Continue weekly sessions. Assign thought record journaling for catastrophizing patterns. Consider introducing EMDR for early attachment trauma in the next session.',
-})
+const noeActiveResponse = ref<{ text: string; userQuery: string } | null>(null)
 
 // Date picker calendar state
 const calendarViewDate = ref(new Date())
@@ -218,7 +267,7 @@ const calendarViewDate = ref(new Date())
 // ── Derived ────────────────────────────────────────────────────────────────
 
 const selected = computed(
-  () => appointments.value.find(a => a.id === selectedId.value)!,
+  () => appointments.value.find(a => a.id === selectedId.value) ?? appointments.value[0]!,
 )
 
 function groups(tab: 'schedule' | 'past') {
@@ -440,9 +489,11 @@ function plainToHtml(text: string): string {
 
 function copyContext() {
   const text = contextAreaRef.value?.innerText ?? selected.value?.contextText ?? ''
-  navigator.clipboard.writeText(text)
+  navigator.clipboard.writeText(text).catch(() => {})
   copyOpen.value = false
 }
+
+const pendingTimers = ref<ReturnType<typeof setTimeout>[]>([])
 
 function sendNoe() {
   if (!noeInput.value.trim()) return
@@ -450,18 +501,19 @@ function sendNoe() {
   noeInput.value = ''
   noeActiveResponse.value = null
   noeThinking.value = true
-  setTimeout(() => {
+  const t = setTimeout(() => {
     noeThinking.value = false
     noeActiveResponse.value = {
       userQuery: query,
       text: 'I\'ve reviewed the session context. Would you like me to draft a SOAP note, generate a summary, or suggest next steps for this patient?',
     }
   }, 1200)
+  pendingTimers.value.push(t)
 }
 
 function copyNoeText() {
   if (noeActiveResponse.value)
-    navigator.clipboard.writeText(noeActiveResponse.value.text)
+    navigator.clipboard.writeText(noeActiveResponse.value.text).catch(() => {})
 }
 
 function addToNote() {
@@ -499,12 +551,13 @@ function regenerateNoe() {
   if (!noeActiveResponse.value) return
   const query = noeActiveResponse.value.userQuery
   noeActiveResponse.value = null
-  setTimeout(() => {
+  const t = setTimeout(() => {
     noeActiveResponse.value = {
       userQuery: query,
       text: 'Updated summary: Elena continues to show significant progress managing anxiety with CBT techniques. Mood stabilization observed across contexts. Recommend continuation of current plan with gradual introduction of exposure therapy components targeting social situations.',
     }
   }, 900)
+  pendingTimers.value.push(t)
 }
 
 function fmtDateBadge(appt: Appointment) {
@@ -516,6 +569,14 @@ function fmtDateBadge(appt: Appointment) {
 const languages = ['English', 'Spanish', 'French', 'German', 'Portuguese', 'Italian']
 
 const { noeiaLinkedEvent } = useCalendar()
+
+function closeAllPopovers() {
+  transcribeOpen.value = false
+  copyOpen.value       = false
+  micOpen.value        = false
+  textColorOpen.value  = false
+  bgColorOpen.value    = false
+}
 
 onMounted(() => {
   // Auto-select appointment if navigated from a calendar session
@@ -531,14 +592,13 @@ onMounted(() => {
   syncEditorFromState()
 
   document.addEventListener('selectionchange', updateFormatState)
+  document.addEventListener('click', closeAllPopovers)
+})
 
-  document.addEventListener('click', () => {
-    transcribeOpen.value = false
-    copyOpen.value       = false
-    micOpen.value        = false
-    textColorOpen.value  = false
-    bgColorOpen.value    = false
-  })
+onUnmounted(() => {
+  document.removeEventListener('selectionchange', updateFormatState)
+  document.removeEventListener('click', closeAllPopovers)
+  pendingTimers.value.forEach(clearTimeout)
 })
 </script>
 
@@ -662,11 +722,11 @@ onMounted(() => {
                 <div class="border border-border rounded-xl overflow-hidden">
                   <!-- Month nav -->
                   <div class="flex items-center justify-between px-4 py-3 border-b border-border/50">
-                    <button class="p-1 rounded-lg hover:bg-accent transition-colors" @click="prevMonth">
+                    <button aria-label="Previous month" class="p-1 rounded-lg hover:bg-accent transition-colors" @click="prevMonth">
                       <ChevronLeft class="w-4 h-4 text-muted-foreground" />
                     </button>
                     <span class="text-sm font-semibold text-foreground">{{ calendarMonthLabel }}</span>
-                    <button class="p-1 rounded-lg hover:bg-accent transition-colors" @click="nextMonth">
+                    <button aria-label="Next month" class="p-1 rounded-lg hover:bg-accent transition-colors" @click="nextMonth">
                       <ChevronRight class="w-4 h-4 text-muted-foreground" />
                     </button>
                   </div>
@@ -790,6 +850,12 @@ onMounted(() => {
         </div>
 
       </header>
+
+      <!-- ── Content + Tasks split ────────────────────────────────────────── -->
+      <div class="flex-1 min-h-0 flex overflow-hidden">
+
+      <!-- Left: tabs + editor -->
+      <div class="flex-1 min-w-0 flex flex-col overflow-hidden">
 
       <!-- ── Content tabs ─────────────────────────────────────────────────── -->
       <div class="shrink-0 bg-background flex items-end gap-0.5 px-4 pt-2 overflow-x-auto">
@@ -1158,10 +1224,139 @@ onMounted(() => {
               <button class="w-9 h-9 rounded-xl border border-border flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary/30 hover:bg-primary/5 transition-colors" title="Attach file">
                 <Paperclip class="w-4 h-4" />
               </button>
+              <!-- Tasks toggle -->
+              <button
+                :class="['ml-auto flex items-center gap-1.5 px-2 py-1 text-xs rounded-lg transition-colors', tasksOpen ? 'text-primary font-medium' : 'text-muted-foreground hover:text-foreground']"
+                @click="tasksOpen = !tasksOpen"
+              >
+                <ListChecks class="w-3.5 h-3.5" />
+                {{ selected.tasks.filter(t => t.done).length }}/{{ selected.tasks.length }} tasks
+              </button>
             </div>
           </div>
         </div>
       </div>
+
+      </div><!-- /left column -->
+
+      <!-- ── Tasks panel ───────────────────────────────────────────────────── -->
+      <Transition
+        enter-active-class="transition duration-200 ease-out"
+        enter-from-class="opacity-0 translate-x-2"
+        leave-active-class="transition duration-150 ease-in"
+        leave-to-class="opacity-0 translate-x-2"
+      >
+        <div v-if="tasksOpen" class="w-72 shrink-0 flex flex-col bg-background border-l border-border overflow-hidden">
+
+          <!-- Tab-style header row -->
+          <div class="shrink-0 flex items-end justify-between gap-0 px-3 pt-2 bg-background">
+            <div class="flex items-center gap-1.5 px-3 py-2 bg-card border border-border border-b-card -mb-px rounded-t-lg text-sm font-medium text-foreground relative z-10 select-none">
+              <ListChecks class="w-3.5 h-3.5 shrink-0" />
+              Tasks
+              <span v-if="selected.tasks.length" class="ml-1 text-[10px] text-muted-foreground font-normal">
+                {{ selected.tasks.filter(t => t.done).length }}/{{ selected.tasks.length }}
+              </span>
+            </div>
+            <button
+              class="mb-1.5 p-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              title="Close tasks"
+              @click="tasksOpen = false"
+            >
+              <X class="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <!-- Card body (mirrors editor card) -->
+          <div class="flex-1 min-h-0 flex flex-col px-3 pb-3 pt-0">
+            <div class="flex-1 flex flex-col bg-card rounded-b-xl border-x border-b border-border shadow-sm overflow-hidden min-h-0">
+
+              <!-- Scrollable task list -->
+              <div class="flex-1 overflow-y-auto px-3 py-3 space-y-2">
+
+                <div
+                  v-for="task in selected.tasks"
+                  :key="task.id"
+                  :class="[
+                    'rounded-lg border px-3 py-2.5 transition-colors',
+                    task.done ? 'bg-muted/30 border-border/40' : 'bg-background border-border',
+                  ]"
+                >
+                  <!-- Category badge row -->
+                  <div class="flex items-center gap-1 mb-2">
+                    <span :class="['inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold', categoryConfig[task.category].bg, categoryConfig[task.category].color]">
+                      <component :is="categoryConfig[task.category].icon" class="w-2.5 h-2.5 shrink-0" />
+                      {{ categoryConfig[task.category].label }}
+                    </span>
+                  </div>
+
+                  <!-- Checkbox + text row -->
+                  <div class="flex items-start gap-2">
+                    <button class="shrink-0 mt-0.5" @click="task.done = !task.done">
+                      <CheckCircle2 v-if="task.done" class="w-4 h-4 text-green-600 dark:text-green-500" />
+                      <div v-else class="w-4 h-4 rounded-full border-2 border-muted-foreground/30 hover:border-primary transition-colors" />
+                    </button>
+                    <span :class="['text-xs leading-relaxed', task.done ? 'line-through text-muted-foreground' : 'text-foreground']">
+                      {{ task.text }}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Empty state -->
+                <div v-if="!selected.tasks.length" class="flex flex-col items-center gap-2.5 py-8 text-center">
+                  <div class="w-9 h-9 rounded-xl bg-muted flex items-center justify-center">
+                    <ListChecks class="w-4 h-4 text-muted-foreground/40" />
+                  </div>
+                  <p class="text-xs text-muted-foreground max-w-[170px] leading-relaxed">
+                    Tasks identified by Noe will appear here.
+                  </p>
+                </div>
+
+                <!-- Add task inline form -->
+                <div v-if="addingTask" class="rounded-lg border border-primary/50 bg-background px-3 py-2.5">
+                  <div class="mb-2">
+                    <select
+                      v-model="newTaskCat"
+                      class="text-[10px] font-semibold rounded-full px-2 py-0.5 border border-border bg-muted text-foreground outline-none cursor-pointer"
+                    >
+                      <option v-for="(cfg, key) in categoryConfig" :key="key" :value="key">{{ cfg.label }}</option>
+                    </select>
+                  </div>
+                  <input
+                    v-model="newTaskText"
+                    autofocus
+                    type="text"
+                    placeholder="Describe the task…"
+                    class="w-full text-xs bg-transparent text-foreground placeholder:text-muted-foreground/50 outline-none"
+                    @keydown.enter="addTask"
+                    @keydown.escape="addingTask = false; newTaskText = ''"
+                  />
+                  <div class="flex items-center gap-2 mt-2 pt-2 border-t border-border/50">
+                    <button class="text-[11px] text-primary font-semibold hover:underline" @click="addTask">Add</button>
+                    <button class="text-[11px] text-muted-foreground hover:text-foreground" @click="addingTask = false; newTaskText = ''">Cancel</button>
+                  </div>
+                </div>
+
+              </div>
+
+              <!-- Footer: + New task -->
+              <div class="shrink-0 border-t border-border/50 px-3 py-2">
+                <button
+                  v-if="!addingTask"
+                  class="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  @click="addingTask = true"
+                >
+                  <Plus class="w-3.5 h-3.5" />
+                  New task
+                </button>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+      </Transition>
+
+      </div><!-- /content + tasks split -->
 
       <!-- ── Noe AI bar ───────────────────────────────────────────────────── -->
       <div class="shrink-0 bg-background border-t border-border px-4 py-3">

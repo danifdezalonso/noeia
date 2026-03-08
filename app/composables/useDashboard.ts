@@ -38,6 +38,7 @@ export function createDashboardShell(): DashboardShell {
     { id: 'patients',  label: 'Patients',   path: '/doctor/dashboard/patients', icon: 'Users' },
     { id: 'messages',  label: 'Messages',   path: '/doctor/dashboard/messages', icon: 'MessageSquare', badge: 5 },
     { id: 'billing',   label: 'Billing',    path: '/doctor/dashboard/billing',  icon: 'Receipt' },
+    { id: 'tasks',     label: 'Tasks',      path: '/doctor/dashboard/tasks',    icon: 'ListTodo' },
     { id: 'noeia',     label: 'NoeIA',      path: '/doctor/dashboard/noeia',    icon: 'Sparkles' },
   ]
 

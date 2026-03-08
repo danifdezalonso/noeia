@@ -1,18 +1,16 @@
 <script setup lang="ts">
 import {
   Building2, ChevronDown, Search, Plus,
-  Bell, HelpCircle, Check, LogOut,
-  Settings, User, CreditCard,
+  Bell, HelpCircle, Check,
   CalendarPlus, UserPlus, ReceiptText, Stethoscope,
   LayoutDashboard, Calendar, ClipboardList, Users,
   MessageSquare, Receipt, Sparkles,
   Book, Play, MessageCircle as MessageCircleIcon, AlertCircle, Lightbulb,
+  Menu,
 } from 'lucide-vue-next'
 import { useEventListener } from '@vueuse/core'
 import { SHELL_KEY } from '~/composables/useDashboard'
-import { Button, ButtonGroup, ButtonGroupSeparator } from '~/components/ui/button'
-import { SidebarTrigger } from '~/components/ui/sidebar'
-import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
+import { Button } from '~/components/ui/button'
 import {
   CommandDialog, CommandInput, CommandList, CommandEmpty,
   CommandGroup, CommandItem, CommandSeparator, CommandShortcut,
@@ -25,9 +23,9 @@ import { Input } from '~/components/ui/input'
 
 const shell = inject(SHELL_KEY)!
 const { persona } = usePersona()
+const { open: noeOpen } = useNoeia()
 
 const commandOpen  = ref(false)
-const ctaOpen      = ref(false)
 const helpOpen     = ref(false)
 const feedbackOpen = ref(false)
 const feedbackTab  = ref<'issue' | 'idea'>('issue')
@@ -36,6 +34,7 @@ const feedbackEmail = ref('')
 const { sessionModalOpen, patientModalOpen, billModalOpen, doctorModalOpen } = useGlobalModals()
 
 function submitFeedback() {
+  if (!feedbackText.value.trim()) return
   feedbackText.value  = ''
   feedbackEmail.value = ''
   feedbackOpen.value  = false
@@ -57,36 +56,16 @@ const iconMap: Record<string, Component> = {
 function closeAll() {
   shell.orgSelectorOpen.value = false
   shell.notificationsOpen.value = false
-  shell.profileOpen.value = false
-  ctaOpen.value = false
-}
-
-function toggleCta() {
-  shell.orgSelectorOpen.value = false
-  shell.notificationsOpen.value = false
-  shell.profileOpen.value = false
-  ctaOpen.value = !ctaOpen.value
 }
 
 function toggleOrg() {
-  ctaOpen.value = false
   shell.notificationsOpen.value = false
-  shell.profileOpen.value = false
   shell.orgSelectorOpen.value = !shell.orgSelectorOpen.value
 }
 
 function toggleNotifications() {
-  ctaOpen.value = false
   shell.orgSelectorOpen.value = false
-  shell.profileOpen.value = false
   shell.notificationsOpen.value = !shell.notificationsOpen.value
-}
-
-function toggleProfile() {
-  ctaOpen.value = false
-  shell.orgSelectorOpen.value = false
-  shell.notificationsOpen.value = false
-  shell.profileOpen.value = !shell.profileOpen.value
 }
 
 const orgs = [
@@ -104,7 +83,7 @@ const notifications = [
 <template>
   <!-- Backdrop to close dropdowns -->
   <div
-    v-if="shell.orgSelectorOpen.value || shell.notificationsOpen.value || shell.profileOpen.value || ctaOpen"
+    v-if="shell.orgSelectorOpen.value || shell.notificationsOpen.value"
     class="fixed inset-0 z-30"
     @click="closeAll"
   />
@@ -113,9 +92,6 @@ const notifications = [
 
     <!-- ── Left ── -->
     <div class="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-
-      <!-- Sidebar trigger (replaces hamburger) -->
-      <SidebarTrigger />
 
       <!-- Org selector — hidden on small mobile -->
       <div class="relative hidden sm:block">
@@ -194,74 +170,13 @@ const notifications = [
     <!-- ── Right ── -->
     <div class="flex items-center gap-1 flex-shrink-0">
 
-      <!-- + New dropdown CTA -->
-      <div class="relative">
-        <ButtonGroup class="[&>[data-slot=button]:first-child]:rounded-l-lg [&>[data-slot=button]:last-child]:rounded-r-lg">
-          <Button
-            class="gap-1.5 px-3 sm:px-3.5 py-1.5 h-auto text-sm font-semibold"
-            @click.stop="closeAll(); sessionModalOpen = true"
-          >
-            <Plus class="w-4 h-4" />
-            <span class="hidden sm:inline">New</span>
-          </Button>
-          <ButtonGroupSeparator />
-          <Button
-            class="px-2 py-1.5 h-auto"
-            @click.stop="toggleCta"
-          >
-            <ChevronDown class="w-3.5 h-3.5 transition-transform duration-150" :class="{ 'rotate-180': ctaOpen }" />
-          </Button>
-        </ButtonGroup>
-
-        <Transition
-          enter-active-class="transition duration-100 ease-out"
-          enter-from-class="opacity-0 scale-95 -translate-y-1"
-          leave-active-class="transition duration-75 ease-in"
-          leave-to-class="opacity-0 scale-95 -translate-y-1"
-        >
-          <div
-            v-if="ctaOpen"
-            class="absolute top-full right-0 mt-2 w-44 bg-popover border border-border rounded-xl shadow-lg z-50 py-1.5 overflow-hidden"
-          >
-            <button type="button" class="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-foreground hover:bg-accent transition-colors" @click="sessionModalOpen = true; ctaOpen = false">
-              <div class="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <CalendarPlus class="w-3.5 h-3.5 text-primary" />
-              </div>
-              <div class="text-left">
-                <p class="font-medium leading-none">Session</p>
-                <p class="text-xs text-muted-foreground mt-0.5">Schedule appointment</p>
-              </div>
-            </button>
-            <button type="button" class="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-foreground hover:bg-accent transition-colors" @click="patientModalOpen = true; ctaOpen = false">
-              <div class="w-7 h-7 rounded-lg bg-emerald-100 dark:bg-emerald-900 flex items-center justify-center flex-shrink-0">
-                <UserPlus class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-              </div>
-              <div class="text-left">
-                <p class="font-medium leading-none">Patient</p>
-                <p class="text-xs text-muted-foreground mt-0.5">Add patient record</p>
-              </div>
-            </button>
-            <button type="button" class="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-foreground hover:bg-accent transition-colors" @click="billModalOpen = true; ctaOpen = false">
-              <div class="w-7 h-7 rounded-lg bg-amber-100 dark:bg-amber-900 flex items-center justify-center flex-shrink-0">
-                <ReceiptText class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-              </div>
-              <div class="text-left">
-                <p class="font-medium leading-none">Bill</p>
-                <p class="text-xs text-muted-foreground mt-0.5">Create invoice</p>
-              </div>
-            </button>
-            <button v-if="persona.role === 'organization'" type="button" class="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-foreground hover:bg-accent transition-colors" @click="doctorModalOpen = true; ctaOpen = false">
-              <div class="w-7 h-7 rounded-lg bg-violet-100 dark:bg-violet-900 flex items-center justify-center flex-shrink-0">
-                <Stethoscope class="w-3.5 h-3.5 text-violet-600 dark:text-violet-400" />
-              </div>
-              <div class="text-left">
-                <p class="font-medium leading-none">Doctor</p>
-                <p class="text-xs text-muted-foreground mt-0.5">Add team member</p>
-              </div>
-            </button>
-          </div>
-        </Transition>
-      </div>
+      <!-- New session CTA -->
+      <Button
+        class="px-3.5 py-1.5 h-auto text-sm font-semibold"
+        @click="navigateTo('/doctor/dashboard/noeia')"
+      >
+        New session
+      </Button>
 
       <!-- Separator -->
       <div class="w-px h-5 bg-border mx-1" />
@@ -270,11 +185,12 @@ const notifications = [
       <div class="relative">
         <button
           type="button"
+          aria-label="Notifications"
           @click.stop="toggleNotifications"
           class="relative p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
         >
           <Bell class="w-4 h-4" />
-          <span class="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-rose-500 rounded-full ring-2 ring-background" />
+          <span class="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-destructive rounded-full ring-2 ring-background" />
         </button>
 
         <Transition
@@ -333,62 +249,21 @@ const notifications = [
         <HelpCircle class="w-4 h-4" />
       </button>
 
-      <!-- Avatar + Profile dropdown -->
-      <div class="relative ml-0.5">
-        <button
-          type="button"
-          @click.stop="toggleProfile"
-          class="flex items-center gap-1.5 sm:gap-2 pl-1 pr-1 sm:pr-2 py-1 rounded-xl hover:bg-accent transition-colors"
-        >
-          <Avatar class="size-7 ring-2 ring-background">
-            <AvatarImage :src="avatarUrl(persona.name)" :alt="persona.name" />
-            <AvatarFallback class="bg-primary text-primary-foreground text-xs font-bold">{{ persona.avatarInitials }}</AvatarFallback>
-          </Avatar>
-          <ChevronDown class="hidden sm:block w-3 h-3 text-muted-foreground transition-transform duration-150"
-            :class="{ 'rotate-180': shell.profileOpen.value }" />
-        </button>
+      <!-- Noeia AI button -->
+      <button
+        type="button"
+        :class="[
+          'relative flex items-center justify-center w-8 h-8 rounded-xl transition-all duration-200',
+          noeOpen
+            ? 'bg-gradient-to-br from-violet-500 to-indigo-600 shadow-lg shadow-violet-400/40 ring-2 ring-violet-300/40'
+            : 'bg-gradient-to-br from-violet-500 to-indigo-600 shadow-md shadow-violet-300/30 hover:shadow-violet-400/50 hover:scale-105',
+        ]"
+        title="Noeia AI"
+        @click="noeOpen = !noeOpen"
+      >
+        <Sparkles class="w-4 h-4 text-white" />
+      </button>
 
-        <Transition
-          enter-active-class="transition duration-100 ease-out"
-          enter-from-class="opacity-0 scale-95 translate-y-1"
-          leave-active-class="transition duration-75 ease-in"
-          leave-to-class="opacity-0 scale-95 translate-y-1"
-        >
-          <div
-            v-if="shell.profileOpen.value"
-            class="absolute top-full right-0 mt-2 w-56 bg-popover border border-border rounded-xl shadow-lg z-50 py-1.5 overflow-hidden"
-          >
-            <div class="px-3 py-2.5 border-b border-border">
-              <div class="flex items-center gap-1.5 mb-0.5">
-                <p class="text-sm font-semibold">{{ persona.name }}</p>
-                <span v-if="persona.role === 'organization'" class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-violet-100 dark:bg-violet-900 text-violet-700 dark:text-violet-300">
-                  Org
-                </span>
-              </div>
-              <p v-if="persona.orgName" class="text-xs text-muted-foreground">{{ persona.orgName }}</p>
-              <p v-else class="text-xs text-muted-foreground">torres@mindcare.com</p>
-            </div>
-            <div class="py-1">
-              <button type="button" class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-foreground hover:bg-accent transition-colors">
-                <User class="w-4 h-4 text-muted-foreground" /> Profile settings
-              </button>
-              <button type="button" class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-foreground hover:bg-accent transition-colors">
-                <Settings class="w-4 h-4 text-muted-foreground" /> Preferences
-              </button>
-              <button type="button" class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-foreground hover:bg-accent transition-colors">
-                <CreditCard class="w-4 h-4 text-muted-foreground" /> Billing
-              </button>
-            </div>
-            <div class="border-t border-border pt-1">
-              <button type="button"
-                class="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-destructive hover:bg-destructive/10 transition-colors"
-                @click="navigateTo('/')">
-                <LogOut class="w-4 h-4" /> Sign out
-              </button>
-            </div>
-          </div>
-        </Transition>
-      </div>
     </div>
   </header>
 
@@ -483,7 +358,7 @@ const notifications = [
 
       <DialogFooter>
         <Button variant="outline" @click="feedbackOpen = false">Cancel</Button>
-        <Button @click="submitFeedback">Send Feedback</Button>
+        <Button :disabled="!feedbackText.trim()" @click="submitFeedback">Send Feedback</Button>
       </DialogFooter>
     </DialogContent>
   </Dialog>

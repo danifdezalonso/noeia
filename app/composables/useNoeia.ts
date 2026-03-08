@@ -1,4 +1,5 @@
 export const useNoeia = () => {
   const open = useState('noeia-open', () => false)
-  return { open }
+  const mode = useState<'ai' | 'todos' | 'quickstart'>('noeia-mode', () => 'ai')
+  return { open, mode }
 }

@@ -5,7 +5,10 @@ import {
   CheckCircle2, XCircle, Clock, AlertCircle,
   CalendarDays, Pencil, Ban, Eye, RotateCcw, X, User,
 } from 'lucide-vue-next'
-import { format, parseISO, addDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subWeeks, isWithinInterval, startOfDay, endOfDay } from 'date-fns'
+import { format, parseISO, addDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subWeeks, subMonths, startOfYear, endOfYear, isWithinInterval, startOfDay, endOfDay } from 'date-fns'
+import { parseDate } from '@internationalized/date'
+import type { DateRange } from 'reka-ui'
+import { RangeCalendar } from '~/components/ui/calendar'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '~/components/ui/table'
@@ -200,6 +203,7 @@ const activeCount = computed(() => activeFilters.value.length)
 function clearAllFilters() {
   dateFrom.value = ''
   dateTo.value   = ''
+  activePreset.value = null
   statusFilter.value = new Set()
   modalityFilter.value = new Set()
   feeRange.value = [FEE_MIN, FEE_MAX]
@@ -355,9 +359,31 @@ function applyPreset(id: PresetId) {
 
 // Clear preset when date filter is changed manually
 watch([dateFrom, dateTo], () => {
-  const now = new Date()
   if (!dateFrom.value && !dateTo.value) { activePreset.value = null }
 })
+
+// ── Date range picker ───────────────────────────────────────────────────────
+
+const datePickerOpen = ref(false)
+
+const dateRangeValue = computed<DateRange | undefined>(() => {
+  try {
+    const start = dateFrom.value ? parseDate(dateFrom.value) : undefined
+    const end   = dateTo.value && dateTo.value !== dateFrom.value ? parseDate(dateTo.value) : undefined
+    if (!start) return undefined
+    return { start, end }
+  } catch { return undefined }
+})
+
+function onRangeSelect(range: DateRange | undefined) {
+  if (!range?.start) { dateFrom.value = ''; dateTo.value = ''; return }
+  dateFrom.value = range.start.toString()
+  dateTo.value   = range.end?.toString() ?? ''
+  activePreset.value = null
+  if (range.end && range.start.toString() !== range.end.toString()) {
+    datePickerOpen.value = false
+  }
+}
 
 // ── Patient profile sheet ──────────────────────────────────────────────────
 
@@ -467,6 +493,48 @@ function onSessionSaved(s: import('~/components/ScheduleSessionModal.vue').NewSe
           />
         </div>
 
+        <!-- Date range picker -->
+        <Popover v-model:open="datePickerOpen">
+          <PopoverTrigger as-child>
+            <Button variant="outline" class="gap-1.5 h-9 text-sm font-normal pr-2">
+              <CalendarDays class="w-4 h-4 text-muted-foreground shrink-0" />
+              <span class="text-foreground">Date</span>
+              <span
+                v-if="dateFrom || dateTo"
+                class="ml-0.5 px-2.5 py-0.5 rounded-full bg-muted text-foreground text-xs font-medium leading-none"
+              >
+                {{ dateFrom ? format(parseISO(dateFrom), 'MMM d') : '…' }} - {{ dateTo ? format(parseISO(dateTo), 'MMM d') : '…' }}
+              </span>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent class="w-auto p-0" align="start" :side-offset="6">
+            <RangeCalendar
+              :model-value="dateRangeValue"
+              :number-of-months="2"
+              @update:model-value="onRangeSelect"
+            />
+            <div class="border-t border-border px-4 py-3 flex items-center justify-between gap-3">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <button
+                  v-for="p in DATE_PRESETS"
+                  :key="p.id"
+                  :class="[
+                    'text-xs px-2.5 py-1 rounded-full border transition-colors',
+                    activePreset === p.id
+                      ? 'bg-foreground text-background border-foreground'
+                      : 'border-border text-muted-foreground hover:text-foreground hover:border-foreground/40 bg-transparent',
+                  ]"
+                  @click="applyPreset(p.id)"
+                >{{ p.label }}</button>
+              </div>
+              <button
+                class="text-sm font-medium text-foreground hover:text-muted-foreground transition-colors"
+                @click="dateFrom = ''; dateTo = ''; activePreset = null; datePickerOpen = false"
+              >Reset</button>
+            </div>
+          </PopoverContent>
+        </Popover>
+
         <!-- Filter popover ─────────────────────────────────────────────── -->
         <Popover>
           <PopoverTrigger as-child>
@@ -501,48 +569,6 @@ function onSessionSaved(s: import('~/components/ScheduleSessionModal.vue').NewSe
             </div>
 
             <div class="px-4 py-4 space-y-5 max-h-[70vh] overflow-y-auto">
-
-              <!-- Date range -->
-              <section>
-                <p class="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Date range</p>
-                <div class="grid grid-cols-2 gap-2">
-                  <div>
-                    <label class="block text-xs text-muted-foreground mb-1">From</label>
-                    <Input
-                      v-model="dateFrom"
-                      type="date"
-                      :max="dateTo || undefined"
-                      class="text-xs h-8"
-                    />
-                  </div>
-                  <div>
-                    <label class="block text-xs text-muted-foreground mb-1">To</label>
-                    <Input
-                      v-model="dateTo"
-                      type="date"
-                      :min="dateFrom || undefined"
-                      class="text-xs h-8"
-                    />
-                  </div>
-                </div>
-                <!-- Quick date presets -->
-                <div class="flex gap-1.5 mt-2 flex-wrap">
-                  <button
-                    v-for="preset in [
-                      { label: 'This week', from: format(mon, 'yyyy-MM-dd'), to: format(addDays(mon, 6), 'yyyy-MM-dd') },
-                      { label: 'Last week', from: format(prev, 'yyyy-MM-dd'), to: format(addDays(prev, 6), 'yyyy-MM-dd') },
-                      { label: 'This month', from: format(new Date(new Date().getFullYear(), new Date().getMonth(), 1), 'yyyy-MM-dd'), to: format(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0), 'yyyy-MM-dd') },
-                    ]"
-                    :key="preset.label"
-                    class="px-2 py-0.5 text-[11px] font-medium rounded-md border border-border text-foreground bg-card hover:bg-accent transition-colors"
-                    @click="dateFrom = preset.from; dateTo = preset.to"
-                  >
-                    {{ preset.label }}
-                  </button>
-                </div>
-              </section>
-
-              <div class="border-t border-border" />
 
               <!-- Status -->
               <section>
@@ -650,35 +676,6 @@ function onSessionSaved(s: import('~/components/ScheduleSessionModal.vue').NewSe
         </p>
         </div><!-- end row 1 -->
 
-        <!-- Row 2: date quick-filter presets -->
-        <div class="flex items-center gap-2 flex-wrap">
-          <span class="text-xs font-medium text-muted-foreground">Date:</span>
-          <button
-            v-for="p in DATE_PRESETS"
-            :key="p.id"
-            :class="[
-              'text-xs px-3 py-1.5 rounded-full border transition-colors',
-              activePreset === p.id
-                ? 'bg-primary text-primary-foreground border-primary'
-                : 'border-border text-muted-foreground hover:text-foreground hover:border-foreground/30 bg-background',
-            ]"
-            @click="applyPreset(p.id)"
-          >
-            {{ p.label }}
-          </button>
-          <div class="flex items-center gap-1.5 ml-2">
-            <Input v-model="dateFrom" type="date" class="h-7 text-xs w-36 px-2" :max="dateTo || undefined" @change="activePreset = null" />
-            <span class="text-xs text-muted-foreground">–</span>
-            <Input v-model="dateTo"   type="date" class="h-7 text-xs w-36 px-2" :min="dateFrom || undefined" @change="activePreset = null" />
-          </div>
-          <button
-            v-if="dateFrom || dateTo"
-            class="text-xs text-muted-foreground hover:text-foreground transition-colors"
-            @click="dateFrom = ''; dateTo = ''; activePreset = null"
-          >
-            <X class="w-3.5 h-3.5" />
-          </button>
-        </div>
       </div><!-- end toolbar space-y wrapper -->
 
       <!-- ── Active filter chips ──────────────────────────────────────────── -->

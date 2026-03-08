@@ -44,13 +44,14 @@ function onHeaderSessionSaved(data: NewSession) {
       <!-- Main content area -->
       <SidebarInset>
         <ShellHeader />
-        <main class="flex-1 overflow-hidden flex flex-col min-h-0">
-          <slot />
-        </main>
+        <div class="flex flex-1 overflow-hidden min-h-0">
+          <main class="flex-1 overflow-hidden flex flex-col min-h-0">
+            <slot />
+          </main>
+          <!-- Noeia AI panel — pushes content, lives below header -->
+          <NoeiaSidebar />
+        </div>
       </SidebarInset>
-
-      <!-- Right AI sidebar -->
-      <NoeiaSidebar />
 
       <!-- LinkedIn-style messaging widget -->
       <MessagingWidget />

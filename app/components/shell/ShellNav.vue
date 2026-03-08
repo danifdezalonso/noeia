@@ -4,6 +4,7 @@ import {
   MessageSquare, Receipt, Sparkles, Settings,
   Sun, Moon, Stethoscope, Building2, ChevronUp, ChevronDown,
   User, CreditCard, LogOut, LayoutTemplate, Globe, CalendarClock, FlaskConical,
+  PanelLeft, PanelLeftClose, ListTodo,
 } from 'lucide-vue-next'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '~/components/ui/collapsible'
 import { useDark, useToggle } from '@vueuse/core'
@@ -27,12 +28,12 @@ const { persona } = usePersona()
 const isDark = useDark()
 const toggleDark = useToggle(isDark)
 
-const { mobileOpen, state, isMobile } = useSidebar()
+const { mobileOpen, state, isMobile, toggleSidebar } = useSidebar()
 const iconOnly = computed(() => state.value === 'collapsed' && !isMobile.value)
 
 const iconMap: Record<string, Component> = {
   LayoutDashboard, Calendar, ClipboardList, Users,
-  MessageSquare, Receipt, Sparkles, Stethoscope, Building2,
+  MessageSquare, Receipt, Sparkles, Stethoscope, Building2, ListTodo,
 }
 
 // NoeIA collapsible — expand whenever on any noeia sub-route
@@ -53,23 +54,35 @@ const profileSubLabel = computed(() =>
 
 <template>
   <Sidebar>
-    <!-- ── Header: Logo ── -->
+    <!-- ── Header: Logo + collapse toggle ── -->
     <SidebarHeader>
-      <div class="flex items-center gap-2.5 px-1 py-1 h-10">
+      <!-- Collapsed: just the expand button -->
+      <div v-if="iconOnly" class="flex items-center justify-center h-10 px-1 py-1">
+        <button
+          class="w-8 h-8 flex items-center justify-center rounded-lg text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+          title="Expand sidebar"
+          @click="toggleSidebar()"
+        >
+          <PanelLeft class="w-4 h-4" />
+        </button>
+      </div>
+
+      <!-- Expanded: logo + wordmark + collapse button -->
+      <div v-else class="flex items-center gap-2.5 px-1 py-1 h-10">
         <div class="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center flex-shrink-0">
           <img src="/Noeia_logo_mini.svg" alt="Noeia" class="w-4 h-4 brightness-0 invert" />
         </div>
-        <Transition
-          enter-active-class="transition duration-150 ease-out"
-          enter-from-class="opacity-0"
-          leave-active-class="transition duration-100 ease-in"
-          leave-to-class="opacity-0"
+        <div class="overflow-hidden flex-shrink-0 flex-1 min-w-0">
+          <img src="/Noeia_logo.svg" alt="Noeia" class="h-5 dark:hidden" />
+          <img src="/Noeia_logo_white.svg" alt="Noeia" class="h-5 hidden dark:block" />
+        </div>
+        <button
+          class="w-7 h-7 flex items-center justify-center rounded-lg text-sidebar-foreground/40 hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors flex-shrink-0"
+          title="Collapse sidebar"
+          @click="toggleSidebar()"
         >
-          <div v-if="!iconOnly" class="overflow-hidden flex-shrink-0">
-            <img src="/Noeia_logo.svg" alt="Noeia" class="h-5 dark:hidden" />
-            <img src="/Noeia_logo_white.svg" alt="Noeia" class="h-5 hidden dark:block" />
-          </div>
-        </Transition>
+          <PanelLeftClose class="w-3.5 h-3.5" />
+        </button>
       </div>
     </SidebarHeader>
 
@@ -185,9 +198,11 @@ const profileSubLabel = computed(() =>
 
         <!-- Settings -->
         <SidebarMenuItem>
-          <SidebarMenuButton tooltip="Settings">
-            <Settings />
-            <span>Settings</span>
+          <SidebarMenuButton as-child :is-active="isActive('/doctor/dashboard/settings')" tooltip="Settings" @click="mobileOpen = false">
+            <NuxtLink to="/doctor/dashboard/settings">
+              <Settings />
+              <span>Settings</span>
+            </NuxtLink>
           </SidebarMenuButton>
         </SidebarMenuItem>
 
