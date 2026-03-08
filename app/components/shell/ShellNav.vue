@@ -4,7 +4,7 @@ import {
   MessageSquare, Receipt, Sparkles, Settings,
   Sun, Moon, Stethoscope, Building2, ChevronUp, ChevronDown,
   User, CreditCard, LogOut, LayoutTemplate, Globe, CalendarClock, FlaskConical,
-  PanelLeft, PanelLeftClose, ListTodo,
+  PanelLeft, PanelLeftClose, ListTodo, Check, Plus,
 } from 'lucide-vue-next'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '~/components/ui/collapsible'
 import { useDark, useToggle } from '@vueuse/core'
@@ -50,6 +50,17 @@ function isActive(path: string) {
 const profileSubLabel = computed(() =>
   persona.value.role === 'organization' ? persona.value.orgName : 'Clinical Psychology',
 )
+
+const orgs = ref([
+  { id: 1, name: 'MindCare Clinics', active: true },
+  { id: 2, name: 'Personal Practice', active: false },
+])
+
+const activeOrg = computed(() => orgs.value.find(o => o.active) ?? orgs.value[0])
+
+function switchOrg(id: number) {
+  orgs.value.forEach(o => { o.active = o.id === id })
+}
 </script>
 
 <template>
@@ -83,6 +94,45 @@ const profileSubLabel = computed(() =>
         >
           <PanelLeftClose class="w-3.5 h-3.5" />
         </button>
+      </div>
+
+      <!-- ── Workspace / org selector ── -->
+      <div class="px-1 pb-1">
+        <DropdownMenu>
+          <DropdownMenuTrigger as-child>
+            <SidebarMenuButton :tooltip="activeOrg.name" class="h-9 gap-2.5">
+              <div class="w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-bold shrink-0 bg-sidebar-primary/20 text-sidebar-primary">
+                {{ activeOrg.name[0] }}
+              </div>
+              <template v-if="!iconOnly">
+                <span class="flex-1 text-sm font-medium text-sidebar-foreground truncate">{{ activeOrg.name }}</span>
+                <ChevronDown class="w-3.5 h-3.5 text-sidebar-foreground/40 shrink-0" />
+              </template>
+            </SidebarMenuButton>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="bottom" align="start" class="w-56">
+            <DropdownMenuLabel class="text-xs font-normal text-muted-foreground pb-1">Workspaces</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              v-for="org in orgs"
+              :key="org.id"
+              class="gap-2.5 cursor-pointer"
+              @click="switchOrg(org.id)"
+            >
+              <div class="w-5 h-5 rounded-md flex items-center justify-center text-[9px] font-bold shrink-0"
+                :class="org.active ? 'bg-primary/10 text-primary' : 'bg-accent text-muted-foreground'">
+                {{ org.name[0] }}
+              </div>
+              <span class="flex-1 text-sm">{{ org.name }}</span>
+              <Check v-if="org.active" class="w-3.5 h-3.5 text-primary" />
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem class="gap-2.5 cursor-pointer text-muted-foreground">
+              <Plus class="w-3.5 h-3.5" />
+              <span class="text-sm">Add workspace</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </SidebarHeader>
 

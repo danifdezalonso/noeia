@@ -1,16 +1,19 @@
 <script setup lang="ts">
 import {
-  Building2, ChevronDown, Search, Plus,
-  Bell, HelpCircle, Check,
+  ChevronDown, Search,
+  Bell, HelpCircle,
   CalendarPlus, UserPlus, ReceiptText, Stethoscope,
   LayoutDashboard, Calendar, ClipboardList, Users,
-  MessageSquare, Receipt, Sparkles,
+  MessageSquare, Receipt, Sparkles, ListTodo,
   Book, Play, MessageCircle as MessageCircleIcon, AlertCircle, Lightbulb,
-  Menu,
 } from 'lucide-vue-next'
 import { useEventListener } from '@vueuse/core'
 import { SHELL_KEY } from '~/composables/useDashboard'
-import { Button } from '~/components/ui/button'
+import { Button, ButtonGroup, ButtonGroupSeparator } from '~/components/ui/button'
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuTrigger,
+  DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel,
+} from '~/components/ui/dropdown-menu'
 import {
   CommandDialog, CommandInput, CommandList, CommandEmpty,
   CommandGroup, CommandItem, CommandSeparator, CommandShortcut,
@@ -50,28 +53,12 @@ useEventListener(document, 'keydown', (e: KeyboardEvent) => {
 
 const iconMap: Record<string, Component> = {
   LayoutDashboard, Calendar, ClipboardList, Users,
-  MessageSquare, Receipt, Sparkles, Stethoscope, Building2,
-}
-
-function closeAll() {
-  shell.orgSelectorOpen.value = false
-  shell.notificationsOpen.value = false
-}
-
-function toggleOrg() {
-  shell.notificationsOpen.value = false
-  shell.orgSelectorOpen.value = !shell.orgSelectorOpen.value
+  MessageSquare, Receipt, Sparkles, Stethoscope,
 }
 
 function toggleNotifications() {
-  shell.orgSelectorOpen.value = false
   shell.notificationsOpen.value = !shell.notificationsOpen.value
 }
-
-const orgs = [
-  { id: 1, name: 'MindCare Clinics', active: true },
-  { id: 2, name: 'Personal Practice', active: false },
-]
 
 const notifications = [
   { id: 1, type: 'session',  text: 'Session with M. García starts in 30 min', time: '28m', unread: true },
@@ -83,76 +70,16 @@ const notifications = [
 <template>
   <!-- Backdrop to close dropdowns -->
   <div
-    v-if="shell.orgSelectorOpen.value || shell.notificationsOpen.value"
+    v-if="shell.notificationsOpen.value"
     class="fixed inset-0 z-30"
-    @click="closeAll"
+    @click="shell.notificationsOpen.value = false"
   />
 
-  <header class="relative h-14 bg-background border border-border flex items-center px-3 sm:px-4 gap-2 sm:gap-3 z-50 flex-shrink-0 mx-2 mt-2 rounded-xl shadow-sm">
-
-    <!-- ── Left ── -->
-    <div class="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-
-      <!-- Org selector — hidden on small mobile -->
-      <div class="relative hidden sm:block">
-        <button
-          type="button"
-          @click.stop="toggleOrg"
-          class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-foreground hover:bg-accent transition-colors border border-transparent hover:border-border"
-        >
-          <Building2 class="w-3.5 h-3.5 text-muted-foreground" />
-          <span class="hidden md:inline">MindCare Clinics</span>
-          <ChevronDown class="w-3.5 h-3.5 text-muted-foreground transition-transform duration-150"
-            :class="{ 'rotate-180': shell.orgSelectorOpen.value }" />
-        </button>
-
-        <!-- Org dropdown -->
-        <Transition
-          enter-active-class="transition duration-100 ease-out"
-          enter-from-class="opacity-0 scale-95 -translate-y-1"
-          leave-active-class="transition duration-75 ease-in"
-          leave-to-class="opacity-0 scale-95 -translate-y-1"
-        >
-          <div
-            v-if="shell.orgSelectorOpen.value"
-            class="absolute top-full left-0 mt-2 w-56 bg-popover border border-border rounded-xl shadow-lg z-50 py-1.5 overflow-hidden"
-          >
-            <p class="px-3 pb-1 pt-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Organizations
-            </p>
-            <button
-              v-for="org in orgs"
-              :key="org.id"
-              type="button"
-              class="w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-accent transition-colors"
-              :class="org.active ? 'text-primary font-medium' : 'text-foreground'"
-            >
-              <div class="flex items-center gap-2">
-                <div
-                  class="w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-bold"
-                  :class="org.active ? 'bg-primary/10 text-primary' : 'bg-accent text-muted-foreground'"
-                >
-                  {{ org.name[0] }}
-                </div>
-                {{ org.name }}
-              </div>
-              <Check v-if="org.active" class="w-3.5 h-3.5 text-primary" />
-            </button>
-            <div class="border-t border-border mt-1 pt-1">
-              <button type="button"
-                class="w-full flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
-                <Plus class="w-3.5 h-3.5" />
-                Add organization
-              </button>
-            </div>
-          </div>
-        </Transition>
-      </div>
-    </div>
+  <header class="relative h-14 bg-sidebar border border-sidebar-border flex items-center px-3 sm:px-4 gap-2 sm:gap-3 z-50 flex-shrink-0 mx-2 mt-2 rounded-xl shadow-sm">
 
     <!-- ── Center: Command search trigger ── -->
     <div class="flex-1 min-w-0">
-      <div class="max-w-md mx-auto hidden sm:block">
+      <div class="max-w-md hidden sm:block">
         <button
           type="button"
           class="w-full flex items-center gap-2 px-3 py-1.5 bg-accent/50 border border-border rounded-full text-sm text-muted-foreground hover:bg-accent hover:border-border/80 transition-all"
@@ -170,13 +97,44 @@ const notifications = [
     <!-- ── Right ── -->
     <div class="flex items-center gap-1 flex-shrink-0">
 
-      <!-- New session CTA -->
-      <Button
-        class="px-3.5 py-1.5 h-auto text-sm font-semibold"
-        @click="navigateTo('/doctor/dashboard/noeia')"
-      >
-        New session
-      </Button>
+      <!-- ── Split button: New session + quick-create dropdown ── -->
+      <ButtonGroup>
+        <Button
+          size="sm"
+          class="rounded-r-none"
+          @click="sessionModalOpen = true"
+        >
+          New session
+        </Button>
+        <ButtonGroupSeparator />
+        <DropdownMenu>
+          <DropdownMenuTrigger as-child>
+            <Button size="sm" class="rounded-l-none rounded-r-md px-2">
+              <ChevronDown class="w-3.5 h-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" class="w-44">
+            <DropdownMenuLabel class="text-xs font-normal text-muted-foreground">Quick create</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem class="gap-2 cursor-pointer" @click="sessionModalOpen = true">
+              <CalendarPlus class="w-3.5 h-3.5 text-muted-foreground" />
+              Session
+            </DropdownMenuItem>
+            <DropdownMenuItem class="gap-2 cursor-pointer" @click="patientModalOpen = true">
+              <UserPlus class="w-3.5 h-3.5 text-muted-foreground" />
+              Patient
+            </DropdownMenuItem>
+            <DropdownMenuItem class="gap-2 cursor-pointer" @click="billModalOpen = true">
+              <ReceiptText class="w-3.5 h-3.5 text-muted-foreground" />
+              Invoice
+            </DropdownMenuItem>
+            <DropdownMenuItem class="gap-2 cursor-pointer" @click="navigateTo('/doctor/dashboard/tasks')">
+              <ListTodo class="w-3.5 h-3.5 text-muted-foreground" />
+              Task
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </ButtonGroup>
 
       <!-- Separator -->
       <div class="w-px h-5 bg-border mx-1" />
