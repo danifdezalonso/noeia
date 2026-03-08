@@ -91,6 +91,7 @@ function createSeedEvents(): CalendarEvent[] {
     { id: crypto.randomUUID(), title: 'Team Standup',             start: localIso(addDays(mon, 1), 9),      end: localIso(addDays(mon, 1), 9, 30),  category: 'meeting', recurrence: 'none' },
     { id: crypto.randomUUID(), title: 'Review billing report',    start: localIso(addDays(mon, 4), 16),     end: localIso(addDays(mon, 4), 16, 30), category: 'task', done: false, recurrence: 'none' },
     { id: crypto.randomUUID(), title: 'Deep work – Research',     start: localIso(addDays(mon, 2), 14),     end: localIso(addDays(mon, 2), 16),     category: 'focus', focusDnd: true, focusDeclineInvites: false, recurrence: 'none' },
+
   ]
 }
 

@@ -9,7 +9,7 @@ import {
 } from 'lucide-vue-next'
 import { useEventListener } from '@vueuse/core'
 import { SHELL_KEY } from '~/composables/useDashboard'
-import { Button, ButtonGroup, ButtonGroupSeparator } from '~/components/ui/button'
+import { Button } from '~/components/ui/button'
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuTrigger,
   DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel,
@@ -98,21 +98,20 @@ const notifications = [
     <div class="flex items-center gap-1 flex-shrink-0">
 
       <!-- ── Split button: New session + quick-create dropdown ── -->
-      <ButtonGroup>
-        <Button
-          size="sm"
-          class="rounded-r-none"
-          @click="sessionModalOpen = true"
-        >
-          New session
-        </Button>
-        <ButtonGroupSeparator />
-        <DropdownMenu>
-          <DropdownMenuTrigger as-child>
-            <Button size="sm" class="rounded-l-none rounded-r-md px-2">
-              <ChevronDown class="w-3.5 h-3.5" />
-            </Button>
-          </DropdownMenuTrigger>
+      <Button
+        size="sm"
+        class="rounded-r-none"
+        @click="sessionModalOpen = true"
+      >
+        New session
+      </Button>
+      <div class="w-px self-stretch bg-primary-foreground/25 shrink-0" />
+      <DropdownMenu>
+        <DropdownMenuTrigger as-child>
+          <Button size="sm" class="rounded-l-none px-2">
+            <ChevronDown class="w-3.5 h-3.5" />
+          </Button>
+        </DropdownMenuTrigger>
           <DropdownMenuContent align="end" class="w-44">
             <DropdownMenuLabel class="text-xs font-normal text-muted-foreground">Quick create</DropdownMenuLabel>
             <DropdownMenuSeparator />
@@ -134,7 +133,6 @@ const notifications = [
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-      </ButtonGroup>
 
       <!-- Separator -->
       <div class="w-px h-5 bg-border mx-1" />
