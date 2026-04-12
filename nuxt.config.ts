@@ -19,6 +19,7 @@ export default defineNuxtConfig({
       { path: '~/components/ui', ignore: ['**/*.ts'] },
       { path: '~/components/shell' },
       { path: '~/components/calendar' },
+      { path: '~/components/onboarding' },
       '~/components',
     ],
   },

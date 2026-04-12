@@ -29,7 +29,7 @@ definePageMeta({ layout: 'dashboard' })
 // ── Types ──────────────────────────────────────────────────────────────────
 
 type DoctorStatus = 'active' | 'inactive' | 'on-leave'
-type SortKey = 'name' | 'email' | 'specialty' | 'status' | 'patientCount'
+type SortKey = 'name' | 'email' | 'specialty' | 'status' | 'patientCount' | 'sessionFeePercent'
 type SortDir = 'asc' | 'desc'
 type TabKey = 'identity' | 'professional' | 'licensing' | 'invitation'
 
@@ -42,19 +42,20 @@ interface Doctor {
   status: DoctorStatus
   patientCount: number
   joinedDate: string
+  sessionFeePercent: number
 }
 
 // ── Seed data ──────────────────────────────────────────────────────────────
 
 const doctors = ref<Doctor[]>([
-  { id: 'd1', name: 'Dr. Elena Voss',    initials: 'EV', email: 'elena.voss@clinic.com',    specialty: 'CBT',                  status: 'active',   patientCount: 18, joinedDate: '2024-03-01' },
-  { id: 'd2', name: 'Dr. Marco Silva',   initials: 'MS', email: 'marco.silva@clinic.com',   specialty: 'Psychiatry',           status: 'active',   patientCount: 24, joinedDate: '2023-09-15' },
-  { id: 'd3', name: 'Dr. Priya Nair',    initials: 'PN', email: 'priya.nair@clinic.com',    specialty: 'Trauma Therapy',       status: 'active',   patientCount: 12, joinedDate: '2024-01-20' },
-  { id: 'd4', name: 'Dr. James Okafor',  initials: 'JO', email: 'james.okafor@clinic.com',  specialty: 'Group Therapy',        status: 'active',   patientCount: 31, joinedDate: '2022-06-10' },
-  { id: 'd5', name: 'Dr. Sofia Reyes',   initials: 'SR', email: 'sofia.reyes@clinic.com',   specialty: 'Child & Adolescent',   status: 'active',   patientCount: 15, joinedDate: '2023-11-05' },
-  { id: 'd6', name: 'Dr. Lena Brandt',   initials: 'LB', email: 'lena.brandt@clinic.com',   specialty: 'Neuropsychology',      status: 'on-leave', patientCount: 9,  joinedDate: '2023-04-22' },
-  { id: 'd7', name: 'Dr. Aarav Patel',   initials: 'AP', email: 'aarav.patel@clinic.com',   specialty: 'Addiction Psychology', status: 'active',   patientCount: 20, joinedDate: '2024-07-08' },
-  { id: 'd8', name: 'Dr. Clara Müller',  initials: 'CM', email: 'clara.muller@clinic.com',  specialty: 'Family & Couples',     status: 'inactive', patientCount: 0,  joinedDate: '2023-02-14' },
+  { id: 'd1', name: 'Dr. Elena Voss',    initials: 'EV', email: 'elena.voss@clinic.com',    specialty: 'CBT',                  status: 'active',   patientCount: 18, joinedDate: '2024-03-01', sessionFeePercent: 70 },
+  { id: 'd2', name: 'Dr. Marco Silva',   initials: 'MS', email: 'marco.silva@clinic.com',   specialty: 'Psychiatry',           status: 'active',   patientCount: 24, joinedDate: '2023-09-15', sessionFeePercent: 75 },
+  { id: 'd3', name: 'Dr. Priya Nair',    initials: 'PN', email: 'priya.nair@clinic.com',    specialty: 'Trauma Therapy',       status: 'active',   patientCount: 12, joinedDate: '2024-01-20', sessionFeePercent: 65 },
+  { id: 'd4', name: 'Dr. James Okafor',  initials: 'JO', email: 'james.okafor@clinic.com',  specialty: 'Group Therapy',        status: 'active',   patientCount: 31, joinedDate: '2022-06-10', sessionFeePercent: 80 },
+  { id: 'd5', name: 'Dr. Sofia Reyes',   initials: 'SR', email: 'sofia.reyes@clinic.com',   specialty: 'Child & Adolescent',   status: 'active',   patientCount: 15, joinedDate: '2023-11-05', sessionFeePercent: 70 },
+  { id: 'd6', name: 'Dr. Lena Brandt',   initials: 'LB', email: 'lena.brandt@clinic.com',   specialty: 'Neuropsychology',      status: 'on-leave', patientCount: 9,  joinedDate: '2023-04-22', sessionFeePercent: 60 },
+  { id: 'd7', name: 'Dr. Aarav Patel',   initials: 'AP', email: 'aarav.patel@clinic.com',   specialty: 'Addiction Psychology', status: 'active',   patientCount: 20, joinedDate: '2024-07-08', sessionFeePercent: 72 },
+  { id: 'd8', name: 'Dr. Clara Müller',  initials: 'CM', email: 'clara.muller@clinic.com',  specialty: 'Family & Couples',     status: 'inactive', patientCount: 0,  joinedDate: '2023-02-14', sessionFeePercent: 70 },
 ])
 
 // ── Filter & sort ──────────────────────────────────────────────────────────
@@ -249,6 +250,31 @@ watch(doctorModalOpen, (open) => {
   if (open) { doctorModalOpen.value = false; openAdd() }
 })
 
+// ── Inline fee editing ─────────────────────────────────────────────────────
+
+const editingFeeId  = ref<string | null>(null)
+const editingFeeVal = ref<string>('')
+
+function startEditFee(d: Doctor) {
+  editingFeeId.value  = d.id
+  editingFeeVal.value = String(d.sessionFeePercent)
+  nextTick(() => {
+    const el = document.getElementById(`fee-input-${d.id}`)
+    if (el) (el as HTMLInputElement).select()
+  })
+}
+
+function commitFee(d: Doctor) {
+  const n = parseInt(editingFeeVal.value, 10)
+  if (!isNaN(n) && n >= 0 && n <= 100) d.sessionFeePercent = n
+  editingFeeId.value = null
+}
+
+function onFeeKeydown(e: KeyboardEvent, d: Doctor) {
+  if (e.key === 'Enter')  { e.preventDefault(); commitFee(d) }
+  if (e.key === 'Escape') { editingFeeId.value = null }
+}
+
 // ── Row actions ────────────────────────────────────────────────────────────
 
 function deactivate(id: string) {
@@ -272,10 +298,11 @@ const statusMeta: Record<DoctorStatus, { label: string; dot: string; badge: stri
 }
 
 const columns: { key: SortKey; label: string }[] = [
-  { key: 'name',         label: 'Name'      },
-  { key: 'specialty',    label: 'Specialty' },
-  { key: 'status',       label: 'Status'    },
-  { key: 'patientCount', label: 'Patients'  },
+  { key: 'name',               label: 'Name'      },
+  { key: 'specialty',          label: 'Specialty' },
+  { key: 'status',             label: 'Status'    },
+  { key: 'patientCount',       label: 'Patients'  },
+  { key: 'sessionFeePercent',  label: 'Fee %'     },
 ]
 </script>
 
@@ -356,7 +383,7 @@ const columns: { key: SortKey; label: string }[] = [
             </TableHeader>
             <TableBody>
               <TableRow v-if="filtered.length === 0">
-                <TableCell colspan="5" class="py-20 text-center">
+                <TableCell colspan="6" class="py-20 text-center">
                   <p class="text-sm text-muted-foreground">No doctors found</p>
                 </TableCell>
               </TableRow>
@@ -384,6 +411,39 @@ const columns: { key: SortKey; label: string }[] = [
                   </Badge>
                 </TableCell>
                 <TableCell class="whitespace-nowrap text-sm text-muted-foreground tabular-nums">{{ d.patientCount }}</TableCell>
+
+                <!-- ── Fee % (inline editable) ── -->
+                <TableCell class="whitespace-nowrap">
+                  <!-- Display pill -->
+                  <button
+                    v-if="editingFeeId !== d.id"
+                    class="fee-pill"
+                    :class="d.sessionFeePercent >= 75 ? 'fee-pill--high' : d.sessionFeePercent <= 65 ? 'fee-pill--low' : 'fee-pill--mid'"
+                    title="Click to edit"
+                    @click="startEditFee(d)"
+                  >
+                    {{ d.sessionFeePercent }}%
+                    <svg class="fee-pill__edit" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                  <!-- Edit input -->
+                  <div v-else class="fee-input-wrap">
+                    <input
+                      :id="`fee-input-${d.id}`"
+                      v-model="editingFeeVal"
+                      type="number"
+                      min="0"
+                      max="100"
+                      class="fee-input"
+                      @blur="commitFee(d)"
+                      @keydown="onFeeKeydown($event, d)"
+                    />
+                    <span class="fee-input__suffix">%</span>
+                  </div>
+                </TableCell>
+
                 <TableCell class="whitespace-nowrap">
                   <div class="flex items-center gap-1 justify-end">
                     <DropdownMenu>
@@ -774,3 +834,67 @@ const columns: { key: SortKey; label: string }[] = [
     </DialogContent>
   </Dialog>
 </template>
+
+<style scoped>
+/* ── Fee % pill ─────────────────────────────────────────────────── */
+.fee-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  transition: opacity 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.fee-pill:hover { opacity: 0.8; border-color: currentColor; }
+
+.fee-pill--high  { background: rgba(22,163,74,0.08);  color: #15803d; }
+.fee-pill--mid   { background: rgba(59,130,246,0.08); color: #2563eb; }
+.fee-pill--low   { background: rgba(245,158,11,0.1);  color: #d97706; }
+
+.fee-pill__edit {
+  opacity: 0;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+.fee-pill:hover .fee-pill__edit { opacity: 0.6; }
+
+/* ── Fee % inline input ─────────────────────────────────────────── */
+.fee-input-wrap {
+  display: inline-flex;
+  align-items: center;
+  border: 1.5px solid hsl(var(--primary));
+  border-radius: 8px;
+  overflow: hidden;
+  background: hsl(var(--background));
+  width: 76px;
+}
+.fee-input {
+  width: 48px;
+  padding: 3px 6px;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: hsl(var(--foreground));
+  /* hide spin buttons */
+  -moz-appearance: textfield;
+}
+.fee-input::-webkit-outer-spin-button,
+.fee-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+.fee-input__suffix {
+  padding: 0 7px 0 2px;
+  font-size: 12px;
+  font-weight: 500;
+  color: hsl(var(--muted-foreground));
+  pointer-events: none;
+}
+</style>
