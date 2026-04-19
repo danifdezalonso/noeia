@@ -19,6 +19,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
 
 definePageMeta({ layout: 'dashboard' })
 
+const { success } = useToast()
+
 type PatientStatus = 'active' | 'inactive' | 'on-hold' | 'discharged'
 type SortKey = 'name' | 'email' | 'phone' | 'dob' | 'status'
 type SortDir = 'asc' | 'desc'
@@ -80,6 +82,24 @@ const filtered = computed(() => {
 })
 
 const newPatientModalOpen = ref(false)
+
+function onPatientSaved(data: { name: string; surname: string; initials: string; email: string; phone: string }) {
+  const id = `p${Date.now()}`
+  patients.value.unshift({
+    id,
+    name: `${data.name} ${data.surname}`,
+    initials: data.initials,
+    email: data.email,
+    phone: data.phone,
+    dob: new Date().toISOString().slice(0, 10),
+    status: 'active',
+    related: [],
+    sessionCount: 0,
+  })
+  newPatientModalOpen.value = false
+  success('Patient added', `${data.name} ${data.surname} has been added successfully.`)
+  navigateTo(`/organization/dashboard/patient/${id}`)
+}
 
 function discharge(id: string) { const p = patients.value.find(p => p.id === id); if (p) p.status = 'discharged' }
 function setInactive(id: string) { const p = patients.value.find(p => p.id === id); if (p) p.status = 'inactive' }
@@ -198,7 +218,7 @@ const columns: { key: SortKey; label: string }[] = [
                       <span :class="['absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-background', statusMeta[p.status].dot]" />
                     </div>
                     <div>
-                      <p class="font-medium text-foreground leading-tight">{{ p.name }}</p>
+                      <p class="font-medium text-foreground leading-tight cursor-pointer hover:text-primary hover:underline transition-colors" @click="navigateTo(`/organization/dashboard/patient/${p.id}`)">{{ p.name }}</p>
                       <p class="text-[11px] text-muted-foreground leading-tight mt-0.5">{{ p.sessionCount }} session{{ p.sessionCount !== 1 ? 's' : '' }}</p>
                     </div>
                   </div>
@@ -233,7 +253,7 @@ const columns: { key: SortKey; label: string }[] = [
                       <DropdownMenuContent align="end" class="w-44">
                         <DropdownMenuLabel class="text-xs text-muted-foreground font-normal">Patient actions</DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem class="gap-2 cursor-pointer"><Eye class="w-3.5 h-3.5 text-muted-foreground" /> View profile</DropdownMenuItem>
+                        <DropdownMenuItem class="gap-2 cursor-pointer" @click="navigateTo(`/organization/dashboard/patient/${p.id}`)"><Eye class="w-3.5 h-3.5 text-muted-foreground" /> View profile</DropdownMenuItem>
                         <DropdownMenuItem class="gap-2 cursor-pointer"><Pencil class="w-3.5 h-3.5 text-muted-foreground" /> Edit details</DropdownMenuItem>
                         <DropdownMenuItem class="gap-2 cursor-pointer" @click="scheduleSession(p)"><CalendarPlus class="w-3.5 h-3.5 text-muted-foreground" /> Schedule session</DropdownMenuItem>
                         <DropdownMenuSeparator />
@@ -262,6 +282,6 @@ const columns: { key: SortKey; label: string }[] = [
     v-if="newPatientModalOpen"
     :existing-patients="patients.map(p => ({ id: p.id, name: p.name }))"
     @close="newPatientModalOpen = false"
-    @save="newPatientModalOpen = false"
+    @save="onPatientSaved"
   />
 </template>

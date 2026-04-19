@@ -1,6 +1,6 @@
 <script setup lang="ts">
 definePageMeta({ layout: false })
-await navigateTo('/select-role', { replace: true })
+await navigateTo('/login', { replace: true })
 </script>
 
 <template>

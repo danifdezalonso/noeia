@@ -199,41 +199,25 @@ const selectedPatient = ref<Patient | null>(null)
 
 const newPatientModalOpen = ref(false)
 
-function onPatientSaved(data: {
-  name: string; email: string; phone: string; dob: string;
-  gender: string; pronouns: string; address: string;
-  hasInsurance: boolean; insurer: string; policyNumber: string;
-  referralSource: string; chiefComplaint: string;
-  relatedPatients: { id: string; name: string; relationship: string }[];
-  tags: string[]; notes: string;
-}) {
-  const initials = data.name
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w: string) => w[0].toUpperCase())
-    .join('')
-
-  const newId = `p${Date.now()}`
+function onPatientSaved(data: { name: string; surname: string; initials: string; email: string; phone: string }) {
+  const id = `p${Date.now()}`
   patients.value.unshift({
-    id: newId,
-    name: data.name,
-    initials,
+    id,
+    name: `${data.name} ${data.surname}`,
+    initials: data.initials,
     email: data.email,
     phone: data.phone,
-    dob: data.dob || new Date().toISOString().slice(0, 10),
+    dob: new Date().toISOString().slice(0, 10),
     status: 'active',
-    related: data.relatedPatients.map(r => ({
-      id: r.id,
-      name: r.name,
-      relationship: r.relationship,
-    })),
+    related: [],
     sessionCount: 0,
     consentSigned: false,
-    insurance: data.hasInsurance ? data.insurer : undefined,
     pendingPayments: 0,
   })
   newPatientModalOpen.value = false
+  const { success } = useToast()
+  success('Patient added', `${data.name} ${data.surname} has been added successfully.`)
+  navigateTo(`/doctor/dashboard/patient/${id}`)
 }
 
 // ── Consent request state ──────────────────────────────────────────────────
@@ -463,7 +447,7 @@ const columns: { key: SortKey; label: string }[] = [
                       />
                     </div>
                     <div>
-                      <p class="font-medium text-foreground leading-tight">{{ p.name }}</p>
+                      <p class="font-medium text-foreground leading-tight cursor-pointer hover:text-primary hover:underline transition-colors" @click.stop="navigateTo(`/doctor/dashboard/patient/${p.id}`)">{{ p.name }}</p>
                       <p class="text-[11px] text-muted-foreground leading-tight mt-0.5">
                         {{ p.sessionCount }} session{{ p.sessionCount !== 1 ? 's' : '' }}
                       </p>
@@ -600,7 +584,7 @@ const columns: { key: SortKey; label: string }[] = [
                         <DropdownMenuLabel class="text-xs text-muted-foreground font-normal">Patient actions</DropdownMenuLabel>
                         <DropdownMenuSeparator />
 
-                        <DropdownMenuItem class="gap-2 cursor-pointer">
+                        <DropdownMenuItem class="gap-2 cursor-pointer" @click="navigateTo(`/doctor/dashboard/patient/${p.id}`)">
                           <Eye class="w-3.5 h-3.5 text-muted-foreground" />
                           View profile
                         </DropdownMenuItem>

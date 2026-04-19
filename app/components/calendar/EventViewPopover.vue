@@ -2,13 +2,14 @@
 import { useEventListener } from '@vueuse/core'
 import {
   X, Pencil, Trash2, Video, MapPin, AlignLeft, Bell, Lock,
-  Calendar, ExternalLink, Sparkles, Tag,
+  Calendar, ExternalLink, Sparkles, Tag, UserRound,
 } from 'lucide-vue-next'
 import { format, parseISO, isSameDay } from 'date-fns'
 import { Button } from '~/components/ui/button'
 import { Badge } from '~/components/ui/badge'
 
 const router = useRouter()
+const route = useRoute()
 const cal = useCalendar()
 const { viewPopoverOpen, viewPopoverEvent, viewPopoverPos, openEdit, deleteEvent, noeiaLinkedEvent } = cal
 
@@ -100,6 +101,14 @@ function openInNoeia() {
   noeiaLinkedEvent.value = { ...e }
   close()
   router.push('/doctor/dashboard/noeia')
+}
+
+function openPatientProfile() {
+  const e = ev.value
+  if (!e?.patientId) return
+  const base = route.path.startsWith('/organization') ? '/organization/dashboard' : '/doctor/dashboard'
+  close()
+  router.push(`${base}/patient/${e.patientId}`)
 }
 
 useEventListener(document, 'keydown', (e: KeyboardEvent) => {
@@ -228,6 +237,16 @@ useEventListener(document, 'keydown', (e: KeyboardEvent) => {
             >
               <Sparkles class="w-3.5 h-3.5" />
               Open in NoeIA
+            </Button>
+            <!-- View patient profile — session events with a linked patient -->
+            <Button
+              v-if="ev.category === 'session' && ev.patientId"
+              variant="ghost"
+              class="w-full justify-start text-sm h-8 rounded-lg gap-2 text-muted-foreground hover:text-foreground"
+              @click="openPatientProfile"
+            >
+              <UserRound class="w-3.5 h-3.5" />
+              View patient profile
             </Button>
             <Button variant="ghost" class="w-full justify-start text-sm h-8 rounded-lg gap-2 text-muted-foreground hover:text-foreground" @click="handleEdit">
               <Pencil class="w-3.5 h-3.5" />
