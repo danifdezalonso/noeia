@@ -48,6 +48,7 @@ export function createDashboardShell(): DashboardShell {
     { id: 'org-patients',  label: 'Patients',    path: '/organization/dashboard/patients', icon: 'Users' },
     { id: 'org-calendar',  label: 'Calendar',    path: '/organization/dashboard/calendar', icon: 'Calendar' },
     { id: 'org-messages',  label: 'Messages',    path: '/organization/dashboard/messages', icon: 'MessageSquare' },
+    { id: 'org-team',      label: 'Team',        path: '/organization/dashboard/team',     icon: 'Users',     section: 'organization' },
     { id: 'org-office',    label: 'Office',      path: '/organization/dashboard/office',   icon: 'Building2', section: 'organization' },
     { id: 'org-billing',   label: 'Billing',     path: '/organization/dashboard/billing',  icon: 'Receipt' },
   ]

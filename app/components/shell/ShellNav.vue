@@ -284,7 +284,7 @@ function switchOrg(id: number) {
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
+              <DropdownMenuItem @click="navigateTo('/doctor/dashboard/profile')">
                 <User class="w-4 h-4" />
                 Profile settings
               </DropdownMenuItem>

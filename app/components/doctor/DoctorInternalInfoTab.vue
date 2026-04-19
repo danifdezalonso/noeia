@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import {
-  Lock, Eye, EyeOff, QrCode, Monitor, Smartphone, Tablet,
-  AlertTriangle, Trash2, LogOut,
+  User, Lock, Eye, EyeOff, QrCode, Monitor, Smartphone, Tablet,
+  AlertTriangle, Trash2, LogOut, CreditCard, Bell, ShieldCheck,
 } from 'lucide-vue-next'
 import { Input }    from '~/components/ui/input'
 import { Label }    from '~/components/ui/label'
 import { Button }   from '~/components/ui/button'
 import { Badge }    from '~/components/ui/badge'
-import { Textarea } from '~/components/ui/textarea'
 import { Switch }   from '~/components/ui/switch'
 import { Separator } from '~/components/ui/separator'
+import {
+  Card, CardContent, CardHeader, CardTitle, CardDescription,
+} from '~/components/ui/card'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '~/components/ui/select'
@@ -21,14 +23,10 @@ import {
 
 defineProps<{ doctorId: string; editMode: boolean }>()
 
-// ── Options ───────────────────────────────────────────────────────────────────
-
-const GENDERS    = ['Hombre', 'Mujer', 'No binario', 'Prefiero no decirlo']
-const TIMEZONES  = ['Europe/Madrid', 'Europe/London', 'America/New_York', 'America/Mexico_City', 'America/Argentina/Buenos_Aires']
-const LANGS      = ['Español', 'English', 'Català']
-const PREFIXES   = ['+34', '+44', '+33', '+49', '+1', '+52', '+54']
-
-// ── Mock form data ────────────────────────────────────────────────────────────
+const GENDERS   = ['Hombre', 'Mujer', 'No binario', 'Prefiero no decirlo']
+const TIMEZONES = ['Europe/Madrid', 'Europe/London', 'America/New_York', 'America/Mexico_City', 'America/Argentina/Buenos_Aires']
+const LANGS     = ['Español', 'English', 'Català']
+const PREFIXES  = ['+34', '+44', '+33', '+49', '+1', '+52', '+54']
 
 const form = reactive({
   firstName:    'Elena',
@@ -62,7 +60,7 @@ function discard() { Object.assign(form, JSON.parse(snapshot.value)) }
 
 // ── Password ──────────────────────────────────────────────────────────────────
 
-const showPwForm    = ref(false)
+const showPwForm = ref(false)
 const pw = reactive({ current: '', next: '', confirm: '' })
 const pwErrors = reactive({ current: '', next: '', confirm: '' })
 const showPw = reactive({ current: false, next: false, confirm: false })
@@ -93,9 +91,9 @@ function confirm2FA() { twoFAEnabled.value = true; showQR.value = false }
 
 interface DeviceSession { id: string; device: string; os: string; browser: string; lastSeen: string; current: boolean }
 const sessions = ref<DeviceSession[]>([
-  { id: 's1', device: 'MacBook Pro',      os: 'macOS 14',       browser: 'Chrome 124',   lastSeen: 'Ahora',           current: true  },
-  { id: 's2', device: 'iPhone 15 Pro',    os: 'iOS 17',         browser: 'Safari',       lastSeen: 'Hace 2 horas',    current: false },
-  { id: 's3', device: 'Windows PC',       os: 'Windows 11',     browser: 'Firefox 125',  lastSeen: 'Ayer, 18:42',     current: false },
+  { id: 's1', device: 'MacBook Pro',   os: 'macOS 14',   browser: 'Chrome 124',  lastSeen: 'Ahora',        current: true  },
+  { id: 's2', device: 'iPhone 15 Pro', os: 'iOS 17',     browser: 'Safari',      lastSeen: 'Hace 2 horas', current: false },
+  { id: 's3', device: 'Windows PC',    os: 'Windows 11', browser: 'Firefox 125', lastSeen: 'Ayer, 18:42',  current: false },
 ])
 
 function closeSession(id: string) { sessions.value = sessions.value.filter(s => s.id !== id) }
@@ -129,15 +127,22 @@ const canDelete         = computed(() => deleteConfirmName.value === DOCTOR_FULL
 </script>
 
 <template>
-  <div class="space-y-10 pb-28">
+  <div class="space-y-6 pb-28">
 
-    <!-- ═══════════════════════════════════════════════════════════════
-         Datos personales
-    ════════════════════════════════════════════════════════════════ -->
-    <section>
-      <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-5">Datos personales</p>
-      <div class="space-y-4">
-
+    <!-- ── Datos personales ─────────────────────────────────────────────────── -->
+    <Card>
+      <CardHeader class="pb-3 border-b border-border">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
+            <User class="w-4 h-4 text-blue-600" />
+          </div>
+          <div>
+            <CardTitle class="text-base">Datos personales</CardTitle>
+            <CardDescription class="text-xs mt-0.5">Información de contacto y configuración regional</CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent class="pt-5">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <Label class="mb-1.5 block text-xs text-muted-foreground">Nombre <span class="text-rose-500">*</span></Label>
@@ -201,38 +206,43 @@ const canDelete         = computed(() => deleteConfirmName.value === DOCTOR_FULL
           <div>
             <Label class="mb-1.5 block text-xs text-muted-foreground">Nº de colegiado <span class="text-rose-500">*</span></Label>
             <Input v-model="form.colegiado" placeholder="M-12345" class="font-mono" />
-            <p class="text-[11px] text-muted-foreground mt-1">Requerido para verificación legal como profesional sanitario</p>
+            <p class="text-[11px] text-muted-foreground mt-1">Requerido para verificación como profesional sanitario</p>
           </div>
           <div>
             <Label class="mb-1.5 block text-xs text-muted-foreground">Colegio profesional</Label>
             <Input v-model="form.college" placeholder="Col·legi Oficial de Psicologia de Catalunya" />
           </div>
         </div>
+      </CardContent>
+    </Card>
 
-      </div>
-    </section>
-
-    <Separator />
-
-    <!-- ═══════════════════════════════════════════════════════════════
-         Seguridad
-    ════════════════════════════════════════════════════════════════ -->
-    <section>
-      <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-5">Seguridad</p>
-      <div class="space-y-6">
+    <!-- ── Seguridad ────────────────────────────────────────────────────────── -->
+    <Card>
+      <CardHeader class="pb-3 border-b border-border">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
+            <ShieldCheck class="w-4 h-4 text-violet-600" />
+          </div>
+          <div>
+            <CardTitle class="text-base">Seguridad</CardTitle>
+            <CardDescription class="text-xs mt-0.5">Contraseña, verificación en dos pasos y sesiones activas</CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent class="pt-5 space-y-6">
 
         <!-- Password -->
         <div>
-          <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center justify-between">
             <div>
               <p class="text-sm font-medium">Contraseña</p>
-              <p class="text-xs text-muted-foreground">Última actualización: hace 3 meses</p>
+              <p class="text-xs text-muted-foreground mt-0.5">Última actualización: hace 3 meses</p>
             </div>
             <Button variant="outline" size="sm" class="text-xs" @click="showPwForm = !showPwForm">
               Actualizar contraseña
             </Button>
           </div>
-          <div v-if="showPwForm" class="border border-border rounded-xl p-4 space-y-4 bg-muted/20">
+          <div v-if="showPwForm" class="mt-3 border border-border rounded-xl p-4 space-y-4 bg-muted/20">
             <div v-for="field in (['current', 'next', 'confirm'] as const)" :key="field">
               <Label class="mb-1.5 block text-xs text-muted-foreground">
                 {{ field === 'current' ? 'Contraseña actual' : field === 'next' ? 'Nueva contraseña' : 'Confirmar contraseña' }}
@@ -264,10 +274,10 @@ const canDelete         = computed(() => deleteConfirmName.value === DOCTOR_FULL
 
         <!-- 2FA -->
         <div>
-          <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center justify-between">
             <div>
               <p class="text-sm font-medium">Verificación en dos pasos (2FA)</p>
-              <p class="text-xs text-muted-foreground">Añade una capa extra de seguridad a tu cuenta</p>
+              <p class="text-xs text-muted-foreground mt-0.5">Añade una capa extra de seguridad a tu cuenta</p>
             </div>
             <div class="flex items-center gap-2">
               <Badge
@@ -284,10 +294,9 @@ const canDelete         = computed(() => deleteConfirmName.value === DOCTOR_FULL
               </Button>
             </div>
           </div>
-          <div v-if="showQR" class="border border-border rounded-xl p-4 bg-muted/20 space-y-4">
+          <div v-if="showQR" class="mt-3 border border-border rounded-xl p-4 bg-muted/20 space-y-4">
             <p class="text-sm font-medium">Configura tu app de autenticación</p>
             <p class="text-xs text-muted-foreground">Escanea el código QR con Google Authenticator, Authy o cualquier app compatible con TOTP.</p>
-            <!-- Mock QR -->
             <div class="w-32 h-32 bg-foreground/5 border border-border rounded-lg flex items-center justify-center mx-auto">
               <QrCode class="w-20 h-20 text-foreground/40" />
             </div>
@@ -355,17 +364,23 @@ const canDelete         = computed(() => deleteConfirmName.value === DOCTOR_FULL
           </AlertDialog>
         </div>
 
-      </div>
-    </section>
+      </CardContent>
+    </Card>
 
-    <Separator />
-
-    <!-- ═══════════════════════════════════════════════════════════════
-         Facturación
-    ════════════════════════════════════════════════════════════════ -->
-    <section>
-      <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-5">Facturación</p>
-      <div class="space-y-4">
+    <!-- ── Facturación ──────────────────────────────────────────────────────── -->
+    <Card>
+      <CardHeader class="pb-3 border-b border-border">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
+            <CreditCard class="w-4 h-4 text-emerald-600" />
+          </div>
+          <div>
+            <CardTitle class="text-base">Facturación</CardTitle>
+            <CardDescription class="text-xs mt-0.5">Datos fiscales, domicilio de facturación e IBAN</CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent class="pt-5 space-y-4">
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
@@ -419,121 +434,138 @@ const canDelete         = computed(() => deleteConfirmName.value === DOCTOR_FULL
           </div>
         </div>
 
-      </div>
-    </section>
+      </CardContent>
+    </Card>
 
-    <Separator />
-
-    <!-- ═══════════════════════════════════════════════════════════════
-         Notificaciones
-    ════════════════════════════════════════════════════════════════ -->
-    <section>
-      <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-5">Notificaciones</p>
-      <div class="rounded-xl border border-border overflow-hidden">
-        <table class="w-full text-sm">
-          <thead>
-            <tr class="border-b border-border bg-muted/40">
-              <th class="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Evento</th>
-              <th v-for="ch in NOTIF_CHANNELS" :key="ch" class="px-4 py-2.5 text-center text-xs font-medium text-muted-foreground w-20">
-                {{ ch }}
-              </th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-border">
-            <tr v-for="ev in NOTIF_EVENTS" :key="ev" class="hover:bg-muted/20">
-              <td class="px-4 py-2.5 text-sm text-foreground">{{ ev }}</td>
-              <td v-for="ch in NOTIF_CHANNELS" :key="ch" class="px-4 py-2.5 text-center">
-                <div class="flex justify-center">
-                  <Switch v-model="notifs[ev][ch]" />
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <Separator />
-
-    <!-- ═══════════════════════════════════════════════════════════════
-         Zona de peligro
-    ════════════════════════════════════════════════════════════════ -->
-    <section class="rounded-xl border border-destructive/30 bg-destructive/5 p-5 space-y-4">
-      <p class="text-xs font-semibold text-destructive uppercase tracking-wider">Zona de peligro</p>
-
-      <!-- Deactivate -->
-      <div class="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <p class="text-sm font-medium">Desactivar cuenta</p>
-          <p class="text-xs text-muted-foreground mt-0.5">El profesional no podrá iniciar sesión. Sus pacientes serán reasignados.</p>
+    <!-- ── Notificaciones ───────────────────────────────────────────────────── -->
+    <Card>
+      <CardHeader class="pb-3 border-b border-border">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
+            <Bell class="w-4 h-4 text-amber-600" />
+          </div>
+          <div>
+            <CardTitle class="text-base">Notificaciones</CardTitle>
+            <CardDescription class="text-xs mt-0.5">Configura cómo y cuándo recibes avisos</CardDescription>
+          </div>
         </div>
-        <AlertDialog>
-          <AlertDialogTrigger as-child>
-            <Button variant="outline" size="sm" class="text-xs border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive gap-1.5 shrink-0">
-              Desactivar cuenta
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>¿Desactivar cuenta?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Elena Voss no podrá acceder a la plataforma. Todos sus pacientes activos serán reasignados al equipo. Esta acción se puede revertir.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction class="bg-amber-600 text-white hover:bg-amber-700">
-                Desactivar
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </div>
-
-      <Separator class="border-destructive/20" />
-
-      <!-- Delete -->
-      <div class="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <p class="text-sm font-medium">Eliminar cuenta permanentemente</p>
-          <p class="text-xs text-muted-foreground mt-0.5">Se eliminarán todos los datos del profesional. Esta acción no se puede deshacer.</p>
+      </CardHeader>
+      <CardContent class="pt-5">
+        <div class="rounded-lg border border-border overflow-hidden">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-border bg-muted/40">
+                <th class="px-4 py-2.5 text-left text-xs font-medium text-muted-foreground">Evento</th>
+                <th v-for="ch in NOTIF_CHANNELS" :key="ch" class="px-4 py-2.5 text-center text-xs font-medium text-muted-foreground w-20">
+                  {{ ch }}
+                </th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-border">
+              <tr v-for="ev in NOTIF_EVENTS" :key="ev" class="hover:bg-muted/20">
+                <td class="px-4 py-2.5 text-sm text-foreground">{{ ev }}</td>
+                <td v-for="ch in NOTIF_CHANNELS" :key="ch" class="px-4 py-2.5 text-center">
+                  <div class="flex justify-center">
+                    <Switch v-model="notifs[ev][ch]" />
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-        <AlertDialog>
-          <AlertDialogTrigger as-child>
-            <Button variant="destructive" size="sm" class="text-xs gap-1.5 shrink-0">
-              <Trash2 class="w-3.5 h-3.5" /> Eliminar cuenta
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle class="flex items-center gap-2">
-                <AlertTriangle class="w-4 h-4 text-destructive" />
-                Eliminar cuenta permanentemente
-              </AlertDialogTitle>
-              <AlertDialogDescription class="space-y-3">
-                <span class="block">Esta acción no se puede deshacer. Se eliminarán todos los datos asociados a este profesional: historial de sesiones, notas clínicas, facturas y accesos.</span>
-                <span class="block">Para confirmar, escribe el nombre completo del profesional:</span>
-                <span class="block font-mono text-sm font-semibold text-foreground">{{ DOCTOR_FULL_NAME }}</span>
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <Input
-              v-model="deleteConfirmName"
-              placeholder="Escribe el nombre completo para confirmar"
-              class="mt-1"
-            />
-            <AlertDialogFooter class="mt-2">
-              <AlertDialogCancel @click="deleteConfirmName = ''">Cancelar</AlertDialogCancel>
-              <AlertDialogAction
-                :disabled="!canDelete"
-                class="bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                Eliminar permanentemente
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </div>
-    </section>
+      </CardContent>
+    </Card>
+
+    <!-- ── Zona de peligro ──────────────────────────────────────────────────── -->
+    <Card class="border-destructive/40">
+      <CardHeader class="pb-3 border-b border-destructive/20 bg-destructive/5 rounded-t-xl">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-destructive/15 flex items-center justify-center shrink-0">
+            <AlertTriangle class="w-4 h-4 text-destructive" />
+          </div>
+          <div>
+            <CardTitle class="text-base text-destructive">Zona de peligro</CardTitle>
+            <CardDescription class="text-xs mt-0.5">Acciones irreversibles sobre esta cuenta</CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent class="pt-5 space-y-4 bg-destructive/5 rounded-b-xl">
+
+        <!-- Deactivate -->
+        <div class="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <p class="text-sm font-medium">Desactivar cuenta</p>
+            <p class="text-xs text-muted-foreground mt-0.5">El profesional no podrá iniciar sesión. Sus pacientes serán reasignados.</p>
+          </div>
+          <AlertDialog>
+            <AlertDialogTrigger as-child>
+              <Button variant="outline" size="sm" class="text-xs border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive gap-1.5 shrink-0">
+                Desactivar cuenta
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>¿Desactivar cuenta?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Elena Voss no podrá acceder a la plataforma. Todos sus pacientes activos serán reasignados al equipo. Esta acción se puede revertir.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction class="bg-amber-600 text-white hover:bg-amber-700">
+                  Desactivar
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+
+        <Separator class="border-destructive/20" />
+
+        <!-- Delete -->
+        <div class="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <p class="text-sm font-medium">Eliminar cuenta permanentemente</p>
+            <p class="text-xs text-muted-foreground mt-0.5">Se eliminarán todos los datos del profesional. Esta acción no se puede deshacer.</p>
+          </div>
+          <AlertDialog>
+            <AlertDialogTrigger as-child>
+              <Button variant="destructive" size="sm" class="text-xs gap-1.5 shrink-0">
+                <Trash2 class="w-3.5 h-3.5" /> Eliminar cuenta
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle class="flex items-center gap-2">
+                  <AlertTriangle class="w-4 h-4 text-destructive" />
+                  Eliminar cuenta permanentemente
+                </AlertDialogTitle>
+                <AlertDialogDescription class="space-y-3">
+                  <span class="block">Esta acción no se puede deshacer. Se eliminarán todos los datos asociados a este profesional: historial de sesiones, notas clínicas, facturas y accesos.</span>
+                  <span class="block">Para confirmar, escribe el nombre completo del profesional:</span>
+                  <span class="block font-mono text-sm font-semibold text-foreground">{{ DOCTOR_FULL_NAME }}</span>
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <Input
+                v-model="deleteConfirmName"
+                placeholder="Escribe el nombre completo para confirmar"
+                class="mt-1"
+              />
+              <AlertDialogFooter class="mt-2">
+                <AlertDialogCancel @click="deleteConfirmName = ''">Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  :disabled="!canDelete"
+                  class="bg-destructive text-destructive-foreground hover:bg-destructive/90 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Eliminar permanentemente
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+
+      </CardContent>
+    </Card>
 
   </div>
 
