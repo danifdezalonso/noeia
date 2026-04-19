@@ -108,6 +108,8 @@ function submitAddCenter() {
   orgs.value.forEach(o => { o.active = false })
   orgs.value.push({ id: newId, name: centerForm.name.trim(), active: true })
   showAddCenter.value = false
+  const welcomeCenter = useState<string>('welcome-center', () => '')
+  welcomeCenter.value = centerForm.name.trim()
   navigateTo('/organization/dashboard')
 }
 </script>

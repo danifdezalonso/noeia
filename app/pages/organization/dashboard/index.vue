@@ -8,6 +8,19 @@ definePageMeta({ layout: 'dashboard' })
 
 const { persona } = usePersona()
 
+// ── Welcome modal (shown when a new center is just created) ────────────────
+const welcomeCenter = useState<string>('welcome-center', () => '')
+const showWelcome   = ref(false)
+const welcomeName   = ref('')
+
+onMounted(() => {
+  if (welcomeCenter.value) {
+    welcomeName.value   = welcomeCenter.value
+    welcomeCenter.value = ''
+    showWelcome.value   = true
+  }
+})
+
 // ── Count-up animation ─────────────────────────────────────────────────────
 
 const transitionOpts = { duration: 1500, transition: TransitionPresets.easeOutExpo }
@@ -218,6 +231,11 @@ function getAccent(color: string) { return accentMap[color] ?? { dot: 'bg-muted-
 
   </div>
   </div>
+
+  <OrganizationWelcomeModal
+    v-model:open="showWelcome"
+    :center-name="welcomeName"
+  />
 </template>
 
 <style scoped>
