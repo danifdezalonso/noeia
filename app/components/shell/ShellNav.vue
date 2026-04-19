@@ -4,7 +4,7 @@ import {
   MessageSquare, Receipt, Sparkles, Settings,
   Sun, Moon, Stethoscope, Building2, ChevronUp, ChevronDown,
   User, CreditCard, LogOut, LayoutTemplate, Globe, CalendarClock, FlaskConical,
-  PanelLeft, PanelLeftClose, ListTodo, Check, Plus,
+  PanelLeft, PanelLeftClose, ListTodo, Check, Plus, ArrowRight,
 } from 'lucide-vue-next'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '~/components/ui/collapsible'
 import { useDark, useToggle } from '@vueuse/core'
@@ -19,7 +19,17 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuTrigger,
   DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel,
 } from '~/components/ui/dropdown-menu'
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from '~/components/ui/dialog'
+import { Input }  from '~/components/ui/input'
+import { Label }  from '~/components/ui/label'
+import { Button } from '~/components/ui/button'
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '~/components/ui/select'
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
+import { SPECIALTIES, ROLES, TEAM_SIZES } from '~/composables/useOnboardingForm'
 
 const shell = inject(SHELL_KEY)!
 const route = useRoute()
@@ -60,6 +70,45 @@ const activeOrg = computed(() => orgs.value.find(o => o.active) ?? orgs.value[0]
 
 function switchOrg(id: number) {
   orgs.value.forEach(o => { o.active = o.id === id })
+}
+
+// ── Add a center ──────────────────────────────────────────────────────────────
+
+const showAddCenter = ref(false)
+
+const centerForm = reactive({
+  name:     '',
+  specialty:'',
+  teamSize: '',
+  role:     '',
+})
+
+const centerErrors = reactive({
+  name:     '',
+  specialty:'',
+  teamSize: '',
+  role:     '',
+})
+
+function openAddCenter() {
+  Object.assign(centerForm, { name: '', specialty: '', teamSize: '', role: '' })
+  Object.assign(centerErrors, { name: '', specialty: '', teamSize: '', role: '' })
+  showAddCenter.value = true
+}
+
+function submitAddCenter() {
+  centerErrors.name     = centerForm.name.trim()     ? '' : 'Required'
+  centerErrors.specialty= centerForm.specialty       ? '' : 'Required'
+  centerErrors.teamSize = centerForm.teamSize        ? '' : 'Please select a team size'
+  centerErrors.role     = centerForm.role            ? '' : 'Please select a role'
+
+  if (centerErrors.name || centerErrors.specialty || centerErrors.teamSize || centerErrors.role) return
+
+  const newId = Math.max(...orgs.value.map(o => o.id)) + 1
+  orgs.value.forEach(o => { o.active = false })
+  orgs.value.push({ id: newId, name: centerForm.name.trim(), active: true })
+  showAddCenter.value = false
+  navigateTo('/organization/dashboard')
 }
 </script>
 
@@ -127,9 +176,9 @@ function switchOrg(id: number) {
               <Check v-if="org.active" class="w-3.5 h-3.5 text-primary" />
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem class="gap-2.5 cursor-pointer text-muted-foreground">
+            <DropdownMenuItem class="gap-2.5 cursor-pointer text-muted-foreground" @click="openAddCenter">
               <Plus class="w-3.5 h-3.5" />
-              <span class="text-sm">Add workspace</span>
+              <span class="text-sm">Add a center</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -307,4 +356,94 @@ function switchOrg(id: number) {
       </SidebarMenu>
     </SidebarFooter>
   </Sidebar>
+
+  <!-- ── Add a center dialog ──────────────────────────────────────────────── -->
+  <Dialog v-model:open="showAddCenter">
+    <DialogContent class="max-w-md">
+      <DialogHeader>
+        <DialogTitle class="text-xl font-bold">Add a center</DialogTitle>
+        <p class="text-sm text-muted-foreground mt-1">Set up a new clinical center in your workspace.</p>
+      </DialogHeader>
+
+      <div class="space-y-5 py-2">
+
+        <!-- Center name -->
+        <div>
+          <Label class="mb-1.5 block text-xs font-medium text-foreground">
+            Centre name <span class="text-rose-500">*</span>
+          </Label>
+          <Input
+            v-model="centerForm.name"
+            placeholder="e.g. MindCare Clinics"
+            :class="centerErrors.name ? 'border-destructive focus-visible:ring-destructive/30' : ''"
+            @input="centerErrors.name = ''"
+          />
+          <p v-if="centerErrors.name" class="text-xs text-destructive mt-1">{{ centerErrors.name }}</p>
+        </div>
+
+        <!-- Specialty -->
+        <div>
+          <Label class="mb-1.5 block text-xs font-medium text-foreground">
+            Specialty <span class="text-rose-500">*</span>
+          </Label>
+          <Select v-model="centerForm.specialty" @update:model-value="centerErrors.specialty = ''">
+            <SelectTrigger :class="centerErrors.specialty ? 'border-destructive' : ''">
+              <SelectValue placeholder="Please select" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem v-for="s in SPECIALTIES" :key="s" :value="s">{{ s }}</SelectItem>
+            </SelectContent>
+          </Select>
+          <p v-if="centerErrors.specialty" class="text-xs text-destructive mt-1">{{ centerErrors.specialty }}</p>
+        </div>
+
+        <!-- Team size -->
+        <div>
+          <Label class="mb-2 block text-xs font-medium text-foreground">
+            How many clinicians do you work with? <span class="text-rose-500">*</span>
+          </Label>
+          <div class="flex gap-2 flex-wrap">
+            <button
+              v-for="size in TEAM_SIZES"
+              :key="size"
+              type="button"
+              class="px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all duration-150 active:scale-95"
+              :class="centerForm.teamSize === size
+                ? 'bg-primary text-primary-foreground border border-primary shadow-sm'
+                : 'border border-border bg-background text-muted-foreground hover:text-foreground hover:border-foreground/30'"
+              @click="centerForm.teamSize = size; centerErrors.teamSize = ''"
+            >
+              {{ size }}
+            </button>
+          </div>
+          <p v-if="centerErrors.teamSize" class="text-xs text-destructive mt-1">{{ centerErrors.teamSize }}</p>
+        </div>
+
+        <!-- Role -->
+        <div>
+          <Label class="mb-1.5 block text-xs font-medium text-foreground">
+            What is your role within this centre? <span class="text-rose-500">*</span>
+          </Label>
+          <Select v-model="centerForm.role" @update:model-value="centerErrors.role = ''">
+            <SelectTrigger :class="centerErrors.role ? 'border-destructive' : ''">
+              <SelectValue placeholder="Please select" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem v-for="r in ROLES" :key="r" :value="r">{{ r }}</SelectItem>
+            </SelectContent>
+          </Select>
+          <p v-if="centerErrors.role" class="text-xs text-destructive mt-1">{{ centerErrors.role }}</p>
+        </div>
+
+      </div>
+
+      <DialogFooter class="mt-2">
+        <Button variant="outline" size="sm" @click="showAddCenter = false">Cancel</Button>
+        <Button size="sm" class="gap-1.5" @click="submitAddCenter">
+          Create center <ArrowRight class="w-3.5 h-3.5" />
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+
 </template>
