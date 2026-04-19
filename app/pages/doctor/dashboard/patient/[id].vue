@@ -81,8 +81,8 @@ const tabs = [
         <TabsContent value="files" class="mt-6">
           <PatientFilesTab />
         </TabsContent>
-        <TabsContent value="billing" class="mt-4">
-          <p class="text-sm text-muted-foreground">Billing will go here.</p>
+        <TabsContent value="billing" class="mt-6">
+          <PatientBillingTab :patient-id="(route.params.id as string)" />
         </TabsContent>
         <TabsContent value="settings" class="mt-6">
           <PatientSettingsTab />
