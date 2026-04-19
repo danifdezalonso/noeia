@@ -112,8 +112,9 @@ function saveDoctor() {
   inviteError.value = ''
   if (!inviteEmail.value.trim()) { inviteError.value = 'Email is required'; return }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteEmail.value.trim())) { inviteError.value = 'Enter a valid email address'; return }
+  const newId = `d${Date.now()}`
   doctors.value.unshift({
-    id: `d${Date.now()}`,
+    id: newId,
     name: inviteEmail.value.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
     initials: inviteEmail.value.slice(0, 2).toUpperCase(),
     email: inviteEmail.value.trim(),
@@ -125,6 +126,7 @@ function saveDoctor() {
   })
   addModalOpen.value = false
   success('Invitation sent', `An invitation email has been sent to ${inviteEmail.value.trim()}.`)
+  navigateTo(`/organization/dashboard/doctors/${newId}`)
 }
 
 // ── Inline fee editing ─────────────────────────────────────────────────────
@@ -275,7 +277,10 @@ const columns: { key: SortKey; label: string }[] = [
                       <span :class="['absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-background', statusMeta[d.status].dot]" />
                     </div>
                     <div>
-                      <p class="font-medium text-foreground leading-tight">{{ d.name }}</p>
+                      <p
+                        class="font-medium text-foreground leading-tight hover:text-primary cursor-pointer transition-colors"
+                        @click="navigateTo(`/organization/dashboard/doctors/${d.id}`)"
+                      >{{ d.name }}</p>
                       <p class="text-[11px] text-muted-foreground leading-tight mt-0.5">{{ d.email }}</p>
                     </div>
                   </div>
@@ -334,7 +339,7 @@ const columns: { key: SortKey; label: string }[] = [
                       <DropdownMenuContent align="end" class="w-44">
                         <DropdownMenuLabel class="text-xs text-muted-foreground font-normal">Doctor actions</DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem class="gap-2 cursor-pointer"><Eye class="w-3.5 h-3.5 text-muted-foreground" /> View profile</DropdownMenuItem>
+                        <DropdownMenuItem class="gap-2 cursor-pointer" @click="navigateTo(`/organization/dashboard/doctors/${d.id}`)"><Eye class="w-3.5 h-3.5 text-muted-foreground" /> View profile</DropdownMenuItem>
                         <DropdownMenuItem class="gap-2 cursor-pointer" @click="openEdit(d)"><Pencil class="w-3.5 h-3.5 text-muted-foreground" /> Edit details</DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem v-if="d.status === 'active' || d.status === 'on-leave'" class="gap-2 cursor-pointer text-amber-600 focus:text-amber-600 focus:bg-amber-50" @click="deactivate(d.id)"><UserX class="w-3.5 h-3.5" /> Deactivate</DropdownMenuItem>
