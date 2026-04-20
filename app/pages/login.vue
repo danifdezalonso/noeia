@@ -162,16 +162,7 @@ async function continueWithGoogle(role: 'doctor' | 'organization' | 'patient') {
               >
                 <span style="color: oklch(0.65 0 0); margin-right: 6px;">→</span> Invited to org — multiple invitations
               </button>
-              <button
-                class="w-full text-left"
-                style="padding: 9px 12px; border-radius: 9px; border: 1px solid oklch(0.91 0 0); background: oklch(0.985 0 0); font-size: 12px; font-weight: 500; color: oklch(0.3 0 0); cursor: pointer;"
-                @mouseenter="e => ((e.currentTarget as HTMLElement).style.background = 'oklch(0.97 0 0)')"
-                @mouseleave="e => ((e.currentTarget as HTMLElement).style.background = 'oklch(0.985 0 0)')"
-                @click="navigateTo('/onboarding/join?invitations=single')"
-              >
-                <span style="color: oklch(0.65 0 0); margin-right: 6px;">→</span> Invited to org — 1 invitation
-              </button>
-              <button
+<button
                 class="w-full text-left"
                 style="padding: 9px 12px; border-radius: 9px; border: 1px solid oklch(0.91 0 0); background: oklch(0.985 0 0); font-size: 12px; font-weight: 500; color: oklch(0.3 0 0); cursor: pointer;"
                 @mouseenter="e => ((e.currentTarget as HTMLElement).style.background = 'oklch(0.97 0 0)')"

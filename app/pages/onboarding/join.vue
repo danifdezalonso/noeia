@@ -196,6 +196,25 @@ const expiredInvitations = ref([
           </div>
         </div>
       </div>
+
+      <!-- Create org option -->
+      <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid oklch(0.92 0 0);">
+        <p style="font-size: 12px; color: oklch(0.58 0 0); text-align: center; margin-bottom: 12px;">
+          Don't have an invitation?
+        </p>
+        <button
+          class="w-full flex items-center justify-center gap-2 transition-all duration-150 active:scale-[0.983]"
+          style="height: 42px; border-radius: 11px; background: white; color: oklch(0.2 0 0); font-size: 13.5px; font-weight: 600; font-family: inherit; border: 1.5px solid oklch(0.88 0 0); cursor: pointer;"
+          @mouseenter="e => { (e.currentTarget as HTMLElement).style.background = 'oklch(0.98 0 0)'; (e.currentTarget as HTMLElement).style.borderColor = 'oklch(0.78 0 0)' }"
+          @mouseleave="e => { (e.currentTarget as HTMLElement).style.background = 'white'; (e.currentTarget as HTMLElement).style.borderColor = 'oklch(0.88 0 0)' }"
+          @click="navigateTo('/onboarding/your-organisation')"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+          Create an organisation
+        </button>
+      </div>
     </template>
 
     <!-- ══════════════════════════════════════════════════════════════════════

@@ -62,8 +62,8 @@ const profileSubLabel = computed(() =>
 )
 
 const orgs = ref([
-  { id: 1, name: 'MindCare Clinics', active: true },
-  { id: 2, name: 'Personal Practice', active: false },
+  { id: 1, name: 'MindCare Clinics',  active: true,  role: 'Owner' },
+  { id: 2, name: 'Personal Practice', active: false, role: 'Admin' },
 ])
 
 const activeOrg = computed(() => orgs.value.find(o => o.active) ?? orgs.value[0])
@@ -106,7 +106,7 @@ function submitAddCenter() {
 
   const newId = Math.max(...orgs.value.map(o => o.id)) + 1
   orgs.value.forEach(o => { o.active = false })
-  orgs.value.push({ id: newId, name: centerForm.name.trim(), active: true })
+  orgs.value.push({ id: newId, name: centerForm.name.trim(), active: true, role: 'Owner' })
   showAddCenter.value = false
   const welcomeCenter = useState<string>('welcome-center', () => '')
   welcomeCenter.value = centerForm.name.trim()
@@ -174,8 +174,11 @@ function submitAddCenter() {
                 :class="org.active ? 'bg-primary/10 text-primary' : 'bg-accent text-muted-foreground'">
                 {{ org.name[0] }}
               </div>
-              <span class="flex-1 text-sm">{{ org.name }}</span>
-              <Check v-if="org.active" class="w-3.5 h-3.5 text-primary" />
+              <div class="flex-1 min-w-0">
+                <p class="text-sm truncate">{{ org.name }}</p>
+                <p class="text-[10px] text-muted-foreground/70 leading-tight">{{ org.role }}</p>
+              </div>
+              <Check v-if="org.active" class="w-3.5 h-3.5 text-primary shrink-0" />
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem class="gap-2.5 cursor-pointer text-muted-foreground" @click="openAddCenter">
@@ -348,7 +351,7 @@ function submitAddCenter() {
                 Billing
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem class="text-destructive focus:text-destructive" @click="navigateTo('/')">
+              <DropdownMenuItem class="text-destructive focus:text-destructive" @click="navigateTo('/login')">
                 <LogOut class="w-4 h-4" />
                 Sign out
               </DropdownMenuItem>

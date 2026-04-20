@@ -15,8 +15,10 @@ import {
   format, addDays, startOfWeek, subWeeks, addMonths, subMonths,
   startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isSameMonth, isToday,
 } from 'date-fns'
+import { es } from 'date-fns/locale'
 import { nextTick, type Component } from 'vue'
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip'
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
 import { Switch } from '~/components/ui/switch'
 import { Slider } from '~/components/ui/slider'
@@ -79,7 +81,7 @@ const appointments = ref<Appointment[]>([
     inputLanguage: 'English', outputLanguage: 'English',
     contextText: 'Referred by Dr. García. Generalised anxiety, sleep disturbance. CBT-based approach ongoing.',
     sessionDate: new Date(), sessionTime: '10:00',
-    sessions: [{ id: 's0', label: 'Session Today', noteText: '', transcript: [] }],
+    sessions: [{ id: 's0', label: 'CBT: Cognitive Restructuring', noteText: '<p><strong>Session focus:</strong> Cognitive restructuring of workplace triggers.</p><p>Sofia arrived on time. She reported a difficult week — two incidents at work where she felt "exposed" in front of colleagues. We revisited the CBT triangle and walked through both events using thought records.</p><p><strong>Key theme:</strong> Strong tendency toward mind-reading ("they think I\'m incompetent"). Challenged this with behavioural evidence — no negative feedback received from manager or peers in the past quarter.</p><p><strong>Homework:</strong> Complete one thought record per day. Note the triggering situation, the automatic thought, and three pieces of evidence for/against.</p>', transcript: [] }],
     tasks: [
       { id: 't0', text: 'Administer seasonal flu vaccine', done: true,  category: 'document' },
       { id: 't1', text: 'Add Ventolin inhaler to patient record', done: false, category: 'document' },
@@ -94,7 +96,7 @@ const appointments = ref<Appointment[]>([
     inputLanguage: 'English', outputLanguage: 'English',
     contextText: '',
     sessionDate: new Date(), sessionTime: '01:54',
-    sessions: [{ id: 's1', label: 'Session Feb 21', noteText: '', transcript: [] }],
+    sessions: [{ id: 's1', label: 'Sleep Diary Review', noteText: '<p><strong>Session focus:</strong> CBT-I sleep restriction phase.</p><p>Maddy completed the sleep diary for the full week. Sleep efficiency improved to 78% (target: ≥85%). She is still resisting the strict wake time on weekends — explored underlying beliefs about "catching up".</p><p>Introduced sleep window narrowing: 00:00–06:30 this week.</p>', transcript: [] }],
     tasks: [],
   },
   {
@@ -104,7 +106,7 @@ const appointments = ref<Appointment[]>([
     inputLanguage: 'English', outputLanguage: 'English',
     contextText: 'Patient reported improvement in sleep patterns last week. Continue CBT techniques for anxiety management.\n\nReferral from Dr. García (GP). Original complaint: generalised anxiety, sleep disturbance.',
     sessionDate: addDays(mon, 1), sessionTime: '14:00',
-    sessions: [{ id: 's2', label: 'Session Feb 22', noteText: '', transcript: [] }],
+    sessions: [{ id: 's2', label: 'Stimulus Control + Relaxation', noteText: '<p><strong>Session focus:</strong> Consolidating stimulus control, introducing PMR.</p><p>Maddy reports the bed-only-for-sleep rule is holding. She moved her phone charger out of the bedroom — noted as a significant behavioural shift. Introduced progressive muscle relaxation as a pre-sleep ritual. Practiced a 10-minute body scan in session.</p>', transcript: [] }],
     tasks: [],
   },
   {
@@ -114,7 +116,7 @@ const appointments = ref<Appointment[]>([
     inputLanguage: 'English', outputLanguage: 'English',
     contextText: '',
     sessionDate: addDays(mon, 3), sessionTime: '10:00',
-    sessions: [{ id: 's3', label: 'Session Feb 24', noteText: '', transcript: [] }],
+    sessions: [{ id: 's3', label: 'Values Clarification + Boundaries', noteText: '<p><strong>Session focus:</strong> Values work and delegation practice review.</p><p>John delegated three tasks this week — a personal best. He reported guilt lasting approximately 4 hours after the first delegation, reducing to 1 hour by the third. Explored the perfectionism schema underlying the guilt: "if I don\'t do it myself, it won\'t be done right."</p><p>Introduced the values card exercise — John ranked "family" and "creative output" above "professional status" when prompted to consider a year without work.</p>', transcript: [] }],
     tasks: [],
   },
   {
@@ -125,7 +127,7 @@ const appointments = ref<Appointment[]>([
     contextText: 'Patient has been experiencing work-related stress. Referred by Dr. García.',
     sessionDate: addDays(prev, 3), sessionTime: '15:00',
     sessions: [{
-      id: 's4', label: 'Session Feb 20', noteText: '',
+      id: 's4', label: 'Sleep Progress + Journalling', noteText: '<p><strong>Session notes:</strong> Positive session. Sleep efficiency now 82%. Patient arrived energised and reported journalling every night this week without prompting.</p><p>We reviewed two journal entries together — she identified a pattern of self-criticism surfacing between 10–11pm. Explored cognitive defusion: naming the inner critic ("the editor").</p>',
       aiSummary: 'Patient reports improvement in sleep (fewer awakenings). Breathing exercises and journalling cited as effective interventions. Continue CBT-based sleep hygiene. Positive trajectory — reinforce behavioural activation.',
       transcript: [
         { speaker: 'therapist', time: '15:02', text: 'How have you been feeling this week compared to last time?' },
@@ -149,7 +151,7 @@ const appointments = ref<Appointment[]>([
     contextText: '',
     sessionDate: addDays(prev, 1), sessionTime: '11:00',
     sessions: [{
-      id: 's5', label: 'Session Feb 18', noteText: '',
+      id: 's5', label: 'Occupational Stress — Intake', noteText: '<p><strong>Intake notes:</strong> John self-referred. Presenting complaint: chronic overwhelm since promotion 6 months ago. Reports inability to disengage from work after hours, disrupted sleep, and increasing irritability at home.</p><p>PHQ-9: 7 (mild), GAD-7: 11 (moderate). No previous therapy. Motivated and articulate. Agreed on 8-session ACT-informed CBT protocol.</p>',
       aiSummary: 'Intake session. Patient presents with occupational stress following recent promotion. Symptoms: inability to disengage, chronic overwhelm. No previous therapy. Goal-setting and psychoeducation scheduled for next session.',
       transcript: [
         { speaker: 'therapist', time: '11:01', text: 'Welcome, John. What brings you here today?' },
@@ -160,10 +162,391 @@ const appointments = ref<Appointment[]>([
     }],
     tasks: [],
   },
+  {
+    id: 'a6', patientName: 'Carmen López', initials: 'CL',
+    avatarBg: 'bg-rose-100', avatarText: 'text-rose-700',
+    time: '9:00am', groupLabel: '11/02/2026', tab: 'past',
+    inputLanguage: 'Spanish', outputLanguage: 'Spanish',
+    contextText: 'Trastorno de ansiedad generalizada. Derivada por médico de cabecera. Síntomas principales: tensión muscular crónica, dificultad para conciliar el sueño, pensamientos rumiativos.',
+    sessionDate: addDays(prev, -3), sessionTime: '09:00',
+    sessions: [{
+      id: 's6', label: 'Relajación Progresiva', noteText: '<p><strong>Notas de sesión:</strong> Carmen llegó con tensión muscular visible en hombros y cuello. Repasamos el registro de pensamientos de la semana — 6 entradas, bien cumplimentadas.</p><p>Introdujimos la técnica de relajación muscular progresiva de Jacobson. La practicamos durante 15 minutos en sesión. La paciente reportó una reducción subjetiva del 40% en la tensión al finalizar.</p><p><strong>Tarea:</strong> Practicar RPM cada noche antes de dormir, registrar nivel de tensión pre/post (escala 0–10).</p>',
+      aiSummary: 'Segunda sesión. La paciente reporta ligera reducción de la tensión muscular tras practicar la relajación progresiva. Se refuerza la técnica y se introduce el registro de pensamientos automáticos.',
+      transcript: [],
+    }],
+    tasks: [
+      { id: 't10', text: 'Enviar ficha de registro de pensamientos automáticos', done: true, category: 'document' },
+    ],
+  },
+  {
+    id: 'a7', patientName: 'Roberto Sanz', initials: 'RS',
+    avatarBg: 'bg-teal-100', avatarText: 'text-teal-700',
+    time: '2:00pm', groupLabel: '05/02/2026', tab: 'past',
+    inputLanguage: 'Spanish', outputLanguage: 'Spanish',
+    contextText: 'Paciente de 42 años. Estrés laboral crónico, burnout. Sin terapia previa. Empresa tecnológica, posición directiva.',
+    sessionDate: addDays(prev, -8), sessionTime: '14:00',
+    sessions: [{
+      id: 's7', label: 'Evaluación Burnout — Inicio', noteText: '<p><strong>Primera sesión:</strong> Roberto derivado por médico de cabecera. Síntomas consistentes con burnout severo (Maslach: AE alta, DP moderada, RP baja). Lleva 8 meses sin vacaciones. Duerme 5h de media.</p><p>Psicoeducación sobre el ciclo estrés-agotamiento. Se acuerda protocolo de 10 sesiones con componentes de activación conductual y reestructuración de creencias laborales.</p>',
+      aiSummary: 'Sesión de evaluación inicial. Roberto presenta síntomas claros de burnout: agotamiento emocional, despersonalización y baja sensación de logro. Se inicia psicoeducación sobre el ciclo estrés-respuesta y se acuerda registro semanal de actividades y estado emocional.',
+      transcript: [
+        { speaker: 'therapist', time: '14:02', text: '¿Cómo describirías tu nivel de energía esta semana?' },
+        { speaker: 'patient',   time: '14:03', text: 'Llegué al viernes sin poder más. El fin de semana lo pasé en el sofá, incapaz de hacer nada.' },
+        { speaker: 'therapist', time: '14:05', text: '¿Cuánto tiempo llevas sintiéndote así?' },
+        { speaker: 'patient',   time: '14:06', text: 'Unos ocho meses. Desde que ascendí al puesto de director.' },
+      ],
+    }],
+    tasks: [
+      { id: 't11', text: 'Compartir cuestionario Maslach de burnout por email', done: true, category: 'communicate' },
+      { id: 't12', text: 'Revisar registro semanal en próxima sesión', done: false, category: 'review' },
+    ],
+  },
+  {
+    id: 'a8', patientName: 'Carmen López', initials: 'CL',
+    avatarBg: 'bg-rose-100', avatarText: 'text-rose-700',
+    time: '9:00am', groupLabel: '26/02/2026', tab: 'schedule',
+    inputLanguage: 'Spanish', outputLanguage: 'Spanish',
+    contextText: '',
+    sessionDate: addDays(mon, 9), sessionTime: '09:00',
+    sessions: [{ id: 's8', label: 'Flecha Descendente — Revisión', noteText: '<p><strong>Sesión pendiente.</strong> Objetivo: revisar los registros de pensamientos automáticos de la semana y continuar con la técnica de la flecha descendente para explorar creencias nucleares.</p><p>Preparar: ficha de creencias intermedias, ejemplo de diálogo socrático.</p>', transcript: [] }],
+    tasks: [],
+  },
+  {
+    id: 'a9', patientName: 'Ana Belén Castro', initials: 'AC',
+    avatarBg: 'bg-amber-100', avatarText: 'text-amber-700',
+    time: '11:30am', groupLabel: '04/03/2026', tab: 'schedule',
+    inputLanguage: 'Spanish', outputLanguage: 'Spanish',
+    contextText: 'Derivada por médico de cabecera. Episodio depresivo leve tras duelo por pérdida de empleo. Sin medicación actual.',
+    sessionDate: addDays(mon, 16), sessionTime: '11:30',
+    sessions: [{ id: 's9', label: 'Grief & Activation Plan', noteText: '<p><strong>Session pending.</strong> Ana Belén — third session. Plan: review behavioural activation log, identify one valued activity blocked by grief response, introduce behavioural experiment.</p><p>PHQ-9 to be re-administered (due at session 3).</p>', transcript: [] }],
+    tasks: [],
+  },
+  // ── Other patients ───────────────────────────────────────────────────────
+  {
+    id: 'mt-a01', patientName: 'Maddy Test', initials: 'MT',
+    avatarBg: 'bg-violet-100', avatarText: 'text-violet-700',
+    time: '4:00pm', groupLabel: '13/02/2026', tab: 'past',
+    inputLanguage: 'English', outputLanguage: 'English', contextText: '',
+    sessionDate: addDays(prev, -1), sessionTime: '16:00',
+    sessions: [{ id: 'mt-s01', label: 'Stimulus Control — Intro', noteText: '<p>Sleep diary reviewed. Average sleep onset: 68 min, sleep efficiency: 64%. Strict wake time set at 06:45 regardless of sleep quality. No napping rule introduced. Maddy expressed concern about weekend — explored this in depth.</p>', aiSummary: 'Patient reports ongoing sleep difficulties. Introduced stimulus control therapy. Strict wake time and no-napping rule assigned as homework.', transcript: [] }],
+    tasks: [{ id: 'mt-t01', text: 'Send sleep diary template', done: true, category: 'document' }],
+  },
+  {
+    id: 'mt-a02', patientName: 'Maddy Test', initials: 'MT',
+    avatarBg: 'bg-violet-100', avatarText: 'text-violet-700',
+    time: '4:00pm', groupLabel: '06/02/2026', tab: 'past',
+    inputLanguage: 'English', outputLanguage: 'English', contextText: '',
+    sessionDate: addDays(prev, -8), sessionTime: '16:00',
+    sessions: [{ id: 'mt-s02', label: 'PMR + Sleep Window Tightening', noteText: '<p>Sleep efficiency 72%, up from 64%. Maddy pleased with progress. Introduced PMR — practiced in session. Sleep window adjusted: 23:30–06:45. Reviewed sleep hygiene checklist. Patient engaged and compliant.</p>', aiSummary: 'Third session. Sleep diary reviewed — sleep efficiency improved to 72%. Patient motivated. Introduced progressive muscle relaxation as pre-sleep routine.', transcript: [] }],
+    tasks: [],
+  },
+  {
+    id: 'mt-a03', patientName: 'Maddy Test', initials: 'MT',
+    avatarBg: 'bg-violet-100', avatarText: 'text-violet-700',
+    time: '4:00pm', groupLabel: '23/01/2026', tab: 'past',
+    inputLanguage: 'English', outputLanguage: 'English', contextText: '',
+    sessionDate: addDays(prev, -21), sessionTime: '16:00',
+    sessions: [{ id: 'mt-s03', label: 'Insomnia Intake — CBT-I', noteText: '<p><strong>Intake:</strong> Maddy self-referred via GP. Chronic insomnia 8 months, secondary to work redundancy. Average sleep: 4.5h. PHQ-9: 11, ISI: 19 (severe). No current medication. Motivated. CBT-I 6-session protocol agreed. Sleep diary to begin immediately.</p>', aiSummary: 'Intake session. Chronic insomnia onset 8 months ago, low mood. PHQ-9: 11. CBT-I protocol introduced and agreed.', transcript: [] }],
+    tasks: [],
+  },
+  {
+    id: 'jd-a01', patientName: 'John Doe', initials: 'JD',
+    avatarBg: 'bg-sky-100', avatarText: 'text-sky-700',
+    time: '11:00am', groupLabel: '04/02/2026', tab: 'past',
+    inputLanguage: 'English', outputLanguage: 'English', contextText: '',
+    sessionDate: addDays(prev, -10), sessionTime: '11:00',
+    sessions: [{ id: 'jd-s01', label: 'Stress Triggers + SMART Goals', noteText: '<p>Three main stressors mapped: unclear role expectations, inability to delegate, fear of failure post-promotion. Introduced SMART framework for goal-setting. John identified first goal: delegate at least one task per week for the next month. Discussed catastrophic thinking patterns around failure.</p>', aiSummary: 'Follow-up after intake. Reviewed occupational stress triggers. Three key stressors identified: unclear expectations, lack of delegation, fear of failure. Goal-setting started using SMART framework.', transcript: [] }],
+    tasks: [{ id: 'jd-t01', text: 'Send SMART goals worksheet', done: true, category: 'document' }],
+  },
+  {
+    id: 'jd-a02', patientName: 'John Doe', initials: 'JD',
+    avatarBg: 'bg-sky-100', avatarText: 'text-sky-700',
+    time: '11:00am', groupLabel: '21/01/2026', tab: 'past',
+    inputLanguage: 'English', outputLanguage: 'English', contextText: '',
+    sessionDate: addDays(prev, -23), sessionTime: '11:00',
+    sessions: [{ id: 'jd-s02', label: 'Perfectionism Schema Work', noteText: '<p>John delegated two tasks. Workload perceptibly reduced but guilt prominent — rated 7/10. Explored perfectionism schema: "results define my worth." Used historical review technique to challenge. Patient recalled three examples of successful outcomes that weren\'t his direct work.</p>', aiSummary: 'Third session. Reviewed SMART goals. John delegated two tasks to team members. Reports reduced workload but residual guilt. Worked on perfectionism schema.', transcript: [] }],
+    tasks: [],
+  },
+  {
+    id: 'cl-a01', patientName: 'Carmen López', initials: 'CL',
+    avatarBg: 'bg-rose-100', avatarText: 'text-rose-700',
+    time: '9:00am', groupLabel: '08/01/2026', tab: 'past',
+    inputLanguage: 'Spanish', outputLanguage: 'Spanish', contextText: '',
+    sessionDate: addDays(prev, -36), sessionTime: '09:00',
+    sessions: [{ id: 'cl-s01', label: 'Flecha Descendente — Intro', noteText: '<p>Carmen identifica pensamiento nuclear recurrente: "si cometo un error, todos sabrán que no valgo". Aplicamos la técnica de la flecha descendente durante 20 minutos — llegamos a la creencia nuclear: "soy un fraude".</p><p>Gran apertura emocional al final. Acordamos pausar y reintroducir este trabajo en la siguiente sesión con más espacio.</p>', aiSummary: 'Tercera sesión. Carmen identifica pensamientos ansiosos antes de entrar al aula. Se introduce la técnica de la flecha descendente. Tarea: registrar 3 pensamientos automáticos por día.', transcript: [] }],
+    tasks: [],
+  },
+  {
+    id: 'jd-a03', patientName: 'John Doe', initials: 'JD',
+    avatarBg: 'bg-sky-100', avatarText: 'text-sky-700',
+    time: '11:00am', groupLabel: '07/01/2026', tab: 'past',
+    inputLanguage: 'English', outputLanguage: 'English', contextText: '',
+    sessionDate: addDays(prev, -37), sessionTime: '11:00',
+    sessions: [{ id: 'jd-s03', label: 'Values Clarification', noteText: '<p>Sleep now averaging 7h (was 5h at intake). Work finish time moved back to 18:30 consistently. Introduced values clarification exercise — John placed "being present for my children" as his highest value, above career advancement. Significant emotional response. Explored the gap between values and current behaviour.</p>', aiSummary: 'Fourth session. John sleeping better (7h average vs 5h at intake). Work boundaries improving. Values clarification exercise introduced. Strong motivation noted.', transcript: [] }],
+    tasks: [],
+  },
+  // ── Additional past sessions (all Sofia Martinez) ────────────────────────
+  {
+    id: 'sm-a01', patientName: 'Sofia Martinez', initials: 'SM',
+    avatarBg: 'bg-indigo-100', avatarText: 'text-indigo-700',
+    time: '10:00am', groupLabel: '10/02/2026', tab: 'past',
+    inputLanguage: 'English', outputLanguage: 'English',
+    contextText: '',
+    sessionDate: addDays(prev, -4), sessionTime: '10:00',
+    sessions: [{ id: 'sm-s01', label: 'Thought Challenging', noteText: '<p>Revisited thought record technique. Sofia brought three completed records. Worked through the "they\'ll see through me" thought using Socratic questioning. Identified cognitive distortions: mind-reading, fortune-telling. Practised generating balanced alternatives in session.</p>', aiSummary: 'Session focused on thought challenging. Patient identified three cognitive distortions related to work performance: mind-reading, all-or-nothing thinking, and catastrophising. CBT triangle practiced in session with a recent workplace incident.', transcript: [] }],
+    tasks: [
+      { id: 'sm-t01', text: 'Send thought record worksheet', done: true, category: 'document' },
+      { id: 'sm-t02', text: 'Ask Sofia to complete one record per day until next session', done: false, category: 'review' },
+    ],
+  },
+  {
+    id: 'sm-a02', patientName: 'Sofia Martinez', initials: 'SM',
+    avatarBg: 'bg-indigo-100', avatarText: 'text-indigo-700',
+    time: '10:00am', groupLabel: '27/01/2026', tab: 'past',
+    inputLanguage: 'English', outputLanguage: 'English',
+    contextText: '',
+    sessionDate: addDays(prev, -17), sessionTime: '10:00',
+    sessions: [{
+      id: 'sm-s02', label: 'Thought Diary + Behavioural Activation', noteText: '<p>Excellent session. Sofia completed 8 thought diary entries — well above the agreed minimum of 3. GAD-7 now 10, down from 14. Sleep improving. Introduced behavioural activation: scheduling one enjoyable activity per week as a mood "anchor".</p><p>Sofia chose Tuesday evening pottery class — agreed to attend without cancelling due to anxiety.</p>',
+      aiSummary: 'Second session. Patient presented a completed thought diary with 8 entries. Anxiety self-rated at 6/10, down from 8/10 at intake. Sleep improved by approximately 45 minutes per night. Continued psychoeducation on the anxiety cycle. Introduced the concept of behavioural activation.',
+      transcript: [
+        { speaker: 'therapist', time: '10:03', text: 'How was the thought diary this week?' },
+        { speaker: 'patient',   time: '10:04', text: 'Harder than I expected. Writing things down made me realise how negative my inner voice is.' },
+        { speaker: 'therapist', time: '10:06', text: 'That awareness is actually a really important first step. What kind of thoughts were coming up most?' },
+        { speaker: 'patient',   time: '10:07', text: 'Mostly around work. That I\'m not good enough, that people will find out I\'m faking it.' },
+      ],
+    }],
+    tasks: [
+      { id: 'sm-t03', text: 'Share behavioural activation handout', done: true, category: 'document' },
+      { id: 'sm-t04', text: 'Ask to schedule one enjoyable activity before next session', done: false, category: 'review' },
+    ],
+  },
+  {
+    id: 'sm-a03', patientName: 'Sofia Martinez', initials: 'SM',
+    avatarBg: 'bg-indigo-100', avatarText: 'text-indigo-700',
+    time: '10:00am', groupLabel: '13/01/2026', tab: 'past',
+    inputLanguage: 'English', outputLanguage: 'English',
+    contextText: '',
+    sessionDate: addDays(prev, -31), sessionTime: '10:00',
+    sessions: [{ id: 'sm-s03', label: 'Anxiety Intake — CBT Assessment', noteText: '<p><strong>Intake session:</strong> Sofia referred by Dr. García (GP). Presenting with GAD, sleep disturbance, and social anxiety at work. GAD-7: 14, PHQ-9: 8. No previous therapy. No medication.</p><p>Rapport good. Psychoeducation on anxiety cycle provided. 12-session CBT protocol agreed. Thought diary to begin immediately. Next session in 2 weeks.</p>', aiSummary: 'Intake session. Patient referred by Dr. García for generalised anxiety and sleep disturbance. GAD-7 score: 14 (moderate-severe). PHQ-9: 8. Psychoeducation on anxiety and the fight-or-flight response provided. CBT plan agreed — weekly sessions, 12-session protocol.', transcript: [] }],
+    tasks: [
+      { id: 'sm-t05', text: 'Add GAD-7 and PHQ-9 scores to clinical record', done: true, category: 'document' },
+      { id: 'sm-t06', text: 'Send welcome pack and session agreement', done: true, category: 'communicate' },
+    ],
+  },
+  {
+    id: 'sm-a04', patientName: 'Sofia Martinez', initials: 'SM',
+    avatarBg: 'bg-indigo-100', avatarText: 'text-indigo-700',
+    time: '10:00am', groupLabel: '16/12/2025', tab: 'past',
+    inputLanguage: 'English', outputLanguage: 'English',
+    contextText: '',
+    sessionDate: addDays(prev, -52), sessionTime: '10:00',
+    sessions: [{
+      id: 'sm-s04', label: 'Pre-Holiday Assertiveness', noteText: '<p>Sofia anticipating family gathering over Christmas with heightened anxiety (rated 8/10). Mapped out specific scenarios likely to trigger boundary violations. Wrote assertiveness scripts for two recurring situations.</p><p>Role-played refusing to discuss salary and redirecting intrusive questions. Practised 4-7-8 breathing as in-the-moment tool. Patient left session feeling notably more prepared.</p>',
+      aiSummary: 'Pre-holiday session. Sofia reports heightened anticipatory anxiety about a family gathering. Worked on assertiveness scripts for boundary-setting with relatives. Reviewed 4-7-8 breathing for acute anxiety moments. Patient proactive and well-engaged throughout.',
+      transcript: [
+        { speaker: 'therapist', time: '10:02', text: 'How are you feeling about the holidays coming up?' },
+        { speaker: 'patient',   time: '10:03', text: 'Honestly, dreading it. My family dynamics are exhausting and I always leave feeling worse.' },
+        { speaker: 'therapist', time: '10:05', text: 'Let\'s prepare some specific scripts you can use if conversations feel overwhelming.' },
+        { speaker: 'patient',   time: '10:06', text: 'That would help a lot. I freeze in those moments and never know what to say.' },
+      ],
+    }],
+    tasks: [
+      { id: 'sm-t07', text: 'Send assertiveness script worksheet', done: true, category: 'document' },
+      { id: 'sm-t08', text: 'Schedule check-in call first week of January', done: true, category: 'coordinate' },
+    ],
+  },
+  {
+    id: 'sm-a05', patientName: 'Sofia Martinez', initials: 'SM',
+    avatarBg: 'bg-indigo-100', avatarText: 'text-indigo-700',
+    time: '10:00am', groupLabel: '02/12/2025', tab: 'past',
+    inputLanguage: 'English', outputLanguage: 'English',
+    contextText: '',
+    sessionDate: addDays(prev, -66), sessionTime: '10:00',
+    sessions: [{
+      id: 'sm-s05', label: 'Self-Compassion + Perfectionism', noteText: '<p>Sofia described a work presentation that went well externally but she fixated on a 30-second stumble. Classic perfectionism pattern. Introduced the compassionate observer technique — asked her to write a letter to a colleague who described the same scenario. Powerful exercise.</p><p>She acknowledged the double standard: she would never judge a colleague the way she judges herself.</p>',
+      aiSummary: 'Session on perfectionism and self-criticism. Sofia described a presentation at work that went well objectively, but she focused entirely on a 30-second stumble. Introduced the compassionate observer technique. Patient found it difficult initially but showed openness by end of session.',
+      transcript: [
+        { speaker: 'therapist', time: '10:04', text: 'You mentioned the presentation — how do you feel it went?' },
+        { speaker: 'patient',   time: '10:05', text: 'Terrible. I lost my train of thought for a moment and I could see people looking at each other.' },
+        { speaker: 'therapist', time: '10:07', text: 'What feedback did you actually receive afterwards?' },
+        { speaker: 'patient',   time: '10:08', text: 'They said it was great. But I can\'t let go of that one moment.' },
+      ],
+    }],
+    tasks: [
+      { id: 'sm-t09', text: 'Send compassionate observer guided audio', done: true, category: 'communicate' },
+      { id: 'sm-t10', text: 'Ask Sofia to write a self-compassion letter before next session', done: false, category: 'review' },
+      { id: 'sm-t11', text: 'Flag perfectionism pattern for case formulation review', done: false, category: 'review' },
+    ],
+  },
+  {
+    id: 'sm-a06', patientName: 'Sofia Martinez', initials: 'SM',
+    avatarBg: 'bg-indigo-100', avatarText: 'text-indigo-700',
+    time: '10:00am', groupLabel: '29/10/2025', tab: 'past',
+    inputLanguage: 'English', outputLanguage: 'English',
+    contextText: '',
+    sessionDate: addDays(prev, -100), sessionTime: '10:00',
+    sessions: [{
+      id: 'sm-s06', label: 'Rumination + Postponed Worry', noteText: '<p>Sofia attended a work event — stayed full 2h despite high anxiety. A significant behavioural win. However, ruminated heavily for ~3h afterwards. Explored the rumination cycle: trigger → replaying → avoidance function.</p><p>Introduced postponed worry: scheduled 20-min "worry time" at 17:00 daily. Outside this window, she uses a cue card to redirect. Patient receptive. Therapeutic alliance strong.</p>',
+      aiSummary: 'Fifth session overall. Sofia attended a work social event — stayed the full two hours despite high anxiety. Used breathing technique in situ with partial success. Ruminated heavily afterwards for three hours. Explored the rumination cycle and introduced the postponed worry technique. Strong therapeutic alliance noted.',
+      transcript: [
+        { speaker: 'therapist', time: '10:02', text: 'How did the work event go last Friday?' },
+        { speaker: 'patient',   time: '10:03', text: 'I went, which felt huge. But I was in fight-or-flight the whole time.' },
+        { speaker: 'therapist', time: '10:05', text: 'Staying two hours when everything in you wants to leave is a real win. Let\'s build on that.' },
+        { speaker: 'patient',   time: '10:06', text: 'I hadn\'t looked at it that way. I just felt like a failure because of how anxious I was.' },
+      ],
+    }],
+    tasks: [
+      { id: 'sm-t12', text: 'Share postponed worry technique handout', done: true, category: 'document' },
+      { id: 'sm-t13', text: 'Ask to log rumination episodes with start time and duration', done: false, category: 'review' },
+      { id: 'sm-t14', text: 'Draft exposure hierarchy for social situations — discuss next session', done: false, category: 'review' },
+    ],
+  },
+  {
+    id: 'sm-a07', patientName: 'Sofia Martinez', initials: 'SM',
+    avatarBg: 'bg-indigo-100', avatarText: 'text-indigo-700',
+    time: '10:00am', groupLabel: '15/10/2025', tab: 'past',
+    inputLanguage: 'English', outputLanguage: 'English', contextText: '',
+    sessionDate: addDays(prev, -114), sessionTime: '10:00',
+    sessions: [{
+      id: 'sm-s07', label: 'Graded Exposure Hierarchy', noteText: '<p>Introduced graded exposure. Collaboratively built hierarchy of 8 social situations ranked by anxiety (0–100 SUDS). Top item: speaking up in a team meeting. First item: eating lunch in staff canteen without headphones.</p><p>Sofia committed to attempting item #1 three times before next session. Discussed the rationale: repeated exposure reduces the brain\'s threat response over time.</p>',
+      aiSummary: 'Fourth session. Introduced graded exposure to social situations. Collaboratively built an anxiety hierarchy of 8 items. Sofia committed to attempting item #1 (eating lunch in the staff canteen alone) before next session. Good insight and motivation.',
+      transcript: [
+        { speaker: 'therapist', time: '10:03', text: 'Let\'s think about what feels manageable — something small but real.' },
+        { speaker: 'patient',   time: '10:04', text: 'Maybe eating lunch with colleagues. I always eat at my desk to avoid it.' },
+        { speaker: 'therapist', time: '10:06', text: 'That\'s a great first step. What\'s the worst you imagine could happen?' },
+        { speaker: 'patient',   time: '10:07', text: 'That I\'d have nothing to say and they\'d think I was weird.' },
+      ],
+    }],
+    tasks: [
+      { id: 'sm-t15', text: 'Print exposure hierarchy and give to Sofia', done: true, category: 'document' },
+      { id: 'sm-t16', text: 'Review outcome of canteen exposure next session', done: false, category: 'review' },
+    ],
+  },
+  {
+    id: 'sm-a08', patientName: 'Sofia Martinez', initials: 'SM',
+    avatarBg: 'bg-indigo-100', avatarText: 'text-indigo-700',
+    time: '10:00am', groupLabel: '01/10/2025', tab: 'past',
+    inputLanguage: 'English', outputLanguage: 'English', contextText: '',
+    sessionDate: addDays(prev, -128), sessionTime: '10:00',
+    sessions: [{
+      id: 'sm-s08', label: 'Performance Review Anxiety', noteText: '<p>Sofia anxious about upcoming performance review (5 days away). Applied cognitive restructuring to feared scenarios: "they\'ll find out I\'ve been underperforming." Examined the evidence. She hit all targets. Identified the "imposter syndrome" thought pattern — psychoeducation provided.</p><p>Discussed the difference between feeling incompetent and being incompetent. Sleep diary shows 48-min onset (down from 72 at start). Good progress.</p>',
+      aiSummary: 'Third session. Sleep diary reviewed: average sleep onset reduced from 72 to 48 minutes. Patient experimenting with stimulus control. Discussed upcoming performance review at work as significant source of anticipatory anxiety. Cognitive restructuring applied to the specific feared scenario.',
+      transcript: [
+        { speaker: 'therapist', time: '10:02', text: 'You mentioned a performance review coming up — how is that sitting with you?' },
+        { speaker: 'patient',   time: '10:03', text: 'I\'ve been dreading it for weeks. I keep thinking they\'ll realise I\'ve been underperforming.' },
+        { speaker: 'therapist', time: '10:05', text: 'What evidence do you have for that belief?' },
+        { speaker: 'patient',   time: '10:06', text: 'Well... I did hit all my targets. But I feel like it\'s been luck.' },
+      ],
+    }],
+    tasks: [
+      { id: 'sm-t17', text: 'Ask Sofia to write down 5 specific work achievements before next session', done: true, category: 'review' },
+    ],
+  },
+  {
+    id: 'sm-a09', patientName: 'Sofia Martinez', initials: 'SM',
+    avatarBg: 'bg-indigo-100', avatarText: 'text-indigo-700',
+    time: '10:00am', groupLabel: '17/09/2025', tab: 'past',
+    inputLanguage: 'English', outputLanguage: 'English', contextText: '',
+    sessionDate: addDays(prev, -142), sessionTime: '10:00',
+    sessions: [{ id: 'sm-s09', label: 'Avoidance Mapping', noteText: '<p>Reviewed 6 thought diary entries — quality improving. Explored the avoidance cycle: anxiety → avoidance → short-term relief → long-term maintenance of anxiety. Sofia identified four consistent avoidance behaviours: eating lunch alone, declining meeting invitations, deferring to others in group settings, avoiding eye contact with senior colleagues.</p><p>Began collaborative case formulation — presented back to Sofia for review.</p>', aiSummary: 'Second session. Reviewed thought diary homework — 6 entries completed. Patient identifying automatic negative thoughts more consistently. Sleep onset improving slightly. Explored the relationship between anxiety and avoidance behaviours. Began collaborative case formulation.', transcript: [] }],
+    tasks: [
+      { id: 'sm-t18', text: 'Update case formulation draft and share with supervisor', done: true, category: 'document' },
+      { id: 'sm-t19', text: 'Ask Sofia to note one avoided situation per day', done: false, category: 'review' },
+    ],
+  },
+  {
+    id: 'sm-a10', patientName: 'Sofia Martinez', initials: 'SM',
+    avatarBg: 'bg-indigo-100', avatarText: 'text-indigo-700',
+    time: '10:00am', groupLabel: '03/09/2025', tab: 'past',
+    inputLanguage: 'English', outputLanguage: 'English', contextText: '',
+    sessionDate: addDays(prev, -156), sessionTime: '10:00',
+    sessions: [{
+      id: 'sm-s10', label: 'GAD Intake — New Episode', noteText: '<p><strong>New treatment episode.</strong> Sofia returned after a 3-month break following a previous course of therapy. Presenting symptoms have intensified — new workplace trigger (team restructure). GAD-7: 16 (severe), PHQ-9: 9 (mild-moderate).</p><p>Agreed to resume CBT with a focus on social anxiety and imposter syndrome. Psychoeducation refreshed. First thought diary due next session.</p>',
+      aiSummary: 'Intake session. Sofia self-referred after six months of worsening anxiety. GAD-7: 14, PHQ-9: 8. Reports generalised worry, social anxiety, poor sleep, and imposter syndrome at work. No previous therapy. Discussed CBT model and 12-session protocol. Good rapport established from the outset.',
+      transcript: [
+        { speaker: 'therapist', time: '10:02', text: 'What made you decide to reach out for support now?' },
+        { speaker: 'patient',   time: '10:03', text: 'I kept thinking it would pass on its own. But it\'s been getting worse and I\'m exhausted.' },
+        { speaker: 'therapist', time: '10:05', text: 'You did the right thing coming in. Can you tell me a bit about what a typical anxious day looks like for you?' },
+        { speaker: 'patient',   time: '10:07', text: 'I wake up already worrying. By the time I get to work I\'ve already catastrophised about a dozen things.' },
+      ],
+    }],
+    tasks: [
+      { id: 'sm-t20', text: 'Record GAD-7 and PHQ-9 baseline scores in clinical notes', done: true, category: 'document' },
+      { id: 'sm-t21', text: 'Send thought diary template for first week', done: true, category: 'communicate' },
+      { id: 'sm-t22', text: 'Book next 4 weekly sessions', done: true, category: 'coordinate' },
+    ],
+  },
+  {
+    id: 'sm-a11', patientName: 'Sofia Martinez', initials: 'SM',
+    avatarBg: 'bg-indigo-100', avatarText: 'text-indigo-700',
+    time: '10:00am', groupLabel: '20/08/2025', tab: 'past',
+    inputLanguage: 'English', outputLanguage: 'English', contextText: '',
+    sessionDate: addDays(prev, -170), sessionTime: '10:00',
+    sessions: [{ id: 'sm-s11', label: 'Pre-Treatment Assessment', noteText: '<p>Assessment session prior to new CBT episode. GAD-7: 16, PHQ-9: 9, WASA: 28. Sofia reports symptoms worsening over past 4 months. Sleep affected: takes 60–90 min to fall asleep. Two episodes of acute anxiety at work requiring early departure.</p><p>Consent obtained. Psychoeducation provided informally. Waitlist confirmed — expected start date within 2 weeks.</p>', aiSummary: 'Assessment session (pre-treatment). Sofia completed standard psychometric battery. GAD-7: 16, PHQ-9: 9, WASA: 28. Psychoeducation on anxiety provided informally. Consent obtained. Waiting list referral accepted for CBT — estimated 2-week wait.', transcript: [] }],
+    tasks: [
+      { id: 'sm-t23', text: 'Score and file psychometric battery', done: true, category: 'document' },
+      { id: 'sm-t24', text: 'Send confirmation email with expected start date', done: true, category: 'communicate' },
+    ],
+  },
+  {
+    id: 'sm-a12', patientName: 'Sofia Martinez', initials: 'SM',
+    avatarBg: 'bg-indigo-100', avatarText: 'text-indigo-700',
+    time: '10:00am', groupLabel: '06/08/2025', tab: 'past',
+    inputLanguage: 'English', outputLanguage: 'English', contextText: '',
+    sessionDate: addDays(prev, -184), sessionTime: '10:00',
+    sessions: [{ id: 'sm-s12', label: 'Crisis Follow-Up', noteText: '<p>Follow-up after duty line call 3 days prior. Sofia experienced acute distress following conflict with line manager — felt "trapped" and unable to regulate. No safety risk. Used grounding technique (5-4-3-2-1) on the call with partial success.</p><p>Reviewed the incident in detail today. Identified escalation pattern: somatic symptoms → catastrophic thoughts → behavioural freeze. Discussed prevention plan for future acute episodes. Patient stable and reflective.</p>', aiSummary: 'Follow-up on previous crisis contact. Sofia called the duty line 3 days prior — acute distress related to a conflict with her manager. No safety concerns. Reviewed coping strategies used. Reinforced grounding techniques. Plan: resume regular weekly sessions.', transcript: [] }],
+    tasks: [
+      { id: 'sm-t25', text: 'Document crisis contact details in clinical record', done: true, category: 'document' },
+    ],
+  },
+  {
+    id: 'sm-a13', patientName: 'Sofia Martinez', initials: 'SM',
+    avatarBg: 'bg-indigo-100', avatarText: 'text-indigo-700',
+    time: '10:00am', groupLabel: '23/07/2025', tab: 'past',
+    inputLanguage: 'English', outputLanguage: 'English', contextText: '',
+    sessionDate: addDays(prev, -198), sessionTime: '10:00',
+    sessions: [{
+      id: 'sm-s13', label: 'Mid-Treatment Review', noteText: '<p><strong>Session 8 review:</strong> GAD-7 now 9 (was 16 at start). PHQ-9 stable at 7. Sofia reports significantly less avoidance — eating with colleagues 2–3×/week, making eye contact in meetings. Sleep onset down to ~30 min.</p><p>Remaining difficulty: speaking up in group settings and handling conflict with authority figures. Agreed to extend protocol by 4 sessions to address social anxiety specifically. Patient very positive about progress.</p>',
+      aiSummary: 'Mid-treatment review (session 8 equivalent). GAD-7 reduced to 9 (from 16), PHQ-9 stable at 7. Patient attributes improvement to thought challenging and breathing techniques. Social avoidance remains moderate. Agreed to extend protocol by 4 sessions to address social anxiety more thoroughly.',
+      transcript: [
+        { speaker: 'therapist', time: '10:03', text: 'Looking back at where you started — what feels most different now?' },
+        { speaker: 'patient',   time: '10:04', text: 'I don\'t spiral as quickly. I catch myself and ask "is this thought actually true?"' },
+        { speaker: 'therapist', time: '10:06', text: 'That\'s exactly the shift we\'ve been working towards. Your scores reflect it too.' },
+        { speaker: 'patient',   time: '10:07', text: 'I\'m glad. I still struggle at work but I feel like I have tools now.' },
+      ],
+    }],
+    tasks: [
+      { id: 'sm-t26', text: 'Update treatment plan to include 4 additional sessions', done: true, category: 'document' },
+      { id: 'sm-t27', text: 'Re-administer GAD-7 and PHQ-9 at next session', done: false, category: 'review' },
+    ],
+  },
+  {
+    id: 'sm-a14', patientName: 'Sofia Martinez', initials: 'SM',
+    avatarBg: 'bg-indigo-100', avatarText: 'text-indigo-700',
+    time: '10:00am', groupLabel: '09/07/2025', tab: 'past',
+    inputLanguage: 'English', outputLanguage: 'English', contextText: '',
+    sessionDate: addDays(prev, -212), sessionTime: '10:00',
+    sessions: [{
+      id: 'sm-s14', label: 'Exposure Hierarchy Progress', noteText: '<p>Sofia completed 4 of 5 exposure items. Notable achievement: asked a colleague for help without excessive apologising. Remaining item: speaking up in team meetings. Explored what stops her: "the moment passes" or someone else says it first.</p><p>Wrote a coping card for meetings: what to do when the urge to speak arises. Role-played assertive contribution in session. Strong progress. Therapeutic alliance excellent.</p>',
+      aiSummary: 'Sixth session. Reviewed graded exposure progress — Sofia completed 4 out of 5 items on her hierarchy. High engagement. Remaining item: speaking up in team meetings. Troubleshot anticipatory anxiety with a coping card. Modelled assertive speech in role-play. Positive session, strong progress.',
+      transcript: [
+        { speaker: 'therapist', time: '10:02', text: 'You managed four of the five — that\'s remarkable progress in three weeks.' },
+        { speaker: 'patient',   time: '10:03', text: 'The coffee one was hard. I asked a colleague for help and didn\'t apologise three times.' },
+        { speaker: 'therapist', time: '10:05', text: 'That is huge. And the meetings — what stops you from speaking up there?' },
+        { speaker: 'patient',   time: '10:06', text: 'I prepare what I want to say and then someone else says it, or the moment passes.' },
+      ],
+    }],
+    tasks: [
+      { id: 'sm-t28', text: 'Send coping card template for meetings', done: true, category: 'document' },
+      { id: 'sm-t29', text: 'Ask Sofia to commit to one contribution per meeting this week', done: false, category: 'review' },
+      { id: 'sm-t30', text: 'Review role-play recording in next session if patient consents', done: false, category: 'review' },
+    ],
+  },
 ])
 
 // ── UI state ───────────────────────────────────────────────────────────────
 
+const screenView = ref<'picker' | 'workspace'>('picker')
 const activeTab  = ref<'schedule' | 'past'>('schedule')
 const selectedId = ref('a1')
 const contentTab = ref('context')
@@ -282,6 +665,84 @@ function groups(tab: 'schedule' | 'past') {
 
 const currentGroups = computed(() => groups(activeTab.value))
 
+// ── Picker / timeline helpers ──────────────────────────────────────────────
+
+function isLiveAppt(appt: Appointment): boolean {
+  if (!isToday(appt.sessionDate)) return false
+  const now = new Date()
+  const [h, m] = appt.sessionTime.split(':').map(Number)
+  const sessionStart = new Date()
+  sessionStart.setHours(h ?? 0, m ?? 0, 0, 0)
+  const diff = (now.getTime() - sessionStart.getTime()) / 60000
+  return diff >= -30 && diff <= 90
+}
+
+const liveSession = computed(() =>
+  appointments.value.find(a => isLiveAppt(a)) ?? null,
+)
+
+const timelineAppointments = computed(() =>
+  appointments.value
+    .filter(a => a.patientName === selected.value.patientName)
+    .sort((a, b) => {
+      const da = new Date(a.sessionDate)
+      const [ah = 0, am = 0] = a.sessionTime.split(':').map(Number)
+      da.setHours(ah, am, 0, 0)
+      const db = new Date(b.sessionDate)
+      const [bh = 0, bm = 0] = b.sessionTime.split(':').map(Number)
+      db.setHours(bh, bm, 0, 0)
+      return db.getTime() - da.getTime()
+    }),
+)
+
+const sessionNumberMap = computed(() => {
+  const map: Record<string, number> = {}
+  ;[...timelineAppointments.value].reverse().forEach((a, i) => { map[a.id] = i + 1 })
+  return map
+})
+
+function sessionStatus(appt: Appointment): { dot: string; label: string } {
+  if (isLiveAppt(appt))    return { dot: 'bg-destructive', label: 'En curso' }
+  if (appt.tab === 'past') return { dot: 'bg-emerald-500', label: 'Realizada' }
+  return                          { dot: 'bg-primary/50',  label: 'Programada' }
+}
+
+function fmtSessionDate(appt: Appointment): string {
+  if (isToday(appt.sessionDate)) return `Hoy · ${appt.sessionTime}`
+  return format(appt.sessionDate, "EEE d MMM", { locale: es }) + ' · ' + appt.sessionTime
+}
+
+function sessionCategory(appt: Appointment): string {
+  return sessionNumberMap.value[appt.id] === 1 ? 'Inicio' : 'Seguimiento'
+}
+
+const todayPickerSessions = computed(() =>
+  appointments.value
+    .filter(a => isToday(a.sessionDate) && !isLiveAppt(a))
+    .sort((a, b) => a.sessionTime.localeCompare(b.sessionTime)),
+)
+
+const upcomingPickerSessions = computed(() =>
+  appointments.value
+    .filter(a => a.tab === 'schedule' && !isToday(a.sessionDate))
+    .sort((a, b) => a.sessionDate.getTime() - b.sessionDate.getTime()),
+)
+
+const pastPickerSessions = computed(() =>
+  appointments.value
+    .filter(a => a.tab === 'past')
+    .sort((a, b) => b.sessionDate.getTime() - a.sessionDate.getTime()),
+)
+
+function enterWorkspace(id: string) {
+  selectAppointment(id)
+  screenView.value = 'workspace'
+}
+
+function backToPicker() {
+  screenView.value = 'picker'
+}
+
 // ── Sidebar mini day calendar ───────────────────────────────────────────────
 
 const HOUR_RANGE = [8,9,10,11,12,13,14,15,16,17,18,19]
@@ -323,7 +784,8 @@ function selectDay(day: Date) {
 
 function selectAppointment(id: string) {
   selectedId.value = id
-  contentTab.value = 'context'
+  const appt = appointments.value.find(a => a.id === id)
+  contentTab.value = appt?.sessions[0]?.id ?? 'context'
   isRecording.value = false
   calendarViewDate.value = new Date()
 }
@@ -603,7 +1065,121 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="flex-1 flex overflow-hidden min-h-0">
+
+  <!-- ══ PICKER SCREEN ════════════════════════════════════════════════════ -->
+  <div v-if="screenView === 'picker'" class="flex-1 flex flex-col overflow-hidden min-h-0 bg-muted/20">
+    <div class="flex-1 overflow-y-auto">
+      <div class="max-w-2xl mx-auto px-6 py-8">
+
+        <!-- Header -->
+        <div class="mb-8">
+          <h1 class="text-2xl font-bold text-foreground">Sessions</h1>
+          <p class="text-sm text-muted-foreground mt-1">Select a session to start working</p>
+        </div>
+
+        <!-- Live Now (featured) -->
+        <div v-if="liveSession" class="mb-8">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="relative flex h-2 w-2">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75" />
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-destructive" />
+            </span>
+            <span class="text-[10px] font-bold uppercase tracking-widest text-destructive">Live now</span>
+          </div>
+          <button
+            class="w-full text-left rounded-2xl border-2 border-primary/20 bg-gradient-to-br from-primary/5 via-primary/[0.03] to-transparent p-5 hover:border-primary/40 hover:shadow-md transition-all group"
+            @click="enterWorkspace(liveSession.id)"
+          >
+            <div class="flex items-center gap-4">
+              <div :class="['w-14 h-14 rounded-2xl flex items-center justify-center text-base font-bold ring-4 ring-primary/10', liveSession.avatarBg, liveSession.avatarText]">
+                {{ liveSession.initials }}
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-lg font-bold text-foreground">{{ liveSession.patientName }}</p>
+                <p class="text-sm text-muted-foreground mt-0.5">{{ liveSession.sessionTime }} · Today</p>
+                <p class="text-xs text-muted-foreground/70 mt-0.5">{{ liveSession.sessions[0]?.label }}</p>
+              </div>
+              <div class="flex items-center gap-1.5 text-primary opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                <span class="text-sm font-semibold">Open</span>
+                <ArrowRight class="w-4 h-4" />
+              </div>
+            </div>
+          </button>
+        </div>
+
+        <!-- Today -->
+        <div v-if="liveSession || todayPickerSessions.length" class="mb-8">
+          <p v-if="liveSession && todayPickerSessions.length" class="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">Also today</p>
+          <p v-else-if="todayPickerSessions.length" class="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">Today</p>
+          <div class="space-y-2">
+            <button
+              v-for="appt in todayPickerSessions"
+              :key="appt.id"
+              class="w-full text-left rounded-xl border border-border bg-card p-4 hover:border-primary/30 hover:shadow-sm transition-all group"
+              @click="enterWorkspace(appt.id)"
+            >
+              <div class="flex items-center gap-3">
+                <div :class="['w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold', appt.avatarBg, appt.avatarText]">{{ appt.initials }}</div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-semibold text-foreground">{{ appt.patientName }}</p>
+                  <p class="text-xs text-muted-foreground mt-0.5">{{ appt.sessionTime }}</p>
+                </div>
+                <ChevronRight class="w-4 h-4 text-muted-foreground/30 group-hover:text-primary transition-colors shrink-0" />
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Upcoming -->
+        <div v-if="upcomingPickerSessions.length" class="mb-8">
+          <p class="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">Upcoming</p>
+          <div class="space-y-2">
+            <button
+              v-for="appt in upcomingPickerSessions"
+              :key="appt.id"
+              class="w-full text-left rounded-xl border border-border bg-card p-4 hover:border-primary/30 hover:shadow-sm transition-all group"
+              @click="enterWorkspace(appt.id)"
+            >
+              <div class="flex items-center gap-3">
+                <div :class="['w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold', appt.avatarBg, appt.avatarText]">{{ appt.initials }}</div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-semibold text-foreground">{{ appt.patientName }}</p>
+                  <p class="text-xs text-muted-foreground mt-0.5">{{ format(appt.sessionDate, 'EEE, MMM d') }} · {{ appt.sessionTime }}</p>
+                </div>
+                <ChevronRight class="w-4 h-4 text-muted-foreground/30 group-hover:text-primary transition-colors shrink-0" />
+              </div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Past -->
+        <div v-if="pastPickerSessions.length">
+          <p class="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">Past sessions</p>
+          <div class="space-y-2">
+            <button
+              v-for="appt in pastPickerSessions"
+              :key="appt.id"
+              class="w-full text-left rounded-xl border border-border bg-card/60 p-4 hover:border-primary/30 hover:shadow-sm transition-all group"
+              @click="enterWorkspace(appt.id)"
+            >
+              <div class="flex items-center gap-3">
+                <div :class="['w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold opacity-75', appt.avatarBg, appt.avatarText]">{{ appt.initials }}</div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-medium text-foreground">{{ appt.patientName }}</p>
+                  <p class="text-xs text-muted-foreground mt-0.5">{{ format(appt.sessionDate, 'EEE, MMM d') }} · {{ appt.sessionTime }}</p>
+                </div>
+                <ChevronRight class="w-4 h-4 text-muted-foreground/30 group-hover:text-primary transition-colors shrink-0" />
+              </div>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ WORKSPACE SCREEN ══════════════════════════════════════════════════ -->
+  <div v-else class="flex-1 flex overflow-hidden min-h-0">
 
     <!-- ══ Left sidebar ═══════════════════════════════════════════════════ -->
     <Transition
@@ -614,66 +1190,100 @@ onUnmounted(() => {
     >
     <aside v-show="calSidebarOpen" class="w-52 sm:w-60 md:w-64 flex flex-col bg-background border-r border-border/50 shrink-0 min-w-0">
 
-      <!-- Mini today's day view -->
-      <div class="mx-3 mt-3 mb-1 rounded-xl border border-border bg-card overflow-hidden shrink-0">
-        <div class="px-3 py-1.5 flex items-center justify-between border-b border-border/40">
-          <span class="text-[11px] font-semibold text-foreground">Today</span>
-          <span class="text-[10px] text-muted-foreground">{{ format(new Date(), 'EEE, MMM d') }}</span>
-        </div>
-        <div class="overflow-y-auto" style="max-height:160px">
-          <!-- Hour rows -->
-          <div
-            v-for="h in HOUR_RANGE"
-            :key="h"
-            class="flex items-stretch border-t border-border/20"
-            style="height:22px"
-          >
-            <span class="text-[9px] text-muted-foreground/50 w-8 pl-1.5 shrink-0 flex items-center">{{ h }}</span>
-            <div class="flex-1 relative">
-              <button
-                v-for="appt in appointmentsAtHour(h)"
-                :key="appt.id"
-                :class="[
-                  'absolute inset-y-0.5 inset-x-0.5 rounded px-1.5 text-[9px] font-medium truncate w-full text-left',
-                  selectedId === appt.id
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-primary/30 text-primary hover:bg-primary/50',
-                ]"
-                @click="selectAppointment(appt.id)"
-              >{{ appt.patientName }}</button>
-            </div>
-          </div>
-          <div v-if="todayAppointments.length === 0" class="py-2 text-center">
-            <span class="text-[10px] text-muted-foreground/50">No sessions today</span>
-          </div>
-        </div>
+      <!-- Fixed: Context + Profile nav -->
+      <div class="shrink-0 px-3 pt-3 pb-2 border-b border-border/40 space-y-0.5">
+        <button
+          :class="[
+            'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left',
+            contentTab === 'context' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-accent',
+          ]"
+          @click="contentTab = 'context'"
+        >
+          <LayoutGrid class="w-4 h-4 shrink-0" />
+          Context
+        </button>
+        <button
+          :class="[
+            'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left',
+            contentTab === 'profile' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-accent',
+          ]"
+          @click="contentTab = 'profile'"
+        >
+          <UserRound class="w-4 h-4 shrink-0" />
+          Profile
+        </button>
       </div>
 
-      <!-- Today's appointment list -->
-      <div class="flex-1 overflow-y-auto py-2">
-        <p class="px-4 pt-2 pb-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Today's sessions</p>
-        <button
-          v-for="appt in todayAppointments"
-          :key="appt.id"
-          :class="[
-            'w-full flex items-center gap-3 px-3 py-2.5 transition-colors text-left',
-            selectedId === appt.id ? 'bg-primary/5 dark:bg-primary/10' : 'hover:bg-accent',
-          ]"
-          @click="selectAppointment(appt.id)"
-        >
-          <Avatar class="size-8 shrink-0">
-            <AvatarImage :src="avatarUrl(appt.patientName)" :alt="appt.patientName" />
-            <AvatarFallback :class="['text-xs font-bold', appt.avatarBg, appt.avatarText]">{{ appt.initials }}</AvatarFallback>
-          </Avatar>
-          <div class="min-w-0 flex-1">
-            <p :class="['text-sm font-medium truncate leading-tight', selectedId === appt.id ? 'text-primary' : 'text-foreground']">
-              {{ appt.patientName }}
-            </p>
-            <p class="text-xs text-muted-foreground mt-0.5">{{ appt.time }}</p>
+      <!-- Scrollable timeline -->
+      <div class="flex-1 overflow-y-auto py-3">
+        <div class="flex items-center justify-between px-4 pb-2">
+          <p class="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest">Session history</p>
+          <button
+            class="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+            @click="backToPicker"
+          >← All sessions</button>
+        </div>
+
+        <div class="relative px-3 pt-1">
+          <!-- Connecting vertical line -->
+          <div class="absolute left-[26px] top-4 bottom-4 w-px bg-border" />
+
+          <div
+            v-for="appt in timelineAppointments"
+            :key="appt.id"
+            class="relative flex items-start gap-3 pb-3 last:pb-0"
+          >
+            <!-- Timeline dot -->
+            <div class="relative z-10 mt-2.5 w-7 h-7 flex items-center justify-center flex-shrink-0">
+              <template v-if="isLiveAppt(appt)">
+                <span class="relative flex h-3.5 w-3.5">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75" />
+                  <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-destructive" />
+                </span>
+              </template>
+              <div v-else-if="appt.tab === 'past'" class="w-3 h-3 rounded-full bg-primary/60" />
+              <div v-else class="w-3 h-3 rounded-full border-2 border-primary/50 bg-background" />
+            </div>
+
+            <!-- Session card -->
+            <button
+              :class="[
+                'flex-1 text-left rounded-xl border px-3 py-2.5 transition-all min-w-0',
+                selectedId === appt.id && contentTab !== 'context' && contentTab !== 'profile'
+                  ? 'bg-primary/5 border-primary/20 shadow-sm'
+                  : 'bg-card border-border hover:border-primary/20 hover:shadow-sm',
+              ]"
+              @click="selectAppointment(appt.id)"
+            >
+              <!-- Line 1: #N · date · time + status -->
+              <div class="flex items-baseline justify-between gap-1">
+                <p class="text-[11px] leading-tight truncate" :class="selectedId === appt.id && contentTab !== 'context' && contentTab !== 'profile' ? 'text-primary' : 'text-foreground'">
+                  <span class="font-bold mr-1">#{{ sessionNumberMap[appt.id] }}</span>{{ fmtSessionDate(appt) }}
+                </p>
+                <TooltipProvider :delay-duration="300">
+                  <Tooltip>
+                    <TooltipTrigger as-child>
+                      <span :class="['w-2 h-2 rounded-full shrink-0 cursor-default', sessionStatus(appt).dot]" />
+                    </TooltipTrigger>
+                    <TooltipContent side="right">{{ sessionStatus(appt).label }}</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <!-- Line 2: type · category -->
+              <p class="text-[10px] text-muted-foreground mt-0.5 leading-tight">Individual · {{ sessionCategory(appt) }}</p>
+              <!-- Line 3: notes + tasks -->
+              <div class="flex items-center gap-1 mt-0.5">
+                <span v-if="appt.sessions[0]?.aiSummary || appt.sessions[0]?.noteText" class="text-[10px] text-muted-foreground/70">📝 Con notas</span>
+                <span v-if="(appt.sessions[0]?.aiSummary || appt.sessions[0]?.noteText) && appt.tasks.length" class="text-[10px] text-muted-foreground/40"> · </span>
+                <span v-if="appt.tasks.length" class="text-[10px] text-muted-foreground/70">✓ {{ appt.tasks.length }} {{ appt.tasks.length === 1 ? 'tarea' : 'tareas' }}</span>
+              </div>
+            </button>
           </div>
-          <div v-if="selectedId === appt.id" class="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
-        </button>
-        <p v-if="todayAppointments.length === 0" class="px-4 py-3 text-xs text-muted-foreground/60">No sessions today</p>
+
+          <div v-if="timelineAppointments.length === 0" class="py-4 px-2 text-center">
+            <span class="text-[10px] text-muted-foreground/50">No sessions yet</span>
+          </div>
+        </div>
       </div>
     </aside>
     </Transition>
@@ -695,13 +1305,15 @@ onUnmounted(() => {
               <PanelLeftClose v-if="calSidebarOpen" class="w-4 h-4" />
               <PanelLeftOpen v-else class="w-4 h-4" />
             </button>
-            <h2 class="text-xl font-bold text-foreground truncate">{{ selected.patientName }}</h2>
-            <button class="p-1 rounded text-muted-foreground/50 hover:text-foreground hover:bg-accent transition-colors shrink-0" title="Edit session name" @click="openEditName">
+            <h2 class="text-xl font-bold text-foreground truncate">
+              {{ contentTab === 'context' || contentTab === 'profile' ? (contentTab === 'profile' ? 'Patient profile' : 'Patient context') : selected.patientName }}
+            </h2>
+            <button v-if="contentTab !== 'context' && contentTab !== 'profile'" class="p-1 rounded text-muted-foreground/50 hover:text-foreground hover:bg-accent transition-colors shrink-0" title="Edit session name" @click="openEditName">
               <Pencil class="w-4 h-4" />
             </button>
 
-            <!-- Date/time badge → date+time picker popover -->
-            <Popover>
+            <!-- Date/time badge → date+time picker popover (only in session view) -->
+            <Popover v-if="contentTab !== 'context' && contentTab !== 'profile'">
               <PopoverTrigger as-child>
                 <button class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-foreground text-sm font-medium hover:bg-accent transition-colors">
                   <CalendarDays class="w-3.5 h-3.5 text-muted-foreground" />
@@ -857,22 +1469,8 @@ onUnmounted(() => {
       <!-- Left: tabs + editor -->
       <div class="flex-1 min-w-0 flex flex-col overflow-hidden">
 
-      <!-- ── Content tabs ─────────────────────────────────────────────────── -->
-      <div class="shrink-0 bg-background flex items-end gap-0.5 px-4 pt-2 overflow-x-auto">
-
-        <!-- Context tab -->
-        <button
-          :class="[
-            'group shrink-0 flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium rounded-t-lg transition-colors select-none',
-            contentTab === 'context'
-              ? 'bg-card border border-border border-b-card -mb-px relative z-10 text-foreground'
-              : 'text-muted-foreground hover:text-foreground hover:bg-accent/50',
-          ]"
-          @click="contentTab = 'context'"
-        >
-          <LayoutGrid class="w-3.5 h-3.5 shrink-0" />
-          Context
-        </button>
+      <!-- ── Content tabs (only shown when a session is active) ──────────── -->
+      <div v-if="contentTab !== 'profile' && contentTab !== 'context'" class="shrink-0 bg-background flex items-end gap-0.5 px-4 pt-2 overflow-x-auto">
 
         <!-- Session tabs -->
         <button
@@ -909,9 +1507,77 @@ onUnmounted(() => {
       <!-- ── Tab content ──────────────────────────────────────────────────── -->
       <div class="flex-1 min-h-0 flex flex-col overflow-hidden">
 
-        <!-- Unified editor for all tabs -->
-        <div class="flex-1 flex flex-col min-h-0 px-4 pb-4 pt-0">
-          <div class="flex-1 flex flex-col bg-card rounded-b-xl border-x border-b border-border shadow-sm overflow-hidden min-h-0">
+        <!-- Profile view -->
+        <div v-if="contentTab === 'profile'" class="flex-1 overflow-y-auto px-4 py-5">
+          <div class="max-w-xl space-y-4">
+
+            <!-- Patient card -->
+            <div class="bg-card border border-border rounded-xl p-5 flex items-center gap-4">
+              <div :class="['w-14 h-14 rounded-2xl flex items-center justify-center text-lg font-bold ring-4 ring-border/60 shrink-0', selected.avatarBg, selected.avatarText]">
+                {{ selected.initials }}
+              </div>
+              <div>
+                <p class="text-base font-bold text-foreground">{{ selected.patientName }}</p>
+                <p class="text-xs text-muted-foreground mt-0.5">{{ selected.inputLanguage }} · {{ selected.tab === 'past' ? 'Inactive' : 'Active' }}</p>
+              </div>
+            </div>
+
+            <!-- Personal info -->
+            <div class="bg-card border border-border rounded-xl overflow-hidden">
+              <div class="px-5 py-3 border-b border-border/50">
+                <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Personal information</p>
+              </div>
+              <div class="divide-y divide-border/50">
+                <div class="flex items-center justify-between px-5 py-3">
+                  <span class="text-xs text-muted-foreground">Date of birth</span>
+                  <span class="text-xs font-medium text-foreground">—</span>
+                </div>
+                <div class="flex items-center justify-between px-5 py-3">
+                  <span class="text-xs text-muted-foreground">Phone</span>
+                  <span class="text-xs font-medium text-foreground">—</span>
+                </div>
+                <div class="flex items-center justify-between px-5 py-3">
+                  <span class="text-xs text-muted-foreground">Email</span>
+                  <span class="text-xs font-medium text-foreground">—</span>
+                </div>
+                <div class="flex items-center justify-between px-5 py-3">
+                  <span class="text-xs text-muted-foreground">Address</span>
+                  <span class="text-xs font-medium text-foreground">—</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Clinical info -->
+            <div class="bg-card border border-border rounded-xl overflow-hidden">
+              <div class="px-5 py-3 border-b border-border/50">
+                <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Clinical</p>
+              </div>
+              <div class="divide-y divide-border/50">
+                <div class="flex items-start justify-between px-5 py-3 gap-4">
+                  <span class="text-xs text-muted-foreground shrink-0">Diagnosis</span>
+                  <span class="text-xs font-medium text-foreground text-right">—</span>
+                </div>
+                <div class="flex items-center justify-between px-5 py-3">
+                  <span class="text-xs text-muted-foreground">Referral</span>
+                  <span class="text-xs font-medium text-foreground">—</span>
+                </div>
+                <div class="flex items-center justify-between px-5 py-3">
+                  <span class="text-xs text-muted-foreground">Insurance</span>
+                  <span class="text-xs font-medium text-foreground">—</span>
+                </div>
+                <div class="flex items-center justify-between px-5 py-3">
+                  <span class="text-xs text-muted-foreground">Sessions total</span>
+                  <span class="text-xs font-medium text-foreground">{{ timelineAppointments.length }}</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Unified editor for context + session tabs -->
+        <div v-else class="flex-1 flex flex-col min-h-0 px-4 pb-4 pt-0">
+          <div :class="['flex-1 flex flex-col bg-card border border-border shadow-sm overflow-hidden min-h-0', (contentTab === 'context') ? 'rounded-xl mt-2' : 'rounded-b-xl border-t-0']">
 
             <!-- Toolbar row -->
             <div class="shrink-0 flex items-center justify-between gap-2 px-4 py-2 border-b border-border/50">
@@ -1439,7 +2105,7 @@ onUnmounted(() => {
       </div>
 
     </main>
-  </div>
+  </div><!-- /workspace screen -->
 
   <!-- ══ Edit Session Name Dialog ════════════════════════════════════════ -->
   <Dialog v-model:open="editNameOpen">
