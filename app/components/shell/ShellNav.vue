@@ -273,12 +273,6 @@ function submitCreateOrg() {
               <span class="text-sm">Create organization</span>
             </DropdownMenuItem>
 
-            <!-- Add an account -->
-            <DropdownMenuItem class="gap-2.5 cursor-pointer" @click="showAddAccount = true">
-              <User class="w-3.5 h-3.5" />
-              <span class="text-sm">Add an account</span>
-            </DropdownMenuItem>
-
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
