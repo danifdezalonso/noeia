@@ -226,18 +226,6 @@ function submitCreateOrg() {
           </DropdownMenuTrigger>
           <DropdownMenuContent side="bottom" align="start" class="w-60">
 
-            <!-- Account header -->
-            <div class="flex items-center gap-2 px-2 py-1.5">
-              <Avatar class="w-5 h-5 shrink-0">
-                <AvatarFallback class="text-[9px] font-bold bg-primary/10 text-primary">
-                  {{ persona.name?.charAt(0) ?? '?' }}
-                </AvatarFallback>
-              </Avatar>
-              <p class="text-[11px] text-muted-foreground truncate">{{ persona.email ?? 'torres@mindcare.com' }}</p>
-            </div>
-
-            <DropdownMenuSeparator />
-
             <!-- Organizations list -->
             <DropdownMenuItem
               v-for="org in orgs"
