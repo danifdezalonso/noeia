@@ -226,6 +226,9 @@ function submitCreateOrg() {
           </DropdownMenuTrigger>
           <DropdownMenuContent side="bottom" align="start" class="w-60">
 
+            <!-- Workspaces label -->
+            <DropdownMenuLabel class="text-xs text-muted-foreground font-normal px-2 py-1.5">Workspaces</DropdownMenuLabel>
+
             <!-- Organizations list -->
             <DropdownMenuItem
               v-for="org in orgs"
