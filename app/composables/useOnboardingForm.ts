@@ -87,7 +87,7 @@ export const TEAM_SIZES = ['Just me', '2–5', '6–20', '21–50', '51+']
 export interface OnboardingFormState {
   firstName: string
   lastName: string
-  specialty: string
+  specialty: string[]
   role: string
   country: string
   language: string
@@ -109,7 +109,7 @@ export const useOnboardingForm = () => {
   const form = useState<OnboardingFormState>('onboarding-form', () => ({
     firstName: '',
     lastName: '',
-    specialty: '',
+    specialty: [],
     role: '',
     country: '',
     language: '',
@@ -141,7 +141,7 @@ export const useOnboardingForm = () => {
     let ok = true
 
     if (!form.value.orgName.trim()) { errors.orgName = 'Required'; ok = false }
-    if (!form.value.specialty) { errors.specialty = 'Required'; ok = false }
+    if (!form.value.specialty.length) { errors.specialty = 'Required'; ok = false }
     if (!form.value.role) { errors.role = 'Please select a role'; ok = false }
     if (!form.value.teamSize) { errors.teamSize = 'Please select a team size'; ok = false }
 

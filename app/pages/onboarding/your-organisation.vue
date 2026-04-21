@@ -1,5 +1,11 @@
 <script setup lang="ts">
+import { Check, ChevronsUpDown, CheckCircle2, XCircle, Loader2 } from 'lucide-vue-next'
 import { SPECIALTIES, ROLES, TEAM_SIZES } from '~/composables/useOnboardingForm'
+import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover'
+import {
+  Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
+} from '~/components/ui/command'
+import { Button } from '~/components/ui/button'
 
 definePageMeta({
   layout: 'onboarding',
@@ -8,6 +14,44 @@ definePageMeta({
 
 const direction = useState<'forward' | 'back'>('onboarding-direction', () => 'forward')
 const { form, validateOrg } = useOnboardingForm()
+
+const specialtyOpen = ref(false)
+
+// ─── URL slug preview ─────────────────────────────────────────────────────────
+const TAKEN_SLUGS = ['mindcare-clinics', 'salud-mental-bcn', 'noeia', 'demo']
+
+function toSlug(name: string) {
+  return name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+}
+
+const orgSlug = ref('')
+
+watch(() => form.value.orgName, name => {
+  orgSlug.value = toSlug(name)
+})
+
+const slugState = ref<'idle' | 'checking' | 'available' | 'taken'>('idle')
+let slugTimer: ReturnType<typeof setTimeout> | null = null
+
+watch(orgSlug, (slug) => {
+  if (slugTimer) clearTimeout(slugTimer)
+  if (!slug) { slugState.value = 'idle'; return }
+  slugState.value = 'checking'
+  slugTimer = setTimeout(() => {
+    slugState.value = TAKEN_SLUGS.includes(slug) ? 'taken' : 'available'
+  }, 600)
+})
+
+onMounted(() => {
+  if (!Array.isArray(form.value.specialty)) form.value.specialty = []
+})
+
+function toggleSpecialty(s: string) {
+  const idx = form.value.specialty.indexOf(s)
+  if (idx === -1) form.value.specialty.push(s)
+  else form.value.specialty.splice(idx, 1)
+  errors.specialty = ''
+}
 
 // ─── Local error state ────────────────────────────────────────────────────────
 const errors = reactive({
@@ -55,9 +99,9 @@ function handleContinue() {
 
     <div class="mb-7">
       <h1 style="font-size: 28px; font-weight: 700; color: oklch(0.14 0 0); margin-bottom: 6px; line-height: 1.2;">
-        Tell us about yourself
+        Tell us about your organization/clinic
       </h1>
-      <p style="font-size: 14px; color: oklch(0.52 0 0);">Let's get your account set up.</p>
+      <p style="font-size: 14px; color: oklch(0.52 0 0);">Let's get your workspace set up.</p>
     </div>
 
     <div class="space-y-5">
@@ -75,22 +119,95 @@ function handleContinue() {
           @input="errors.orgName = ''"
         />
         <p v-if="errors.orgName" style="font-size: 11px; color: #E83D59; margin-top: 3px;">{{ errors.orgName }}</p>
+        <p v-else style="font-size: 11px; color: oklch(0.6 0 0); margin-top: 3px;">Working solo? Your professional name works too.</p>
+
       </div>
 
-      <!-- Specialty -->
+      <!-- Workspace URL -->
+      <div>
+        <label style="font-size: 12.5px; font-weight: 500; color: oklch(0.3 0 0); display: block; margin-bottom: 5px;">Workspace URL</label>
+        <div
+          class="flex items-center overflow-hidden"
+          style="height: 40px; border-radius: 10px; border: 1.5px solid;"
+          :style="{
+            borderColor: slugState === 'taken'
+              ? 'rgba(239,68,68,0.5)'
+              : slugState === 'available'
+                ? 'rgba(34,197,94,0.5)'
+                : 'oklch(0.91 0 0)',
+          }"
+        >
+          <span style="padding: 0 10px; font-size: 13px; color: oklch(0.55 0 0); white-space: nowrap; border-right: 1.5px solid oklch(0.91 0 0); height: 100%; display: flex; align-items: center; background: oklch(0.97 0 0);">noeia.app/</span>
+          <input
+            v-model="orgSlug"
+            placeholder="your-org"
+            style="flex: 1; height: 100%; padding: 0 10px; font-size: 13.5px; color: oklch(0.14 0 0); outline: none; font-family: inherit; background: transparent; border: none;"
+          />
+          <span class="flex items-center gap-1 pr-2.5 shrink-0">
+            <Loader2 v-if="slugState === 'checking'" class="w-3.5 h-3.5 animate-spin text-muted-foreground" />
+            <CheckCircle2 v-else-if="slugState === 'available'" class="w-3.5 h-3.5 text-emerald-500" />
+            <XCircle v-else-if="slugState === 'taken'" class="w-3.5 h-3.5 text-destructive" />
+          </span>
+        </div>
+        <p
+          v-if="slugState === 'available' || slugState === 'taken'"
+          style="font-size: 11px; margin-top: 3px;"
+          :style="slugState === 'taken' ? 'color: #dc2626;' : 'color: #16a34a;'"
+        >{{ slugState === 'available' ? 'Available' : 'Already taken — try a different URL' }}</p>
+      </div>
+
+      <!-- Specialty multi-select -->
       <div>
         <label style="font-size: 12.5px; font-weight: 500; color: oklch(0.3 0 0); display: block; margin-bottom: 5px;">Specialty</label>
-        <select
-          v-model="form.specialty"
-          class="ob-select"
-          :style="errors.specialty ? { borderColor: '#E83D59' } : {}"
-          @change="errors.specialty = ''"
-          @focus="(e) => (e.target as HTMLSelectElement).style.borderColor = '#E83D59'"
-          @blur="(e) => (e.target as HTMLSelectElement).style.borderColor = errors.specialty ? '#E83D59' : 'oklch(0.91 0 0)'"
-        >
-          <option value="" disabled>Please select</option>
-          <option v-for="s in SPECIALTIES" :key="s" :value="s">{{ s }}</option>
-        </select>
+
+        <Popover v-model:open="specialtyOpen">
+          <PopoverTrigger as-child>
+            <Button
+              variant="outline"
+              role="combobox"
+              :aria-expanded="specialtyOpen"
+              class="w-full min-h-10 h-auto justify-between font-normal"
+              :class="errors.specialty ? 'border-destructive' : ''"
+            >
+              <div class="flex flex-wrap gap-1 flex-1 text-left">
+                <span
+                  v-for="s in form.specialty"
+                  :key="s"
+                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-primary/10 text-primary"
+                  @click.stop="toggleSpecialty(s)"
+                >
+                  {{ s }}
+                  <span class="opacity-50 hover:opacity-100">×</span>
+                </span>
+                <span v-if="!form.specialty.length" class="text-muted-foreground text-sm">Please select</span>
+              </div>
+              <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent class="w-full p-0" align="start" style="width: var(--radix-popover-trigger-width);">
+            <Command>
+              <CommandInput placeholder="Search specialties…" />
+              <CommandEmpty>No specialties found.</CommandEmpty>
+              <CommandList>
+                <CommandGroup>
+                  <CommandItem
+                    v-for="s in SPECIALTIES"
+                    :key="s"
+                    :value="s"
+                    @select="toggleSpecialty(s)"
+                  >
+                    <Check
+                      class="mr-2 h-4 w-4"
+                      :class="form.specialty.includes(s) ? 'opacity-100' : 'opacity-0'"
+                    />
+                    {{ s }}
+                  </CommandItem>
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
+
         <p v-if="errors.specialty" style="font-size: 11px; color: #E83D59; margin-top: 3px;">{{ errors.specialty }}</p>
       </div>
 
