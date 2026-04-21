@@ -228,6 +228,7 @@ function submitCreateOrg() {
 
             <!-- Workspaces label -->
             <DropdownMenuLabel class="text-xs text-muted-foreground font-normal px-2 py-1.5">Workspaces</DropdownMenuLabel>
+            <DropdownMenuSeparator />
 
             <!-- Organizations list -->
             <DropdownMenuItem
