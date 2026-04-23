@@ -2,7 +2,7 @@
 import {
   LayoutDashboard, Calendar, ClipboardList, Users,
   MessageSquare, Receipt, Sparkles, Settings,
-  Sun, Moon, Stethoscope, Building2, ChevronDown,
+  Sun, Moon, Stethoscope, Building2, ChevronDown, ChevronUp,
   User, LogOut, LayoutTemplate, Globe, CalendarClock, FlaskConical,
   PanelLeft, PanelLeftClose, ListTodo, Check, Plus, ArrowRight, Mail,
   ChevronsUpDown, CheckCircle2, XCircle, Loader2,
@@ -369,29 +369,9 @@ function submitCreateOrg() {
       </SidebarGroup>
     </SidebarContent>
 
-    <!-- ── Footer: Dark mode + Settings + User ── -->
+    <!-- ── Footer: User ── -->
     <SidebarFooter>
       <SidebarMenu>
-        <!-- Dark mode toggle -->
-        <SidebarMenuItem>
-          <SidebarMenuButton :tooltip="isDark ? 'Light mode' : 'Dark mode'" @click="toggleDark()">
-            <component :is="isDark ? Sun : Moon" />
-            <span>{{ isDark ? 'Light mode' : 'Dark mode' }}</span>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-
-        <!-- Settings -->
-        <SidebarMenuItem>
-          <SidebarMenuButton as-child :is-active="isActive('/doctor/dashboard/settings')" tooltip="Settings" @click="mobileOpen = false">
-            <NuxtLink to="/doctor/dashboard/settings">
-              <Settings />
-              <span>Settings</span>
-            </NuxtLink>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-
-        <SidebarSeparator />
-
         <!-- User profile -->
         <SidebarMenuItem>
           <DropdownMenu>
@@ -420,20 +400,21 @@ function submitCreateOrg() {
               <DropdownMenuSeparator />
               <DropdownMenuItem @click="navigateTo('/doctor/dashboard/profile')">
                 <User class="w-4 h-4" />
-                Profile settings
+                Mi perfil
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem @click="navigateTo('/doctor/dashboard/settings')">
                 <Settings class="w-4 h-4" />
-                Preferences
+                Ajustes
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <CreditCard class="w-4 h-4" />
-                Billing
+              <DropdownMenuSeparator />
+              <DropdownMenuItem @click="toggleDark()">
+                <component :is="isDark ? Sun : Moon" class="w-4 h-4" />
+                {{ isDark ? 'Modo claro' : 'Modo oscuro' }}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem class="text-destructive focus:text-destructive" @click="navigateTo('/login')">
                 <LogOut class="w-4 h-4" />
-                Sign out
+                Cerrar sesión
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

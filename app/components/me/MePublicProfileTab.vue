@@ -31,7 +31,7 @@ import {
 } from '~/components/ui/tooltip'
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
 
-const props = defineProps<{ doctorId: string; editMode: boolean; orgName: string }>()
+const props = defineProps<{ editMode: boolean; orgName: string }>()
 
 // ── Options ───────────────────────────────────────────────────────────────────
 
@@ -40,16 +40,7 @@ const MODALITIES = ['TCC', 'EMDR', 'Sistémica', 'Humanista', 'Psicodinámica', 
 const AGE_GROUPS = ['Infantil (0-12)', 'Adolescente', 'Adulto', 'Tercera edad']
 const FORMATS    = ['Presencial', 'Videollamada', 'Teléfono']
 const DURATIONS  = ['30 min', '45 min', '50 min', '60 min', '90 min']
-const INSURERS   = [
-  'Adeslas','Sanitas','Asistencia Sanitaria','Asisa','DKV','Mapfre','AXA','Fiatc',
-  'Catalana Occidente','Allianz','Generali','Aegon','Zurich','Santa Lucía','IMQ',
-  'Asistencia Sanitaria Colegial','Caser','Asefa','Cigna','Antares','Divina Pastora',
-  'Qualitas Auto','Ima Ibérica','Almudena','La Fe','GES','MGS','HNA',
-  'Previsora General','ASSSA','Mutua General de Cataluña','Meridiano',
-  'Metlife','Clinicum Salut','Stimulus',
-]
 
-// Org has physical rooms → Presencial is available
 const ORG_HAS_ROOMS = true
 
 interface SessionRate {
@@ -61,16 +52,15 @@ interface SessionRate {
 // ── Mock data ─────────────────────────────────────────────────────────────────
 
 const form = reactive({
-  avatarUrl:   '',
-  public_name: 'Elena Voss',
-  pronouns:    'ella',
-  title:       'Psicóloga Clínica · Terapeuta EMDR',
-  description: 'Psicóloga clínica especializada en terapia cognitivo-conductual y EMDR para trauma y ansiedad. Más de 10 años de experiencia acompañando a personas en procesos de cambio profundo.\n\nOfrezco un espacio seguro, sin juicio y orientado a resultados concretos, adaptando el enfoque a las necesidades únicas de cada persona.',
-  languages:   ['Español', 'English', 'Català'] as string[],
-  modalities:  ['TCC', 'EMDR', 'Humanista'] as string[],
-  age_groups:  ['Adolescente', 'Adulto'] as string[],
-  session_formats: ['Presencial', 'Videollamada'] as string[],
-  noInsurance: false,
+  avatarUrl:           '',
+  public_name:         'Elena Voss',
+  pronouns:            'ella',
+  title:               'Psicóloga Clínica · Terapeuta EMDR',
+  description:         'Psicóloga clínica especializada en terapia cognitivo-conductual y EMDR para trauma y ansiedad. Más de 10 años de experiencia acompañando a personas en procesos de cambio profundo.\n\nOfrezco un espacio seguro, sin juicio y orientado a resultados concretos, adaptando el enfoque a las necesidades únicas de cada persona.',
+  languages:           ['Español', 'English', 'Català'] as string[],
+  modalities:          ['TCC', 'EMDR', 'Humanista'] as string[],
+  age_groups:          ['Adolescente', 'Adulto'] as string[],
+  session_formats:     ['Presencial', 'Videollamada'] as string[],
   accepted_insurances: ['Adeslas', 'Sanitas', 'DKV'] as string[],
   rates: [
     { id: 'individual',  label: 'Individual',      icon: User,          active: true,  duration: '50 min', price: '75',  onlinePrice: '65', showOnline: true  },
@@ -87,7 +77,7 @@ const snapshot = ref(JSON.stringify(form))
 const isDirty  = computed(() => JSON.stringify(form) !== snapshot.value)
 const bioLen   = computed(() => form.description.length)
 
-// ── Avatar upload ─────────────────────────────────────────────────────────────
+// ── Avatar ────────────────────────────────────────────────────────────────────
 
 const avatarInputRef = ref<HTMLInputElement>()
 function onAvatarChange(e: Event) {
@@ -98,7 +88,7 @@ function onAvatarChange(e: Event) {
   reader.readAsDataURL(file)
 }
 
-// ── Chip toggle ───────────────────────────────────────────────────────────────
+// ── Toggle chips ──────────────────────────────────────────────────────────────
 
 function toggle(arr: string[], val: string) {
   const i = arr.indexOf(val)
@@ -106,24 +96,10 @@ function toggle(arr: string[], val: string) {
   else arr.splice(i, 1)
 }
 
-// ── Insurer search ────────────────────────────────────────────────────────────
-
-const insurerPopover = ref(false)
-const insurerSearch  = ref('')
-
-const filteredInsurers = computed(() =>
-  INSURERS.filter(i =>
-    !form.accepted_insurances.includes(i) &&
-    i.toLowerCase().includes(insurerSearch.value.toLowerCase())
-  )
-)
-
-function addInsurer(ins: string)    { if (!form.accepted_insurances.includes(ins)) form.accepted_insurances.push(ins) }
-function removeInsurer(ins: string) { form.accepted_insurances = form.accepted_insurances.filter(i => i !== ins) }
-
-// ── Preview modal ─────────────────────────────────────────────────────────────
+// ── Preview ───────────────────────────────────────────────────────────────────
 
 const showPreview = ref(false)
+defineExpose({ openPreview: () => { showPreview.value = true } })
 
 // ── Save ──────────────────────────────────────────────────────────────────────
 
@@ -134,16 +110,11 @@ function discard() { Object.assign(form, JSON.parse(snapshot.value)) }
 <template>
   <div class="relative space-y-4 pb-28">
 
-    <!-- Top bar: microtext + preview button -->
-    <div class="flex items-center justify-between gap-4 flex-wrap">
-      <p class="text-xs text-muted-foreground">
-        Así ven los pacientes de {{ orgName }} a este profesional.
-        Los cambios no afectan a su perfil en otras organizaciones.
-      </p>
-      <Button variant="outline" size="sm" class="gap-1.5 text-xs shrink-0" @click="showPreview = true">
-        <Eye class="w-3.5 h-3.5" /> Vista previa pública
-      </Button>
-    </div>
+    <!-- Tab microtext -->
+    <p class="text-xs text-muted-foreground">
+      Así te ven los pacientes de {{ orgName }}.
+      Los cambios no afectan a tu perfil en otras organizaciones.
+    </p>
 
     <!-- ═══════════════════════════════════════════════════════════════
          Presentación
@@ -156,13 +127,12 @@ function discard() { Object.assign(form, JSON.parse(snapshot.value)) }
           </div>
           <div>
             <CardTitle class="text-sm font-semibold">Presentación</CardTitle>
-            <CardDescription class="text-xs">Información pública visible para pacientes y otros profesionales</CardDescription>
+            <CardDescription class="text-xs">Información pública visible para pacientes</CardDescription>
           </div>
         </div>
       </CardHeader>
       <CardContent class="pt-5">
         <div class="flex flex-col sm:flex-row gap-6">
-          <!-- Avatar upload -->
           <div class="shrink-0">
             <div class="relative group w-24 h-24">
               <img v-if="form.avatarUrl" :src="form.avatarUrl" class="w-24 h-24 rounded-full object-cover border border-border" />
@@ -180,8 +150,6 @@ function discard() { Object.assign(form, JSON.parse(snapshot.value)) }
             </div>
             <p v-if="editMode" class="text-[11px] text-muted-foreground mt-1.5 text-center w-24">Haz clic para cambiar</p>
           </div>
-
-          <!-- Fields -->
           <div class="flex-1 space-y-4">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -215,16 +183,14 @@ function discard() { Object.assign(form, JSON.parse(snapshot.value)) }
             </div>
           </div>
         </div>
-        <p class="text-[11px] text-muted-foreground/70 mt-4">Editable por el profesional y por administradores</p>
       </CardContent>
     </Card>
 
     <!-- ═══════════════════════════════════════════════════════════════
-         Modalidades  |  Idiomas + Formatos + Grupos de edad
+         Modalidades  |  Idiomas + Formatos + Grupos
     ════════════════════════════════════════════════════════════════ -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
-      <!-- Modalidades terapéuticas -->
       <Card>
         <CardHeader class="pb-3 border-b border-border">
           <div class="flex items-center gap-2.5">
@@ -246,11 +212,9 @@ function discard() { Object.assign(form, JSON.parse(snapshot.value)) }
           <div v-else class="flex flex-wrap gap-1.5">
             <Badge v-for="m in form.modalities" :key="m" variant="outline" class="text-xs">{{ m }}</Badge>
           </div>
-          <p class="text-[11px] text-muted-foreground/70 mt-4">Editable por el profesional y por administradores</p>
         </CardContent>
       </Card>
 
-      <!-- Idiomas + Grupos de edad + Formatos -->
       <Card>
         <CardHeader class="pb-3 border-b border-border">
           <div class="flex items-center gap-2.5">
@@ -261,7 +225,6 @@ function discard() { Object.assign(form, JSON.parse(snapshot.value)) }
           </div>
         </CardHeader>
         <CardContent class="pt-4 space-y-4">
-          <!-- Idiomas -->
           <div>
             <Label class="mb-2 block text-xs text-muted-foreground">Idiomas</Label>
             <div v-if="editMode" class="flex flex-wrap gap-2">
@@ -276,8 +239,6 @@ function discard() { Object.assign(form, JSON.parse(snapshot.value)) }
               <Badge v-for="l in form.languages" :key="l" variant="secondary" class="text-xs">{{ l }}</Badge>
             </div>
           </div>
-
-          <!-- Grupos de edad -->
           <div>
             <Label class="mb-2 block text-xs text-muted-foreground">Grupos de edad</Label>
             <div v-if="editMode" class="flex flex-wrap gap-2">
@@ -292,8 +253,6 @@ function discard() { Object.assign(form, JSON.parse(snapshot.value)) }
               <Badge v-for="g in form.age_groups" :key="g" variant="outline" class="text-xs">{{ g }}</Badge>
             </div>
           </div>
-
-          <!-- Formato de sesión -->
           <div>
             <Label class="mb-2 block text-xs text-muted-foreground">Formato de sesión</Label>
             <div v-if="editMode" class="flex flex-wrap gap-2">
@@ -326,13 +285,12 @@ function discard() { Object.assign(form, JSON.parse(snapshot.value)) }
               </Badge>
             </div>
           </div>
-          <p class="text-[11px] text-muted-foreground/70">Editable por el profesional y por administradores</p>
         </CardContent>
       </Card>
     </div>
 
     <!-- ═══════════════════════════════════════════════════════════════
-         Tarifas por tipo de sesión
+         Tarifas
     ════════════════════════════════════════════════════════════════ -->
     <Card>
       <CardHeader class="pb-3 border-b border-border">
@@ -390,20 +348,19 @@ function discard() { Object.assign(form, JSON.parse(snapshot.value)) }
               </div>
             </template>
             <template v-else>
-              <span class="text-xs text-muted-foreground">No ofrece este tipo en esta clínica</span>
+              <span class="text-xs text-muted-foreground">No ofreces este tipo en esta clínica</span>
             </template>
           </div>
         </div>
-        <p class="text-[11px] text-muted-foreground/70 pt-1">Editable por el profesional y por administradores</p>
       </CardContent>
     </Card>
 
     <!-- ═══════════════════════════════════════════════════════════════
-         Seguros  |  Disponibilidad  (2-col)
+         Seguros (read-only)  |  Disponibilidad
     ════════════════════════════════════════════════════════════════ -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
-      <!-- Seguros -->
+      <!-- Seguros — siempre solo lectura para el profesional -->
       <Card>
         <CardHeader class="pb-3 border-b border-border">
           <div class="flex items-center justify-between gap-2 flex-wrap">
@@ -420,51 +377,18 @@ function discard() { Object.assign(form, JSON.parse(snapshot.value)) }
           </div>
         </CardHeader>
         <CardContent class="pt-4 space-y-3">
-          <div class="flex items-center justify-between">
-            <Label class="text-xs text-muted-foreground">No acepta seguros</Label>
-            <Switch
-              v-if="editMode"
-              v-model="form.noInsurance"
-              @update:model-value="v => { if (v) form.accepted_insurances = [] }"
-            />
-            <Badge v-else-if="form.noInsurance" variant="secondary" class="text-xs">Sin seguro</Badge>
-          </div>
-          <div v-if="!form.noInsurance">
-            <Popover v-if="editMode" v-model:open="insurerPopover">
-              <PopoverTrigger as-child>
-                <Button variant="outline" size="sm" class="gap-1.5 h-8 text-xs border-dashed">
-                  <Plus class="w-3.5 h-3.5" /> Añadir seguro
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent class="w-[260px] p-0" align="start">
-                <Command>
-                  <CommandInput v-model="insurerSearch" placeholder="Buscar aseguradora..." />
-                  <CommandList>
-                    <CommandEmpty>Sin resultados.</CommandEmpty>
-                    <CommandGroup>
-                      <CommandItem
-                        v-for="ins in filteredInsurers"
-                        :key="ins"
-                        :value="ins"
-                        @select="addInsurer(ins); insurerPopover = false; insurerSearch = ''"
-                      >{{ ins }}</CommandItem>
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
-            <div class="flex flex-wrap gap-1.5 mt-2">
-              <Badge
-                v-for="ins in form.accepted_insurances" :key="ins"
-                variant="secondary" class="gap-1 pr-1 font-normal text-xs"
-              >
-                {{ ins }}
-                <button v-if="editMode" type="button" class="ml-0.5 hover:text-destructive" @click="removeInsurer(ins)">
-                  <X class="w-3 h-3" />
-                </button>
-              </Badge>
-              <span v-if="form.accepted_insurances.length === 0 && !form.noInsurance" class="text-xs text-muted-foreground">Sin seguros registrados.</span>
-            </div>
+          <p class="text-xs text-muted-foreground leading-relaxed">
+            Los seguros aceptados los gestiona el administrador de {{ orgName }}.
+            Contacta con tu organización si necesitas un cambio.
+          </p>
+          <div class="flex flex-wrap gap-1.5">
+            <Badge
+              v-for="ins in form.accepted_insurances"
+              :key="ins"
+              variant="secondary"
+              class="text-xs font-normal opacity-80"
+            >{{ ins }}</Badge>
+            <span v-if="form.accepted_insurances.length === 0" class="text-xs text-muted-foreground">Sin seguros registrados.</span>
           </div>
         </CardContent>
       </Card>
@@ -494,7 +418,6 @@ function discard() { Object.assign(form, JSON.parse(snapshot.value)) }
             <span>Sábados · 9:00–13:00 (videollamada)</span>
           </div>
           <p class="text-xs text-muted-foreground pt-1">Próxima disponibilidad: mañana, 9:00</p>
-          <p class="text-[11px] text-muted-foreground/60 pt-1">Solo lectura. Gestiona el horario desde el calendario del profesional.</p>
         </CardContent>
       </Card>
     </div>
@@ -518,10 +441,9 @@ function discard() { Object.assign(form, JSON.parse(snapshot.value)) }
     <DialogContent class="max-w-lg max-h-[80vh] overflow-y-auto">
       <DialogHeader>
         <DialogTitle class="flex items-center gap-2 text-sm text-muted-foreground font-normal">
-          <Eye class="w-4 h-4" /> Vista previa pública — lo que ven los pacientes
+          <Eye class="w-4 h-4" /> Vista previa pública — lo que ven tus pacientes
         </DialogTitle>
       </DialogHeader>
-
       <div class="space-y-5 pt-2">
         <div class="flex items-center gap-4">
           <Avatar class="size-16">
@@ -541,16 +463,13 @@ function discard() { Object.assign(form, JSON.parse(snapshot.value)) }
             </div>
           </div>
         </div>
-
         <p class="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">{{ form.description }}</p>
-
         <div>
           <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Especialidades</p>
           <div class="flex flex-wrap gap-1.5">
             <Badge v-for="m in form.modalities" :key="m" variant="secondary" class="text-xs">{{ m }}</Badge>
           </div>
         </div>
-
         <div>
           <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Tarifas</p>
           <div class="space-y-1.5">
@@ -571,7 +490,6 @@ function discard() { Object.assign(form, JSON.parse(snapshot.value)) }
             </div>
           </div>
         </div>
-
         <div class="grid grid-cols-2 gap-4">
           <div>
             <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Idiomas</p>
@@ -579,7 +497,7 @@ function discard() { Object.assign(form, JSON.parse(snapshot.value)) }
               <Badge v-for="l in form.languages" :key="l" variant="outline" class="text-xs">{{ l }}</Badge>
             </div>
           </div>
-          <div v-if="!form.noInsurance && form.accepted_insurances.length">
+          <div v-if="form.accepted_insurances.length">
             <p class="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Seguros</p>
             <div class="flex flex-wrap gap-1">
               <Badge v-for="ins in form.accepted_insurances" :key="ins" variant="outline" class="text-xs">{{ ins }}</Badge>

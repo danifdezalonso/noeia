@@ -1,69 +1,79 @@
 <script setup lang="ts">
-import { Pencil, Check } from 'lucide-vue-next'
+import { Eye, Pencil } from 'lucide-vue-next'
 import { Avatar, AvatarFallback, AvatarImage } from '~/components/ui/avatar'
-import { Badge }  from '~/components/ui/badge'
-import { Button } from '~/components/ui/button'
-import { Switch } from '~/components/ui/switch'
+import { Badge }   from '~/components/ui/badge'
+import { Button }  from '~/components/ui/button'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '~/components/ui/tabs'
+import {
+  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
+} from '~/components/ui/tooltip'
 
 definePageMeta({ layout: 'dashboard' })
 
-const doctor = reactive({
-  id:       'me',
-  name:     'Elena Voss',
-  initials: 'EV',
-  title:    'Psicóloga Clínica · Terapeuta EMDR',
-  role:     'Psicóloga',
-  active:   true,
-})
-
+const orgName  = 'MindCare Clinics'
 const activeTab = ref('public')
 const editMode  = ref(false)
 
-function toggleEdit() {
-  editMode.value = !editMode.value
-}
+const publicTabRef = ref<{ openPreview: () => void } | null>(null)
 </script>
 
 <template>
   <div class="flex-1 overflow-y-auto min-h-0">
     <div class="p-4 sm:p-6 space-y-6 max-w-[1100px]">
 
-      <!-- Page header -->
+      <!-- Page title -->
+      <div>
+        <h1 class="text-2xl font-bold text-foreground tracking-tight">Mi perfil</h1>
+        <p class="text-xs text-muted-foreground mt-1">
+          Estás editando tu perfil en {{ orgName }}.
+          Para editar tu perfil en otra organización, cámbiala desde la barra lateral.
+        </p>
+      </div>
+
+      <!-- Profile header -->
       <div class="flex items-start justify-between gap-4 flex-wrap">
         <div class="flex items-center gap-4">
           <Avatar class="size-20 shrink-0">
-            <AvatarImage :src="avatarUrl(doctor.name)" :alt="doctor.name" />
-            <AvatarFallback class="bg-primary/10 text-primary font-bold text-2xl">{{ doctor.initials }}</AvatarFallback>
+            <AvatarImage :src="avatarUrl('Elena Voss Martínez')" alt="Elena Voss Martínez" />
+            <AvatarFallback class="bg-primary/10 text-primary font-bold text-2xl">EV</AvatarFallback>
           </Avatar>
-          <div>
+          <div class="space-y-1.5">
             <div class="flex items-center gap-2 flex-wrap">
-              <h1 class="text-2xl font-bold text-foreground tracking-tight">{{ doctor.name }}</h1>
-              <Badge variant="secondary" class="text-xs font-medium">{{ doctor.role }}</Badge>
+              <h2 class="text-xl font-bold text-foreground tracking-tight">Elena Voss</h2>
+              <Badge variant="secondary" class="text-xs font-medium">Psicóloga</Badge>
             </div>
-            <p class="text-sm text-muted-foreground mt-0.5">{{ doctor.title }}</p>
-            <div class="flex items-center gap-2 mt-2">
-              <span
-                class="w-2 h-2 rounded-full shrink-0"
-                :class="doctor.active ? 'bg-emerald-500' : 'bg-muted-foreground'"
-              />
-              <span class="text-sm" :class="doctor.active ? 'text-emerald-600' : 'text-muted-foreground'">
-                {{ doctor.active ? 'Activo' : 'Inactivo' }}
-              </span>
-              <Switch v-model="doctor.active" class="ml-1" />
-            </div>
+            <p class="text-sm text-muted-foreground">Psicóloga Clínica · Terapeuta EMDR</p>
+
+            <!-- Read-only status — admin-controlled -->
+            <TooltipProvider :delay-duration="200">
+              <Tooltip>
+                <TooltipTrigger as-child>
+                  <div class="flex items-center gap-2 w-fit cursor-default">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                    <span class="text-sm text-emerald-600 dark:text-emerald-400">
+                      Activo en {{ orgName }}
+                    </span>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="right" class="max-w-[220px] text-xs leading-relaxed">
+                  Tu estado en esta organización lo gestiona el administrador.
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
 
-        <Button
-          :variant="editMode ? 'default' : 'outline'"
-          size="sm"
-          class="gap-1.5 shrink-0"
-          @click="toggleEdit"
-        >
-          <component :is="editMode ? Check : Pencil" class="w-3.5 h-3.5" />
-          {{ editMode ? 'Guardar cambios' : 'Editar perfil' }}
-        </Button>
+        <!-- Actions -->
+        <div class="flex items-center gap-2 shrink-0 flex-wrap">
+          <Button variant="outline" size="sm" class="gap-1.5" @click="publicTabRef?.openPreview()">
+            <Eye class="w-3.5 h-3.5" />
+            Vista previa pública
+          </Button>
+          <Button variant="outline" size="sm" class="gap-1.5" @click="editMode = !editMode">
+            <Pencil class="w-3.5 h-3.5" />
+            {{ editMode ? 'Cancelar edición' : 'Editar perfil' }}
+          </Button>
+        </div>
       </div>
 
       <!-- Tabs -->
@@ -74,10 +84,10 @@ function toggleEdit() {
         </TabsList>
 
         <TabsContent value="public" class="mt-6">
-          <DoctorPublicProfileTab doctor-id="me" :edit-mode="editMode" />
+          <MePublicProfileTab ref="publicTabRef" :edit-mode="editMode" :org-name="orgName" />
         </TabsContent>
         <TabsContent value="internal" class="mt-6">
-          <DoctorInternalInfoTab doctor-id="me" :edit-mode="editMode" />
+          <MeInternalInfoTab :org-name="orgName" />
         </TabsContent>
       </Tabs>
 
