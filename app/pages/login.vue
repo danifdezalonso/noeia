@@ -10,6 +10,7 @@ useHead({
 definePageMeta({ layout: false })
 
 const loading = ref<string | null>(null)
+const devOpen = ref(true)
 
 async function continueWithGoogle(role: 'doctor' | 'organization' | 'patient') {
   loading.value = role
@@ -131,45 +132,52 @@ async function continueWithGoogle(role: 'doctor' | 'organization' | 'patient') {
             and <a href="#" class="hover:underline" style="color: #E83D59;">Privacy Policy</a>
           </p>
 
-          <!-- Prototype flows -->
-          <div class="mt-6 pt-5" style="border-top: 1px dashed oklch(0.88 0 0);">
-            <p class="text-center mb-3" style="font-size: 10.5px; font-weight: 600; letter-spacing: 0.07em; color: oklch(0.7 0 0); text-transform: uppercase;">Prototype flows</p>
-            <div class="flex flex-col gap-2">
+          <!-- Dev shortcuts — collapsed by default -->
+          <div class="mt-6 pt-4" style="border-top: 1px solid oklch(0.93 0 0);">
+            <button
+              class="w-full flex items-center justify-center gap-1.5 transition-colors"
+              style="font-size: 11px; color: oklch(0.75 0 0); background: none; border: none; cursor: pointer; padding: 2px 0;"
+              @click="devOpen = !devOpen"
+            >
+              <svg :style="{ transform: devOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }" width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="M3 2l4 3-4 3V2z"/></svg>
+              Demo shortcuts
+            </button>
+            <div v-if="devOpen" class="flex flex-col gap-1.5 mt-3">
               <button
                 class="w-full text-left"
-                style="padding: 9px 12px; border-radius: 9px; border: 1px solid oklch(0.91 0 0); background: oklch(0.985 0 0); font-size: 12px; font-weight: 500; color: oklch(0.3 0 0); cursor: pointer;"
+                style="padding: 8px 11px; border-radius: 8px; border: 1px solid oklch(0.91 0 0); background: oklch(0.985 0 0); font-size: 11.5px; font-weight: 500; color: oklch(0.4 0 0); cursor: pointer;"
                 @mouseenter="e => ((e.currentTarget as HTMLElement).style.background = 'oklch(0.97 0 0)')"
                 @mouseleave="e => ((e.currentTarget as HTMLElement).style.background = 'oklch(0.985 0 0)')"
                 @click="navigateTo('/onboarding/get-started')"
               >
-                <span style="color: oklch(0.65 0 0); margin-right: 6px;">→</span> User is not signed in Noeia
+                <span style="color: oklch(0.6 0 0); margin-right: 6px;">→</span> Onboarding — new user
               </button>
               <button
                 class="w-full text-left"
-                style="padding: 9px 12px; border-radius: 9px; border: 1px solid oklch(0.91 0 0); background: oklch(0.985 0 0); font-size: 12px; font-weight: 500; color: oklch(0.3 0 0); cursor: pointer;"
+                style="padding: 8px 11px; border-radius: 8px; border: 1px solid oklch(0.91 0 0); background: oklch(0.985 0 0); font-size: 11.5px; font-weight: 500; color: oklch(0.4 0 0); cursor: pointer;"
                 @mouseenter="e => ((e.currentTarget as HTMLElement).style.background = 'oklch(0.97 0 0)')"
                 @mouseleave="e => ((e.currentTarget as HTMLElement).style.background = 'oklch(0.985 0 0)')"
                 @click="navigateTo('/doctor/dashboard')"
               >
-                <span style="color: oklch(0.65 0 0); margin-right: 6px;">→</span> User is signed in Noeia
+                <span style="color: oklch(0.6 0 0); margin-right: 6px;">→</span> Doctor dashboard
               </button>
               <button
                 class="w-full text-left"
-                style="padding: 9px 12px; border-radius: 9px; border: 1px solid oklch(0.91 0 0); background: oklch(0.985 0 0); font-size: 12px; font-weight: 500; color: oklch(0.3 0 0); cursor: pointer;"
+                style="padding: 8px 11px; border-radius: 8px; border: 1px solid oklch(0.91 0 0); background: oklch(0.985 0 0); font-size: 11.5px; font-weight: 500; color: oklch(0.4 0 0); cursor: pointer;"
                 @mouseenter="e => ((e.currentTarget as HTMLElement).style.background = 'oklch(0.97 0 0)')"
                 @mouseleave="e => ((e.currentTarget as HTMLElement).style.background = 'oklch(0.985 0 0)')"
                 @click="navigateTo('/onboarding/join?invitations=multiple')"
               >
-                <span style="color: oklch(0.65 0 0); margin-right: 6px;">→</span> Invited to org — multiple invitations
+                <span style="color: oklch(0.6 0 0); margin-right: 6px;">→</span> Org invite — multiple
               </button>
-<button
+              <button
                 class="w-full text-left"
-                style="padding: 9px 12px; border-radius: 9px; border: 1px solid oklch(0.91 0 0); background: oklch(0.985 0 0); font-size: 12px; font-weight: 500; color: oklch(0.3 0 0); cursor: pointer;"
+                style="padding: 8px 11px; border-radius: 8px; border: 1px solid oklch(0.91 0 0); background: oklch(0.985 0 0); font-size: 11.5px; font-weight: 500; color: oklch(0.4 0 0); cursor: pointer;"
                 @mouseenter="e => ((e.currentTarget as HTMLElement).style.background = 'oklch(0.97 0 0)')"
                 @mouseleave="e => ((e.currentTarget as HTMLElement).style.background = 'oklch(0.985 0 0)')"
                 @click="navigateTo('/onboarding/join?invitations=expired')"
               >
-                <span style="color: oklch(0.65 0 0); margin-right: 6px;">→</span> Invitation expired
+                <span style="color: oklch(0.6 0 0); margin-right: 6px;">→</span> Org invite — expired
               </button>
             </div>
           </div>

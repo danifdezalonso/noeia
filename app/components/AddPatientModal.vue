@@ -55,12 +55,12 @@ function save() {
         <div class="grid grid-cols-2 gap-3">
           <div>
             <Label class="text-sm font-medium mb-1.5 block">Name <span class="text-rose-500">*</span></Label>
-            <Input v-model="form.name" placeholder="Ana" :class="errors.name ? 'border-rose-300 focus-visible:ring-rose-300' : ''" @input="errors.name = ''" @keydown.enter="save" />
+            <Input v-model="form.name" placeholder="First name" :class="errors.name ? 'border-rose-300 focus-visible:ring-rose-300' : ''" @input="errors.name = ''" @keydown.enter="save" />
             <p v-if="errors.name" class="text-rose-500 text-xs mt-1">{{ errors.name }}</p>
           </div>
           <div>
             <Label class="text-sm font-medium mb-1.5 block">Surname <span class="text-rose-500">*</span></Label>
-            <Input v-model="form.surname" placeholder="García" :class="errors.surname ? 'border-rose-300 focus-visible:ring-rose-300' : ''" @input="errors.surname = ''" @keydown.enter="save" />
+            <Input v-model="form.surname" placeholder="Last name" :class="errors.surname ? 'border-rose-300 focus-visible:ring-rose-300' : ''" @input="errors.surname = ''" @keydown.enter="save" />
             <p v-if="errors.surname" class="text-rose-500 text-xs mt-1">{{ errors.surname }}</p>
           </div>
         </div>

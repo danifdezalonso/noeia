@@ -9,14 +9,18 @@ definePageMeta({ layout: 'dashboard' })
 
 const route = useRoute()
 
-const patient = computed(() => ({
-  id: route.params.id as string,
-  name: 'New Patient',
-  initials: 'NP',
-  email: '',
-  phone: '',
-  status: 'active' as const,
-}))
+const patient = computed(() => {
+  const name     = (route.query.name     as string) || 'Patient'
+  const initials = (route.query.initials as string) || name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
+  return {
+    id:       route.params.id as string,
+    name,
+    initials,
+    email:    (route.query.email  as string) || '',
+    phone:    (route.query.phone  as string) || '',
+    status:   'active' as const,
+  }
+})
 
 const tabs = [
   { value: 'general',         label: 'General' },

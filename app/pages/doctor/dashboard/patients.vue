@@ -217,7 +217,15 @@ function onPatientSaved(data: { name: string; surname: string; initials: string;
   newPatientModalOpen.value = false
   const { success } = useToast()
   success('Patient added', `${data.name} ${data.surname} has been added successfully.`)
-  navigateTo(`/doctor/dashboard/patient/${id}`)
+  navigateTo({
+    path: `/doctor/dashboard/patient/${id}`,
+    query: {
+      name:     `${data.name} ${data.surname}`,
+      initials: data.initials,
+      email:    data.email || undefined,
+      phone:    data.phone || undefined,
+    },
+  })
 }
 
 // ── Consent request state ──────────────────────────────────────────────────
@@ -447,7 +455,7 @@ const columns: { key: SortKey; label: string }[] = [
                       />
                     </div>
                     <div>
-                      <p class="font-medium text-foreground leading-tight cursor-pointer hover:text-primary hover:underline transition-colors" @click.stop="navigateTo(`/doctor/dashboard/patient/${p.id}`)">{{ p.name }}</p>
+                      <p class="font-medium text-foreground leading-tight cursor-pointer hover:text-primary hover:underline transition-colors" @click.stop="navigateTo({ path: `/doctor/dashboard/patient/${p.id}`, query: { name: p.name, initials: p.initials, email: p.email, phone: p.phone } })">{{ p.name }}</p>
                       <p class="text-[11px] text-muted-foreground leading-tight mt-0.5">
                         {{ p.sessionCount }} session{{ p.sessionCount !== 1 ? 's' : '' }}
                       </p>
@@ -584,7 +592,7 @@ const columns: { key: SortKey; label: string }[] = [
                         <DropdownMenuLabel class="text-xs text-muted-foreground font-normal">Patient actions</DropdownMenuLabel>
                         <DropdownMenuSeparator />
 
-                        <DropdownMenuItem class="gap-2 cursor-pointer" @click="navigateTo(`/doctor/dashboard/patient/${p.id}`)">
+                        <DropdownMenuItem class="gap-2 cursor-pointer" @click="navigateTo({ path: `/doctor/dashboard/patient/${p.id}`, query: { name: p.name, initials: p.initials, email: p.email, phone: p.phone } })">
                           <Eye class="w-3.5 h-3.5 text-muted-foreground" />
                           View profile
                         </DropdownMenuItem>

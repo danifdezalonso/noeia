@@ -194,8 +194,8 @@ const pendingByPatient = computed(() => {
 // ── Filters ────────────────────────────────────────────────────────────────
 
 const _now  = new Date()
-const dateFrom = ref(format(startOfMonth(_now), 'yyyy-MM-dd'))
-const dateTo   = ref(format(_now,               'yyyy-MM-dd'))
+const dateFrom = ref(format(startOfMonth(subMonths(_now, 2)), 'yyyy-MM-dd'))
+const dateTo   = ref(format(_now,                             'yyyy-MM-dd'))
 const search       = ref('')
 const patientFilter  = ref('all')
 const typeFilter     = ref('all')
@@ -277,7 +277,7 @@ const DATE_PRESETS = [
 
 type PresetId = typeof DATE_PRESETS[number]['id']
 
-const activePreset = ref<PresetId | null>('this-month')
+const activePreset = ref<PresetId | null>('past-three-months')
 
 function applyPreset(id: PresetId) {
   activePreset.value = id

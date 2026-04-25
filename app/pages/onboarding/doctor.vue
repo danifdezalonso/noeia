@@ -205,13 +205,20 @@ const steps = [
           <img src="/Noeia_logo.svg" alt="Noeia" class="h-5 dark:hidden" />
           <img src="/Noeia_logo_white.svg" alt="Noeia" class="h-5 hidden dark:block" />
         </NuxtLink>
-        <button
-          type="button"
-          class="px-2.5 py-1 text-xs font-medium bg-destructive/10 text-destructive rounded-lg hover:bg-destructive/20 transition-colors"
-          @click="router.push('/doctor/dashboard')"
-        >
-          [DEV] Skip
-        </button>
+        <div class="flex items-center gap-3">
+          <NuxtLink
+            v-if="currentStep === 1 && !isComplete"
+            to="/login"
+            class="text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >← Back to login</NuxtLink>
+          <button
+            type="button"
+            class="px-2.5 py-1 text-xs font-medium bg-destructive/10 text-destructive rounded-lg hover:bg-destructive/20 transition-colors"
+            @click="router.push('/doctor/dashboard')"
+          >
+            [DEV] Skip
+          </button>
+        </div>
       </header>
 
       <!-- overflow goes on a nested element, NOT the grid item -->
@@ -305,7 +312,7 @@ const steps = [
                           id="full_name"
                           v-model="form.full_name"
                           type="text"
-                          placeholder="Dr. Ana Torres"
+                          placeholder="Dr. Sarah Smith"
                           :class="errors.full_name
                             ? 'border-destructive bg-destructive/5 focus-visible:ring-destructive/30'
                             : form.full_name.length >= 2 ? 'border-primary/50' : ''"
@@ -500,7 +507,9 @@ const steps = [
 
                     <div class="flex items-center gap-3">
                       <span class="text-xs text-muted-foreground">{{ currentStep }} of {{ TOTAL }}</span>
-                      <button v-if="currentStep === 2" type="button" @click="next" class="text-sm text-muted-foreground hover:text-foreground transition-colors">Skip</button>
+                      <button v-if="currentStep === 2" type="button" @click="next"
+                        class="text-sm font-medium text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors"
+                      >Skip</button>
                       <Button v-if="currentStep < TOTAL" size="sm" class="gap-1.5" @click="next">
                         Next
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>

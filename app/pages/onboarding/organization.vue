@@ -11,6 +11,8 @@ import {
 const router = useRouter()
 const { setOrganization } = usePersona()
 
+useHead({ title: 'Set up your organisation — Noeia' })
+
 const currentStep = ref(1)
 const direction = ref<'forward' | 'backward'>('forward')
 const isComplete = ref(false)

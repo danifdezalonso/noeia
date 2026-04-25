@@ -8,6 +8,7 @@ useHead({
 })
 
 const route = useRoute()
+const isDev = import.meta.dev
 
 // Derive current step from route path
 const currentStep = computed(() => {
@@ -23,17 +24,17 @@ const direction = useState<'forward' | 'back'>('onboarding-direction', () => 'fo
 const { form, selectedPhonePrefix } = useOnboardingForm()
 
 function fillTestData() {
-  form.value.firstName    = 'Ana'
-  form.value.lastName     = 'García'
-  form.value.country      = 'Spain'
-  form.value.language     = 'Spanish'
-  form.value.phone        = '612 345 678'
+  form.value.firstName    = 'Jordan'
+  form.value.lastName     = 'Smith'
+  form.value.country      = 'United Kingdom'
+  form.value.language     = 'English'
+  form.value.phone        = '07700 900 123'
   form.value.agreedToTerms = true
   form.value.orgName      = 'MindCare Clinics'
-  form.value.specialty    = 'Clinical Psychology'
+  form.value.specialty    = ['Clinical Psychology']
   form.value.teamSize     = '6–20'
   form.value.role         = 'Individual clinician'
-  selectedPhonePrefix.value = { country: 'Spain', flag: '🇪🇸', code: '+34' }
+  selectedPhonePrefix.value = { country: 'United Kingdom', flag: '🇬🇧', code: '+44' }
 }
 
 const transitionName = computed(() =>
@@ -73,8 +74,9 @@ const stepMeta = [
             <img src="/Noeia_logo.svg" alt="Noeia" class="h-[19px] dark:hidden" />
           </NuxtLink>
 
-          <!-- Dev: fill test data -->
+          <!-- Dev: fill test data (hidden in production) -->
           <button
+            v-if="isDev"
             class="ob-fill-btn"
             title="Fill all fields with test data"
             @click="fillTestData"
@@ -89,10 +91,9 @@ const stepMeta = [
           <div class="flex items-center gap-1.5">
             <template v-for="(m, i) in stepMeta" :key="m.step">
               <div class="flex items-center gap-1.5">
-                <!-- Circle: check if done, number if current/future -->
-                <component
-                  :is="currentStep > m.step ? 'NuxtLink' : 'div'"
-                  :to="currentStep > m.step ? m.path : undefined"
+                <!-- Circle: always a link -->
+                <NuxtLink
+                  :to="m.path"
                   class="flex items-center justify-center flex-shrink-0 transition-all duration-200"
                   :style="{
                     width: '20px', height: '20px', borderRadius: '50%',
@@ -104,19 +105,17 @@ const stepMeta = [
                     <path d="M2 6.5L4.5 9L10 3" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                   <span v-else style="font-size: 10px; font-weight: 700;" :style="{ color: currentStep === m.step ? 'white' : 'oklch(0.65 0 0)' }">{{ m.step }}</span>
-                </component>
-                <!-- Label -->
-                <component
-                  :is="currentStep > m.step ? 'NuxtLink' : 'span'"
-                  :to="currentStep > m.step ? m.path : undefined"
+                </NuxtLink>
+                <!-- Label: always a link -->
+                <NuxtLink
+                  :to="m.path"
                   class="transition-all duration-200 hidden sm:block"
                   style="font-size: 12px; white-space: nowrap; text-decoration: none;"
                   :style="{
                     fontWeight: currentStep === m.step ? '600' : '400',
                     color: currentStep === m.step ? '#E83D59' : currentStep > m.step ? 'oklch(0.5 0 0)' : 'oklch(0.72 0 0)',
-                    cursor: currentStep > m.step ? 'pointer' : 'default',
                   }"
-                >Step {{ m.step }}</component>
+                >{{ m.label }}</NuxtLink>
               </div>
               <!-- Separator -->
               <svg v-if="i < stepMeta.length - 1" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="oklch(0.8 0 0)" stroke-width="2">

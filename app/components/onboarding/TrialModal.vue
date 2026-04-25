@@ -46,14 +46,14 @@ function startTrial() {
             class="text-center leading-tight"
             style="font-size: 24px; font-weight: 700; color: oklch(0.14 0 0); font-family: 'Plus Jakarta Sans', system-ui;"
           >
-            4 days of the Clinician plan,<br />on us.
+          Start your 4-day free trial
           </DialogTitle>
           <DialogDescription
             class="text-center"
             style="font-size: 13.5px; color: oklch(0.52 0 0); line-height: 1.6; font-family: 'Plus Jakarta Sans', system-ui;"
           >
             No credit card. No commitment.<br />
-            After your trial, stay on the free plan or upgrade—your choice.
+            After your trial, continue free or upgrade—your choice.
           </DialogDescription>
         </DialogHeader>
       </div>
@@ -64,7 +64,7 @@ function startTrial() {
           <li
             v-for="feature in [
               'Custom scribe templates',
-              'Unlimited Evidence in sessions',
+              'Unlimited evidence in sessions',
               'Choose trusted evidence sources',
             ]"
             :key="feature"

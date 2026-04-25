@@ -980,6 +980,15 @@ function onSessionSaved(s: import('~/components/ScheduleSessionModal.vue').NewSe
                 <CalendarDays class="w-3.5 h-3.5" /> Reschedule
               </Button>
             </template>
+            <template v-else>
+              <!-- completed -->
+              <Button size="sm" variant="outline" class="gap-1.5" @click="reschedule(selectedSession.id)">
+                <RotateCcw class="w-3.5 h-3.5" /> Book again
+              </Button>
+              <Button size="sm" variant="outline" class="gap-1.5">
+                <Eye class="w-3.5 h-3.5" /> View notes
+              </Button>
+            </template>
           </div>
         </div>
 
