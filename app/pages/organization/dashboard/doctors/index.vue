@@ -2,7 +2,7 @@
 import {
   Search, Plus, ChevronUp, ChevronDown, ChevronsUpDown,
   Pencil, Trash2, Eye, UserX, UserCheck, ChevronDown as ChevronDownIcon, MoreVertical, Menu, GripVertical, Check,
-  User, Briefcase, Activity, Users, Percent
+  User, Briefcase, Activity, Users, Percent, ArrowUpRight
 } from 'lucide-vue-next'
 import { markRaw, ref, computed, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import {
@@ -13,8 +13,12 @@ import {
   DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuGroup
 } from '~/components/ui/dropdown-menu'
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose,
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogClose,
 } from '~/components/ui/dialog'
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '~/components/ui/alert-dialog'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
@@ -295,29 +299,40 @@ function saveDoctor() {
   navigateTo(`/organization/dashboard/doctors/${newId}`)
 }
 
-// ── Inline fee editing ─────────────────────────────────────────────────────
+// ── Fee Edit Modal ─────────────────────────────────────────────────────────
 
-const editingFeeId  = ref<string | null>(null)
-const editingFeeVal = ref<string>('')
+const feeModalOpen = ref(false)
+const confirmFeeOpen = ref(false)
+const feeModalDoctor = ref<Doctor | null>(null)
+const feeModalValue = ref<number>(0)
 
-function startEditFee(d: Doctor) {
-  editingFeeId.value  = d.id
-  editingFeeVal.value = String(d.sessionFeePercent)
-  nextTick(() => {
-    const el = document.getElementById(`fee-input-${d.id}`)
-    if (el) (el as HTMLInputElement).select()
-  })
+function openFeeModal(d: Doctor) {
+  feeModalDoctor.value = d
+  feeModalValue.value = d.sessionFeePercent
+  feeModalOpen.value = true
 }
 
-function commitFee(d: Doctor) {
-  const n = parseInt(editingFeeVal.value, 10)
-  if (!isNaN(n) && n >= 0 && n <= 100) d.sessionFeePercent = n
-  editingFeeId.value = null
+function initiateFeeSave() {
+  if (feeModalDoctor.value && feeModalValue.value !== feeModalDoctor.value.sessionFeePercent) {
+    confirmFeeOpen.value = true
+  } else {
+    feeModalOpen.value = false
+    feeModalDoctor.value = null
+  }
 }
 
-function onFeeKeydown(e: KeyboardEvent, d: Doctor) {
-  if (e.key === 'Enter')  { e.preventDefault(); commitFee(d) }
-  if (e.key === 'Escape') { editingFeeId.value = null }
+function confirmFeeSave() {
+  if (feeModalDoctor.value) {
+    feeModalDoctor.value.sessionFeePercent = feeModalValue.value
+    success('Fee Updated', `${feeModalDoctor.value.name}'s fee has been updated to ${feeModalValue.value}%.`)
+  }
+  confirmFeeOpen.value = false
+  feeModalOpen.value = false
+  feeModalDoctor.value = null
+}
+
+function cancelFeeSave() {
+  confirmFeeOpen.value = false
 }
 
 // ── Row actions ────────────────────────────────────────────────────────────
@@ -501,7 +516,7 @@ const statusMeta: Record<DoctorStatus, { label: string; dot: string; badge: stri
                       class="appearance-none bg-transparent border-none text-left flex items-center justify-between flex-1 cursor-pointer min-w-0 h-full group/sort focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary rounded-sm"
                       :aria-label="`Sort by ${col.label}`"
                     >
-                      <div class="flex items-center gap-2 min-w-0 text-muted-foreground group-hover/sort:text-foreground transition-colors">
+                      <div class="flex items-center gap-2 min-w-0 text-foreground transition-colors">
                         <component :is="col.icon" class="w-3.5 h-3.5 shrink-0" />
                         <span class="truncate">{{ col.label }}</span>
                       </div>
@@ -510,7 +525,7 @@ const statusMeta: Record<DoctorStatus, { label: string; dot: string; badge: stri
                       <div class="shrink-0 ml-1 flex items-center">
                         <ChevronUp v-if="sortKey === col.key && sortDir === 'asc'" class="w-3.5 h-3.5 text-primary" />
                         <ChevronDown v-else-if="sortKey === col.key && sortDir === 'desc'" class="w-3.5 h-3.5 text-primary" />
-                        <ChevronsUpDown v-else class="w-3.5 h-3.5 text-muted-foreground/0 group-hover/th:text-muted-foreground/50 group-hover/sort:!text-foreground transition-colors" />
+                        <ChevronsUpDown v-else class="w-3.5 h-3.5 text-foreground/0 group-hover/th:text-foreground/50 group-hover/sort:!text-foreground transition-colors" />
                       </div>
                     </button>
                   </div>
@@ -541,7 +556,7 @@ const statusMeta: Record<DoctorStatus, { label: string; dot: string; badge: stri
                 </TableCell>
               </TableRow>
               
-              <TableRow v-for="d in filtered" :key="d.id" class="group border-b border-border hover:bg-muted/30 transition-colors">
+              <TableRow v-for="d in filtered" :key="d.id" class="group border-b border-border hover:bg-foreground/[0.04] even:bg-foreground/[0.02] transition-colors">
                 
                 <TableCell 
                   v-for="col in visibleColumns" :key="col.key"
@@ -556,19 +571,22 @@ const statusMeta: Record<DoctorStatus, { label: string; dot: string; badge: stri
                   :aria-label="col.key === 'sessionFeePercent' ? 'Edit Fee Percentage' : undefined"
                 >
                   <template v-if="col.key === 'name'">
-                    <div class="flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-muted/50 h-full" @click="navigateTo(`/organization/dashboard/doctors/${d.id}`)">
+                     <div class="flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-muted/50 h-full group/name" @click="navigateTo(`/organization/dashboard/doctors/${d.id}`)">
                       <Avatar class="size-8 rounded-md shadow-sm border border-border/50">
                         <AvatarFallback class="bg-primary/5 text-primary text-[11px] font-bold rounded-md">{{ d.initials }}</AvatarFallback>
                       </Avatar>
-                      <div class="flex flex-col min-w-0 justify-center">
+                       <div class="flex flex-col min-w-0 justify-center flex-1">
                          <span class="text-sm font-medium truncate text-foreground leading-tight">{{ d.name }}</span>
-                         <span class="text-xs text-muted-foreground truncate leading-tight mt-0.5">{{ d.email }}</span>
-                      </div>
+                         <span class="text-xs text-foreground/80 truncate leading-tight mt-0.5">{{ d.email }}</span>
+                       </div>
+                       <div class="w-6 h-6 rounded-md bg-muted/0 border border-transparent flex items-center justify-center opacity-0 group-hover/name:opacity-100 group-hover/name:bg-muted/50 group-hover/name:border-border/50 transition-all shrink-0">
+                         <ArrowUpRight class="w-3.5 h-3.5 text-muted-foreground" />
+                       </div>
                     </div>
                   </template>
 
                   <template v-else-if="col.key === 'specialty'">
-                     <div class="px-4 py-2 text-sm text-muted-foreground h-full flex items-center">{{ d.specialty }}</div>
+                     <div class="px-4 py-2 text-sm text-foreground h-full flex items-center">{{ d.specialty }}</div>
                   </template>
 
                   <template v-else-if="col.key === 'status'">
@@ -581,28 +599,15 @@ const statusMeta: Record<DoctorStatus, { label: string; dot: string; badge: stri
                   </template>
 
                   <template v-else-if="col.key === 'patientCount'">
-                     <div class="px-4 py-2 text-sm text-muted-foreground tabular-nums h-full flex items-center">{{ d.patientCount }}</div>
+                     <div class="px-4 py-2 text-sm text-foreground tabular-nums h-full flex items-center">{{ d.patientCount }}</div>
                   </template>
 
                   <template v-else-if="col.key === 'sessionFeePercent'">
-                     <div v-if="editingFeeId !== d.id" class="px-3 py-1.5 mx-1 my-1 h-[calc(100%-8px)] flex items-center justify-between rounded-md hover:bg-muted/50 border border-transparent hover:border-border/50 cursor-text transition-all group/fee" title="Click to edit fee">
+                     <div class="px-3 py-1.5 mx-1 my-1 h-[calc(100%-8px)] flex items-center justify-between rounded-md hover:bg-muted/50 border border-transparent hover:border-border/50 cursor-pointer transition-all group/fee" title="Click to edit fee" @click="openFeeModal(d)">
                        <Badge variant="secondary" class="rounded-full text-xs font-medium h-6 px-2.5 shadow-none border-transparent">
                          {{ d.sessionFeePercent }}%
                        </Badge>
                        <Pencil class="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover/fee:opacity-100 transition-opacity" />
-                     </div>
-                     <div v-else class="h-full w-full flex items-center px-2 py-1.5 gap-1.5" @click.stop>
-                       <Input
-                          :id="`fee-input-${d.id}`"
-                          v-model="editingFeeVal"
-                          type="number"
-                          min="0"
-                          max="100"
-                          class="h-7 text-sm font-medium tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none focus-visible:ring-1 focus-visible:ring-primary border-primary w-full px-2 shadow-sm text-right"
-                          @blur="commitFee(d)"
-                          @keydown="onFeeKeydown($event, d)"
-                        />
-                        <span class="text-sm font-medium text-muted-foreground mr-1">%</span>
                      </div>
                   </template>
                 </TableCell>
@@ -686,7 +691,7 @@ const statusMeta: Record<DoctorStatus, { label: string; dot: string; badge: stri
         <p v-if="inviteError" class="text-rose-500 text-xs mt-1.5">{{ inviteError }}</p>
       </div>
 
-      <DialogFooter>
+      <DialogFooter class="p-6 border-t -mx-6 -mb-6 mt-4">
         <DialogClose as-child>
           <Button variant="outline">Cancel</Button>
         </DialogClose>
@@ -694,4 +699,68 @@ const statusMeta: Record<DoctorStatus, { label: string; dot: string; badge: stri
       </DialogFooter>
     </DialogContent>
   </Dialog>
+
+  <!-- ── Edit Fee Modal ─────────────────────────────────────────────────────── -->
+  <Dialog :open="feeModalOpen" @update:open="val => feeModalOpen = val">
+    <DialogContent class="sm:max-w-md">
+      <DialogHeader>
+        <DialogTitle>Edit Session Fee</DialogTitle>
+        <DialogDescription>
+          Adjust the commission percentage for this doctor.
+        </DialogDescription>
+      </DialogHeader>
+
+      <div class="py-4 space-y-4" v-if="feeModalDoctor">
+        <div class="space-y-2">
+          <Label class="text-sm font-medium mb-1.5 block">Current Fee (%)</Label>
+          <div class="relative">
+            <Input
+              :model-value="feeModalDoctor.sessionFeePercent"
+              type="number"
+              disabled
+              class="pr-8"
+            />
+            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">%</span>
+          </div>
+        </div>
+        
+        <div class="space-y-2">
+          <Label for="fee-edit" class="text-sm font-medium mb-1.5 block">New Fee (%)</Label>
+          <div class="relative">
+            <Input
+              id="fee-edit"
+              v-model="feeModalValue"
+              type="number"
+              min="0"
+              max="100"
+              class="pr-8"
+              @keydown.enter="initiateFeeSave"
+            />
+            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">%</span>
+          </div>
+        </div>
+      </div>
+
+      <DialogFooter class="p-6 border-t -mx-6 -mb-6 mt-4">
+        <Button variant="outline" @click="feeModalOpen = false">Cancel</Button>
+        <Button @click="initiateFeeSave">Save changes</Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+
+  <!-- ── Confirm Fee Change Dialog ────────────────────────────────────────── -->
+  <AlertDialog :open="confirmFeeOpen" @update:open="val => { if (!val) cancelFeeSave() }">
+    <AlertDialogContent>
+      <AlertDialogHeader>
+        <AlertDialogTitle>Confirm Fee Update</AlertDialogTitle>
+        <AlertDialogDescription v-if="feeModalDoctor">
+          Are you sure you want to change the session fee for <span class="font-semibold text-foreground">{{ feeModalDoctor.name }}</span> from {{ feeModalDoctor.sessionFeePercent }}% to <span class="font-semibold text-foreground">{{ feeModalValue }}%</span>?
+        </AlertDialogDescription>
+      </AlertDialogHeader>
+      <AlertDialogFooter>
+        <AlertDialogCancel @click="cancelFeeSave">Cancel</AlertDialogCancel>
+        <AlertDialogAction @click="confirmFeeSave">Confirm Update</AlertDialogAction>
+      </AlertDialogFooter>
+    </AlertDialogContent>
+  </AlertDialog>
 </template>
