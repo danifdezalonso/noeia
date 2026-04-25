@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Zap, Check, ChevronRight } from 'lucide-vue-next'
 useHead({
   link: [
     { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
@@ -81,9 +82,7 @@ const stepMeta = [
             title="Fill all fields with test data"
             @click="fillTestData"
           >
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-            </svg>
+            <Zap class="w-3 h-3" />
             Fill test data
           </button>
 
@@ -101,9 +100,7 @@ const stepMeta = [
                     textDecoration: 'none',
                   }"
                 >
-                  <svg v-if="currentStep > m.step" width="9" height="9" viewBox="0 0 12 12" fill="none">
-                    <path d="M2 6.5L4.5 9L10 3" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-                  </svg>
+                  <Check v-if="currentStep > m.step" class="w-2.5 h-2.5 text-white" />
                   <span v-else style="font-size: 10px; font-weight: 700;" :style="{ color: currentStep === m.step ? 'white' : 'oklch(0.65 0 0)' }">{{ m.step }}</span>
                 </NuxtLink>
                 <!-- Label: always a link -->
@@ -118,9 +115,7 @@ const stepMeta = [
                 >{{ m.label }}</NuxtLink>
               </div>
               <!-- Separator -->
-              <svg v-if="i < stepMeta.length - 1" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="oklch(0.8 0 0)" stroke-width="2">
-                <path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
+              <ChevronRight v-if="i < stepMeta.length - 1" class="w-3.5 h-3.5 text-border" />
             </template>
           </div>
         </div>

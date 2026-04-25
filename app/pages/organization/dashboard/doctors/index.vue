@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {
   Search, Plus, ChevronUp, ChevronDown, ChevronsUpDown,
-  Pencil, Trash2, Eye, UserX, UserCheck, ChevronDown as ChevronDownIcon,
+  Pencil, Trash2, Eye, UserX, UserCheck, ChevronDown as ChevronDownIcon, MoreVertical,
 } from 'lucide-vue-next'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -305,10 +305,7 @@ const columns: { key: SortKey; label: string }[] = [
                     @click="startEditFee(d)"
                   >
                     {{ d.sessionFeePercent }}%
-                    <svg class="fee-pill__edit" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                      <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" stroke-linecap="round" stroke-linejoin="round"/>
-                      <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
+                    <Pencil class="fee-pill__edit w-2.5 h-2.5" />
                   </button>
                   <!-- Edit input -->
                   <div v-else class="fee-input-wrap">
@@ -331,9 +328,7 @@ const columns: { key: SortKey; label: string }[] = [
                     <DropdownMenu>
                       <DropdownMenuTrigger as-child>
                         <Button variant="ghost" size="icon" class="w-8 h-8">
-                          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                            <circle cx="10" cy="4" r="1.5" /><circle cx="10" cy="10" r="1.5" /><circle cx="10" cy="16" r="1.5" />
-                          </svg>
+                          <MoreVertical class="w-4 h-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" class="w-44">

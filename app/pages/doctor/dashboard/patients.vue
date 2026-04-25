@@ -2,7 +2,7 @@
 import {
   Search, Plus, ChevronUp, ChevronDown, ChevronsUpDown,
   UserRound, Mail, Phone, CalendarDays, Link2,
-  Pencil, Trash2, Eye, CalendarPlus, Send, ShieldCheck,
+  Pencil, Trash2, Eye, CalendarPlus, Settings2, ShieldCheck, MoreVertical,
 } from 'lucide-vue-next'
 import { format, parseISO } from 'date-fns'
 import {
@@ -583,9 +583,7 @@ const columns: { key: SortKey; label: string }[] = [
                     <DropdownMenu>
                       <DropdownMenuTrigger as-child>
                         <Button variant="ghost" size="icon-sm">
-                          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                            <circle cx="10" cy="4" r="1.5" /><circle cx="10" cy="10" r="1.5" /><circle cx="10" cy="16" r="1.5" />
-                          </svg>
+                          <MoreVertical class="w-4 h-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" class="w-44">

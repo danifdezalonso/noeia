@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Check, ChevronsUpDown, ChevronDown } from 'lucide-vue-next'
+import { Check, ChevronsUpDown, ChevronDown, ChevronLeft, ArrowRight, Building2, Plus, Send } from 'lucide-vue-next'
 import { COUNTRIES, LANGUAGES, PHONE_PREFIXES } from '~/composables/useOnboardingForm'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
@@ -91,7 +91,7 @@ const expiredInvitations = ref([
     ══════════════════════════════════════════════════════════════════════════ -->
     <template v-if="invitationsParam === 'multiple'">
       <button class="inline-flex items-center gap-1.5 mb-7 text-sm text-muted-foreground hover:text-foreground transition-colors bg-transparent border-none cursor-pointer p-0" @click="navigateTo('/login')">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+        <ChevronLeft class="w-4 h-4" />
         Back
       </button>
 
@@ -105,9 +105,7 @@ const expiredInvitations = ref([
           <div class="flex items-start justify-between gap-3 mb-3">
             <div class="flex items-center gap-3">
               <div class="w-10 h-10 rounded-xl bg-muted flex items-center justify-center shrink-0">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-muted-foreground">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21"/>
-                </svg>
+                <Building2 class="w-5 h-5 text-muted-foreground" />
               </div>
               <div>
                 <p class="text-sm font-bold text-foreground">{{ inv.org }}</p>
@@ -134,7 +132,7 @@ const expiredInvitations = ref([
       <div class="mt-5 pt-5 border-t border-border">
         <p class="text-xs text-muted-foreground text-center mb-3">Don't have an invitation?</p>
         <Button variant="outline" class="w-full gap-2" @click="navigateTo('/onboarding/your-organisation')">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+          <Plus class="w-4 h-4" />
           Create an organisation
         </Button>
       </div>
@@ -145,7 +143,7 @@ const expiredInvitations = ref([
     ══════════════════════════════════════════════════════════════════════════ -->
     <template v-else-if="invitationsParam === 'single'">
       <button class="inline-flex items-center gap-1.5 mb-7 text-sm text-muted-foreground hover:text-foreground transition-colors bg-transparent border-none cursor-pointer p-0" @click="navigateTo('/login')">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+        <ChevronLeft class="w-4 h-4" />
         Back
       </button>
 
@@ -200,7 +198,7 @@ const expiredInvitations = ref([
 
         <Button class="w-full mt-2" size="lg" @click="navigateTo('/doctor/dashboard')">
           Continue to dashboard
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="ml-1"><path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <ArrowRight class="ml-1 w-4 h-4" />
         </Button>
       </div>
     </template>
@@ -210,7 +208,7 @@ const expiredInvitations = ref([
     ══════════════════════════════════════════════════════════════════════════ -->
     <template v-else-if="invitationsParam === 'expired'">
       <button class="inline-flex items-center gap-1.5 mb-7 text-sm text-muted-foreground hover:text-foreground transition-colors bg-transparent border-none cursor-pointer p-0" @click="navigateTo('/login')">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+        <ChevronLeft class="w-4 h-4" />
         Back
       </button>
 
@@ -223,9 +221,7 @@ const expiredInvitations = ref([
         <div v-for="inv in expiredInvitations" :key="inv.id" class="rounded-2xl border border-border p-5 bg-card">
           <div class="flex items-start gap-3 mb-3">
             <div class="w-10 h-10 rounded-xl bg-muted flex items-center justify-center shrink-0">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="text-muted-foreground">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21"/>
-              </svg>
+              <Building2 class="w-5 h-5 text-muted-foreground" />
             </div>
             <div>
               <p class="text-sm font-bold text-foreground mb-1">{{ inv.name }}</p>
@@ -247,12 +243,12 @@ const expiredInvitations = ref([
 
           <template v-if="inv.status === 'expired'">
             <Button v-if="!inv.requestSent" class="w-full gap-2" size="sm" @click="inv.requestSent = true">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"/></svg>
+              <Send class="w-3.5 h-3.5" />
               Request new invitation
             </Button>
             <div v-else class="rounded-xl bg-emerald-50 border border-emerald-200 p-3 flex items-center gap-3">
-              <div class="w-6 h-6 rounded-md bg-emerald-100 flex items-center justify-center shrink-0">
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6.5L4.5 9L10 3" stroke="#15803d" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <div class="w-6 h-6 rounded-md bg-emerald-100 flex items-center justify-center shrink-0 text-emerald-700">
+                <Check class="w-3.5 h-3.5" />
               </div>
               <div>
                 <p class="text-xs font-semibold text-emerald-700">Request sent!</p>
@@ -270,7 +266,7 @@ const expiredInvitations = ref([
     ══════════════════════════════════════════════════════════════════════════ -->
     <template v-else>
       <button class="inline-flex items-center gap-1.5 mb-7 text-sm text-muted-foreground hover:text-foreground transition-colors bg-transparent border-none cursor-pointer p-0" @click="goBack">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+        <ChevronLeft class="w-4 h-4" />
         Back
       </button>
 
@@ -438,7 +434,7 @@ const expiredInvitations = ref([
 
         <Button type="submit" class="w-full mt-2" size="lg">
           Set up my workspace
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="ml-1"><path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <ArrowRight class="ml-1 w-4 h-4" />
         </Button>
       </form>
     </template>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { z } from 'zod'
+import { Check, AlertCircle, UploadCloud, ChevronDown, ArrowLeft, ArrowRight } from 'lucide-vue-next'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
@@ -228,9 +229,7 @@ const steps = [
           <!-- Success screen -->
           <div v-if="isComplete" class="text-center max-w-sm w-full">
             <div class="w-20 h-20 rounded-full bg-primary/10 border-2 border-primary/30 flex items-center justify-center mx-auto mb-6">
-              <svg class="w-10 h-10 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-              </svg>
+              <Check class="w-10 h-10 text-primary" />
             </div>
             <h2 class="text-2xl font-bold text-foreground mb-2">
               Welcome, {{ form.full_name.split(' ')[0] || 'Doctor' }}!
@@ -258,9 +257,7 @@ const steps = [
                           ? 'bg-primary/10 text-primary ring-primary/15 border-2 border-primary'
                           : 'bg-muted text-muted-foreground ring-transparent border border-border'"
                     >
-                      <svg v-if="currentStep > step.n" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
-                      </svg>
+                      <Check v-if="currentStep > step.n" class="w-4 h-4" />
                       <span v-else>{{ step.n }}</span>
                     </div>
                     <span class="text-[10px] font-semibold uppercase tracking-wide"
@@ -319,7 +316,7 @@ const steps = [
                           @input="clearError('full_name')"
                         />
                         <p v-if="errors.full_name" class="flex items-center gap-1.5 text-destructive text-xs font-medium mt-1">
-                          <svg class="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                          <AlertCircle class="w-3.5 h-3.5 shrink-0" />
                           {{ errors.full_name }}
                         </p>
                       </div>
@@ -342,7 +339,7 @@ const steps = [
                           @input="clearError('email')"
                         />
                         <p v-if="errors.email" class="flex items-center gap-1.5 text-destructive text-xs font-medium mt-1">
-                          <svg class="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                          <AlertCircle class="w-3.5 h-3.5 shrink-0" />
                           {{ errors.email }}
                         </p>
                       </div>
@@ -359,7 +356,7 @@ const steps = [
                           @change="clearError('dob')"
                         />
                         <p v-if="errors.dob" class="flex items-center gap-1.5 text-destructive text-xs font-medium mt-1">
-                          <svg class="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                          <AlertCircle class="w-3.5 h-3.5 shrink-0" />
                           {{ errors.dob }}
                         </p>
                       </div>
@@ -381,9 +378,7 @@ const steps = [
                             :class="isDragging ? 'border-primary bg-primary/5' : photoPreview ? 'border-transparent' : 'border-border hover:border-primary/40 hover:bg-muted/30'"
                           >
                             <img v-if="photoPreview" :src="photoPreview" class="w-full h-full object-cover" alt="Preview" />
-                            <svg v-else class="w-6 h-6 text-muted-foreground/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
-                            </svg>
+                            <UploadCloud v-else class="w-6 h-6 text-muted-foreground/30" />
                           </div>
                           <div class="space-y-1">
                             <button type="button" @click="triggerFileInput" class="text-sm text-primary hover:text-primary/80 font-medium transition-colors block">
@@ -426,8 +421,8 @@ const steps = [
                             @input="clearError('specialty')"
                           />
                           <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                            <svg v-if="form.specialty" class="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                            <svg v-else class="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                            <Check v-if="form.specialty" class="w-4 h-4 text-primary" />
+                            <ChevronDown v-else class="w-4 h-4 text-muted-foreground" />
                           </div>
                           <div v-if="showSpecialtyDropdown && filteredSpecialties.length > 0"
                             class="absolute top-full left-0 right-0 mt-1 bg-popover border border-border rounded-lg shadow-lg z-20 max-h-48 overflow-y-auto">
@@ -438,12 +433,12 @@ const steps = [
                               :class="form.specialty === s ? 'bg-primary/10 text-primary font-medium' : 'text-foreground hover:bg-muted'"
                             >
                               {{ s }}
-                              <svg v-if="form.specialty === s" class="w-3.5 h-3.5 text-primary shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                              <Check v-if="form.specialty === s" class="w-3.5 h-3.5 text-primary shrink-0" />
                             </div>
                           </div>
                         </div>
                         <p v-if="errors.specialty" class="flex items-center gap-1.5 text-destructive text-xs font-medium mt-1">
-                          <svg class="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                          <AlertCircle class="w-3.5 h-3.5 shrink-0" />
                           {{ errors.specialty }}
                         </p>
                       </div>
@@ -488,7 +483,7 @@ const steps = [
                         />
                         <p class="text-xs text-muted-foreground">Shown on patient communications and invoices.</p>
                         <p v-if="errors.contact_email" class="flex items-center gap-1.5 text-destructive text-xs font-medium mt-1">
-                          <svg class="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                          <AlertCircle class="w-3.5 h-3.5 shrink-0" />
                           {{ errors.contact_email }}
                         </p>
                       </div>
@@ -500,7 +495,7 @@ const steps = [
                   <!-- Card footer: navigation -->
                   <div class="px-6 py-4 border-t border-border bg-muted/20 flex items-center justify-between gap-3">
                     <Button v-if="currentStep > 1" variant="outline" size="sm" class="gap-1.5" @click="back">
-                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16l-4-4m0 0l4-4m-4 4h18"/></svg>
+                      <ArrowLeft class="w-3.5 h-3.5" />
                       Back
                     </Button>
                     <div v-else />
@@ -512,11 +507,11 @@ const steps = [
                       >Skip</button>
                       <Button v-if="currentStep < TOTAL" size="sm" class="gap-1.5" @click="next">
                         Next
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+                        <ArrowRight class="w-3.5 h-3.5" />
                       </Button>
                       <Button v-else size="sm" class="gap-1.5" @click="finish">
                         Finish setup
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        <Check class="w-3.5 h-3.5" />
                       </Button>
                     </div>
                   </div>

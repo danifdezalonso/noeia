@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ChevronLeft, ChevronRight, Plus, Settings2, Eye } from 'lucide-vue-next'
+import { ChevronLeft, ChevronRight, Plus, Settings2, Eye, Gift, LayoutTemplate, Info, Library, Sparkles } from 'lucide-vue-next'
 import { Button } from '~/components/ui/button'
 import { ToggleGroup, ToggleGroupItem } from '~/components/ui/toggle-group'
 
@@ -248,13 +248,7 @@ onBeforeUnmount(() => { document.removeEventListener('click', handleOutsideClick
               <!-- Gift icon -->
               <div class="flex justify-center mb-6">
                 <div style="width: 56px; height: 56px; border-radius: 16px; background: rgba(232,61,89,0.08); display: flex; align-items: center; justify-content: center;">
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#E83D59" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="20 12 20 22 4 22 4 12" />
-                    <rect x="2" y="7" width="20" height="5" />
-                    <line x1="12" y1="22" x2="12" y2="7" />
-                    <path d="M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7z" />
-                    <path d="M12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z" />
-                  </svg>
+                  <Gift class="w-7 h-7 text-primary" />
                 </div>
               </div>
 
@@ -283,17 +277,11 @@ onBeforeUnmount(() => { document.removeEventListener('click', handleOutsideClick
                   <!-- Icon container -->
                   <div style="width: 36px; height: 36px; border-radius: 10px; background: oklch(0.96 0 0); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
                     <!-- template icon -->
-                    <svg v-if="item.icon === 'template'" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="oklch(0.4 0 0)" stroke-width="1.8" stroke-linecap="round">
-                      <rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18M9 21V9" />
-                    </svg>
+                    <LayoutTemplate v-if="item.icon === 'template'" class="w-[17px] h-[17px] text-muted-foreground" />
                     <!-- evidence icon -->
-                    <svg v-else-if="item.icon === 'evidence'" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="oklch(0.4 0 0)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                      <circle cx="12" cy="12" r="10" /><path d="M12 8v4M12 16h.01" />
-                    </svg>
+                    <Info v-else-if="item.icon === 'evidence'" class="w-[17px] h-[17px] text-muted-foreground" />
                     <!-- sources icon -->
-                    <svg v-else width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="oklch(0.4 0 0)" stroke-width="1.8" stroke-linecap="round">
-                      <path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18" />
-                    </svg>
+                    <Library v-else class="w-[17px] h-[17px] text-muted-foreground" />
                   </div>
                   <span style="font-size: 15px; color: oklch(0.22 0 0); font-family: 'Plus Jakarta Sans', system-ui; font-weight: 500;">{{ item.label }}</span>
                 </div>
@@ -306,9 +294,7 @@ onBeforeUnmount(() => { document.removeEventListener('click', handleOutsideClick
                 @click="trialOpen = false; router.replace('/doctor/dashboard/calendar')"
               >
                 <!-- Sparkle icon -->
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
-                  <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z" />
-                </svg>
+                <Sparkles class="w-4 h-4 text-white" />
                 Start my free trial
               </button>
 

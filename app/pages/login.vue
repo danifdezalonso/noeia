@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Loader2, ChevronRight } from 'lucide-vue-next'
 useHead({
   link: [
     { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
@@ -100,10 +101,7 @@ async function continueWithGoogle(role: 'doctor' | 'organization' | 'patient') {
                 <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
               </svg>
-              <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" class="animate-spin flex-shrink-0">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-opacity="0.2" stroke-width="4" />
-                <path fill="currentColor" fill-opacity="0.75" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
+              <Loader2 v-else class="animate-spin flex-shrink-0 w-4 h-4" />
               <span class="flex-1 text-left">{{ loading === role.key ? 'Connecting…' : 'Continue with Google' }}</span>
               <span style="font-size: 10.5px; font-weight: 600; padding: 2px 8px; border-radius: 20px; background: oklch(0.94 0 0); color: oklch(0.4 0 0); letter-spacing: 0.03em;">
                 {{ role.label }}
@@ -139,7 +137,7 @@ async function continueWithGoogle(role: 'doctor' | 'organization' | 'patient') {
               style="font-size: 11px; color: oklch(0.75 0 0); background: none; border: none; cursor: pointer; padding: 2px 0;"
               @click="devOpen = !devOpen"
             >
-              <svg :style="{ transform: devOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }" width="10" height="10" viewBox="0 0 10 10" fill="currentColor"><path d="M3 2l4 3-4 3V2z"/></svg>
+              <ChevronRight :class="['w-3.5 h-3.5 transition-transform duration-150', devOpen ? 'rotate-90' : '']" />
               Demo shortcuts
             </button>
             <div v-if="devOpen" class="flex flex-col gap-1.5 mt-3">

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { z } from 'zod'
-import { Eye, EyeOff } from 'lucide-vue-next'
+import { Eye, EyeOff, Check, AlertCircle, UploadCloud, X, ArrowLeft, ArrowRight } from 'lucide-vue-next'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
@@ -207,9 +207,7 @@ const heardFromOptions = ['Google search', 'LinkedIn', 'Referral', 'Conference',
           <!-- Success -->
           <div v-if="isComplete" class="text-center max-w-sm w-full">
             <div class="w-20 h-20 rounded-full bg-primary/10 border-2 border-primary/30 flex items-center justify-center mx-auto mb-6">
-              <svg class="w-10 h-10 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-              </svg>
+              <Check class="w-10 h-10 text-primary" />
             </div>
             <h2 class="text-2xl font-bold text-foreground mb-2">
               Welcome{{ form.clinicName ? ', ' + form.clinicName : '' }}!
@@ -236,9 +234,7 @@ const heardFromOptions = ['Google search', 'LinkedIn', 'Referral', 'Conference',
                           ? 'bg-primary/10 text-primary ring-primary/15 border-2 border-primary'
                           : 'bg-muted text-muted-foreground ring-transparent border border-border'"
                     >
-                      <svg v-if="currentStep > step.n" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
-                      </svg>
+                      <Check v-if="currentStep > step.n" class="w-4 h-4" />
                       <span v-else>{{ step.n }}</span>
                     </div>
                     <span class="text-[10px] font-semibold uppercase tracking-wide"
@@ -297,7 +293,7 @@ const heardFromOptions = ['Google search', 'LinkedIn', 'Referral', 'Conference',
                           @input="clearError('adminName')"
                         />
                         <p v-if="errors.adminName" class="flex items-center gap-1.5 text-destructive text-xs font-medium">
-                          <svg class="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                          <AlertCircle class="w-3.5 h-3.5 shrink-0" />
                           {{ errors.adminName }}
                         </p>
                       </div>
@@ -319,7 +315,7 @@ const heardFromOptions = ['Google search', 'LinkedIn', 'Referral', 'Conference',
                           </button>
                         </div>
                         <p v-if="errors.password" class="flex items-center gap-1.5 text-destructive text-xs font-medium">
-                          <svg class="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                          <AlertCircle class="w-3.5 h-3.5 shrink-0" />
                           {{ errors.password }}
                         </p>
                       </div>
@@ -343,7 +339,7 @@ const heardFromOptions = ['Google search', 'LinkedIn', 'Referral', 'Conference',
                           </button>
                         </div>
                         <p v-if="errors.confirmPassword" class="flex items-center gap-1.5 text-destructive text-xs font-medium">
-                          <svg class="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                          <AlertCircle class="w-3.5 h-3.5 shrink-0" />
                           {{ errors.confirmPassword }}
                         </p>
                       </div>
@@ -375,9 +371,7 @@ const heardFromOptions = ['Google search', 'LinkedIn', 'Referral', 'Conference',
                             :class="isDragging ? 'border-primary bg-primary/5' : form.logoPreview ? 'border-transparent' : 'border-border hover:border-primary/40 hover:bg-muted/30'"
                           >
                             <img v-if="form.logoPreview" :src="form.logoPreview" class="w-full h-full object-cover" alt="Logo" />
-                            <svg v-else class="w-6 h-6 text-muted-foreground/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
-                            </svg>
+                            <UploadCloud v-else class="w-6 h-6 text-muted-foreground/30" />
                           </div>
                           <div class="space-y-1">
                             <button type="button" @click="triggerLogoInput" class="text-sm text-primary hover:text-primary/80 font-medium transition-colors block">
@@ -404,7 +398,7 @@ const heardFromOptions = ['Google search', 'LinkedIn', 'Referral', 'Conference',
                           @input="clearError('clinicName')"
                         />
                         <p v-if="errors.clinicName" class="flex items-center gap-1.5 text-destructive text-xs font-medium">
-                          <svg class="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                          <AlertCircle class="w-3.5 h-3.5 shrink-0" />
                           {{ errors.clinicName }}
                         </p>
                       </div>
@@ -428,7 +422,7 @@ const heardFromOptions = ['Google search', 'LinkedIn', 'Referral', 'Conference',
                           class="flex items-center gap-1.5 bg-primary/10 text-primary text-xs font-medium px-3 py-1.5 rounded-full">
                           {{ email }}
                           <button type="button" @click="removeInvite(idx)" class="text-primary/50 hover:text-primary transition-colors">
-                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                            <X class="w-3 h-3" />
                           </button>
                         </div>
                       </div>
@@ -476,7 +470,7 @@ const heardFromOptions = ['Google search', 'LinkedIn', 'Referral', 'Conference',
                       </div>
 
                       <p v-if="errors.selectedPlan" class="flex items-center gap-1.5 text-destructive text-xs font-medium">
-                        <svg class="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                        <AlertCircle class="w-3.5 h-3.5 shrink-0" />
                         {{ errors.selectedPlan }}
                       </p>
 
@@ -487,7 +481,7 @@ const heardFromOptions = ['Google search', 'LinkedIn', 'Referral', 'Conference',
                   <!-- Footer: navigation -->
                   <div class="px-6 py-4 border-t border-border bg-muted/20 flex items-center justify-between gap-3">
                     <Button v-if="currentStep > 1" variant="outline" size="sm" class="gap-1.5" @click="back">
-                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16l-4-4m0 0l4-4m-4 4h18"/></svg>
+                      <ArrowLeft class="w-3.5 h-3.5" />
                       Back
                     </Button>
                     <div v-else />
@@ -497,11 +491,11 @@ const heardFromOptions = ['Google search', 'LinkedIn', 'Referral', 'Conference',
                       <button v-if="currentStep === 3" type="button" @click="skipInvites" class="text-sm text-muted-foreground hover:text-foreground transition-colors">Skip</button>
                       <Button v-if="currentStep < TOTAL" size="sm" class="gap-1.5" @click="next">
                         Next
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+                        <ArrowRight class="w-3.5 h-3.5" />
                       </Button>
                       <Button v-else size="sm" class="gap-1.5" @click="finish">
                         Finish setup
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        <Check class="w-3.5 h-3.5" />
                       </Button>
                     </div>
                   </div>

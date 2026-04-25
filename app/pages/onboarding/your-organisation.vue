@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Check, ChevronsUpDown, CheckCircle2, XCircle, Loader2 } from 'lucide-vue-next'
+import { Check, ChevronsUpDown, CheckCircle2, XCircle, Loader2, ChevronLeft, ArrowRight } from 'lucide-vue-next'
 import { SPECIALTIES, ROLES, TEAM_SIZES } from '~/composables/useOnboardingForm'
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '~/components/ui/command'
@@ -82,9 +82,7 @@ function handleContinue() {
       class="inline-flex items-center gap-1.5 mb-7 text-sm text-muted-foreground hover:text-foreground transition-colors bg-transparent border-none cursor-pointer p-0"
       @click="goBack"
     >
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round" />
-      </svg>
+      <ChevronLeft class="w-4 h-4" />
       Back
     </button>
 
@@ -226,9 +224,7 @@ function handleContinue() {
       <!-- Continue -->
       <Button class="w-full" size="lg" @click="handleContinue">
         Continue
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="ml-1">
-          <path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
+        <ArrowRight class="ml-1 w-4 h-4" />
       </Button>
     </div>
   </div>

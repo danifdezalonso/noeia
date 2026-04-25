@@ -2,6 +2,7 @@
 import { Button } from '~/components/ui/button'
 import { Card, CardContent } from '~/components/ui/card'
 import { Badge } from '~/components/ui/badge'
+import { ChevronLeft, Zap, Calendar, ArrowRight } from 'lucide-vue-next'
 
 definePageMeta({
   layout: 'onboarding',
@@ -26,9 +27,7 @@ function goToJoin() {
       to="/login"
       class="inline-flex items-center gap-1.5 mb-7 text-sm text-muted-foreground hover:text-foreground transition-colors"
     >
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round" />
-      </svg>
+      <ChevronLeft class="w-4 h-4" />
       Back to login
     </NuxtLink>
 
@@ -52,9 +51,7 @@ function goToJoin() {
       >
         <CardContent class="p-6">
           <div class="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center mb-4 text-primary">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
+            <Zap class="w-5 h-5" />
           </div>
           <h3 class="text-sm font-bold text-foreground mb-1.5">Jump right in</h3>
           <p class="text-xs text-muted-foreground leading-relaxed mb-4">
@@ -62,9 +59,7 @@ function goToJoin() {
           </p>
           <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-primary">
             Get started
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <path d="M5 12h14M12 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round" />
-            </svg>
+            <ArrowRight class="w-3.5 h-3.5" />
           </span>
         </CardContent>
       </Card>
@@ -76,10 +71,7 @@ function goToJoin() {
             Coming soon
           </Badge>
           <div class="w-11 h-11 rounded-xl bg-muted flex items-center justify-center mb-4">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-muted-foreground">
-              <rect x="3" y="4" width="18" height="18" rx="2" />
-              <path d="M16 2v4M8 2v4M3 10h18" stroke-linecap="round" />
-            </svg>
+            <Calendar class="w-5 h-5 text-muted-foreground" />
           </div>
           <h3 class="text-sm font-bold text-muted-foreground mb-1.5">Book a demo</h3>
           <p class="text-xs text-muted-foreground leading-relaxed mb-4">

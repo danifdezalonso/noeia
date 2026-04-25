@@ -4,6 +4,7 @@ import {
   ChevronsUpDown, FileText, Video, MapPin,
   CheckCircle2, XCircle, Clock, AlertCircle,
   CalendarDays, Pencil, Ban, Eye, RotateCcw, X, User,
+  Paperclip, MoreVertical,
 } from 'lucide-vue-next'
 import { format, parseISO, addDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, subWeeks, subMonths, startOfYear, endOfYear, isWithinInterval, startOfDay, endOfDay } from 'date-fns'
 import { parseDate } from '@internationalized/date'
@@ -657,9 +658,7 @@ function onSessionSaved(s: import('~/components/ScheduleSessionModal.vue').NewSe
                   <label class="flex items-center gap-2.5 cursor-pointer">
                     <Checkbox :checked="hasWithUploads" @update:checked="(v) => hasWithUploads = !!v" />
                     <div class="flex items-center gap-1.5">
-                      <svg class="w-3.5 h-3.5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                      </svg>
+                      <Paperclip class="w-3.5 h-3.5 text-muted-foreground" />
                       <span class="text-sm text-foreground">Has uploaded files</span>
                     </div>
                   </label>
@@ -805,9 +804,7 @@ function onSessionSaved(s: import('~/components/ScheduleSessionModal.vue').NewSe
                       <FileText class="w-3.5 h-3.5 text-muted-foreground" />{{ s.notes }}
                     </span>
                     <span v-if="s.uploads > 0" class="flex items-center gap-1 text-xs text-muted-foreground" :title="`${s.uploads} files`">
-                      <svg class="w-3.5 h-3.5 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                      </svg>
+                      <Paperclip class="w-3.5 h-3.5 text-muted-foreground" />
                       {{ s.uploads }}
                     </span>
                     <span v-if="s.notes === 0 && s.uploads === 0" class="text-xs text-muted-foreground">—</span>
@@ -839,9 +836,7 @@ function onSessionSaved(s: import('~/components/ScheduleSessionModal.vue').NewSe
                     <DropdownMenu>
                       <DropdownMenuTrigger as-child>
                         <Button variant="ghost" size="icon-sm">
-                          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                            <circle cx="10" cy="4" r="1.5" /><circle cx="10" cy="10" r="1.5" /><circle cx="10" cy="16" r="1.5" />
-                          </svg>
+                          <MoreVertical class="w-4 h-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" class="w-44">
@@ -952,9 +947,7 @@ function onSessionSaved(s: import('~/components/ScheduleSessionModal.vue').NewSe
               <span>{{ selectedSession.notes }} note{{ selectedSession.notes !== 1 ? 's' : '' }}</span>
             </div>
             <div class="flex items-center gap-1.5 text-sm text-foreground">
-              <svg class="w-4 h-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-              </svg>
+              <Paperclip class="w-4 h-4 text-muted-foreground" />
               <span>{{ selectedSession.uploads }} file{{ selectedSession.uploads !== 1 ? 's' : '' }}</span>
             </div>
           </div>

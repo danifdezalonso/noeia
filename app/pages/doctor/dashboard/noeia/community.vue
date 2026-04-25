@@ -2,7 +2,7 @@
 import {
   Search, ChevronDown, BadgeCheck, Users, FileText, File,
   ClipboardList, Star, ArrowUpDown, MapPin, Stethoscope, LayoutGrid,
-  X, Plus, Link2, Mail, ArrowLeft, LayoutDashboard, ChevronRight,
+  X, Plus, Link2, Mail, ArrowLeft, LayoutDashboard, ChevronRight, Check, Linkedin,
 } from 'lucide-vue-next'
 
 definePageMeta({ layout: 'dashboard' })
@@ -352,7 +352,7 @@ function copyLink() {
                   @click="addToLibrary"
                 >
                   <template v-if="addedToLibrary">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                    <Check class="w-4 h-4" />
                     Added to library
                   </template>
                   <template v-else>
@@ -390,7 +390,7 @@ function copyLink() {
                       class="w-9 h-9 rounded-lg border border-border bg-background/60 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                       title="Share on LinkedIn"
                     >
-                      <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg>
+                      <Linkedin class="w-4 h-4" />
                     </button>
                     <button
                       class="w-9 h-9 rounded-lg border border-border bg-background/60 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
