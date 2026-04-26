@@ -4,10 +4,10 @@ import {
   UserRound, Mail, Phone, CalendarDays, Link2,
   Pencil, Trash2, Eye, CalendarPlus, UserX, MoreVertical,
   GripVertical, Check, Menu, ArrowUpRight, Activity,
-  ChevronDown as ChevronDownIcon,
+  ChevronDown as ChevronDownIcon, AlignJustify, Rows3,
 } from 'lucide-vue-next'
 import { format, parseISO } from 'date-fns'
-import { markRaw, ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { markRaw, ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter
 } from '~/components/ui/table'
@@ -15,6 +15,14 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuGroup,
 } from '~/components/ui/dropdown-menu'
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '~/components/ui/select'
+import {
+  Pagination, PaginationContent, PaginationEllipsis,
+  PaginationFirst, PaginationItem, PaginationLast,
+  PaginationNext, PaginationPrevious,
+} from '~/components/ui/pagination'
 import { Button } from '~/components/ui/button'
 import { Input } from '~/components/ui/input'
 import { Badge } from '~/components/ui/badge'
@@ -52,7 +60,27 @@ const patients = ref<Patient[]>([
   { id: 'p7',  name: 'Lucia Fernández', initials: 'LF', email: 'lucia.fernandez@gmail.com',   phone: '+34 666 111 222',   dob: '1980-12-25', status: 'active',     related: [{ id: 'p8', name: "Michael O'Brien",  relationship: 'Partner' }], sessionCount: 11, lastSession: '2026-02-21' },
   { id: 'p8',  name: "Michael O'Brien", initials: 'MO', email: 'mob@outlook.com',             phone: '+353 87 123 4567',  dob: '1979-04-18', status: 'inactive',   related: [{ id: 'p7', name: 'Lucia Fernández',  relationship: 'Partner' }], sessionCount: 2,  lastSession: '2026-01-28' },
   { id: 'p9',  name: 'Hannah Kim',      initials: 'HK', email: 'hannah.kim@studio.kr',        phone: '+82 10 1234 5678',  dob: '1996-06-10', status: 'active',     related: [], sessionCount: 9,  lastSession: '2026-02-19' },
-  { id: 'p10', name: 'David Okafor',    initials: 'DO', email: 'david.okafor@work.ng',        phone: '+234 801 234 5678', dob: '1982-08-03', status: 'discharged', related: [], sessionCount: 18, lastSession: '2025-11-15' },
+  { id: 'p10', name: 'David Okafor',      initials: 'DO', email: 'david.okafor@work.ng',          phone: '+234 801 234 5678', dob: '1982-08-03', status: 'discharged', related: [], sessionCount: 18, lastSession: '2025-11-15' },
+  { id: 'p11', name: 'Isabel Gómez',      initials: 'IG', email: 'isabel.gomez@correo.es',         phone: '+34 677 234 890',   dob: '1991-02-28', status: 'active',     related: [{ id: 'p12', name: 'Rafael Gómez',    relationship: 'Sibling' }], sessionCount: 7,  lastSession: '2026-02-18' },
+  { id: 'p12', name: 'Rafael Gómez',      initials: 'RG', email: 'rafa.gomez@gmail.com',           phone: '+34 677 234 891',   dob: '1988-09-14', status: 'on-hold',    related: [{ id: 'p11', name: 'Isabel Gómez',    relationship: 'Sibling' }], sessionCount: 4,  lastSession: '2026-01-22' },
+  { id: 'p13', name: 'Yuki Tanaka',        initials: 'YT', email: 'yuki.tanaka@mail.jp',            phone: '+81 90 1234 5678',  dob: '1995-07-07', status: 'active',     related: [], sessionCount: 12, lastSession: '2026-02-21' },
+  { id: 'p14', name: 'Fatima Al-Rashid',   initials: 'FA', email: 'fatima.alrashid@outlook.com',   phone: '+971 50 123 4567',  dob: '1987-11-19', status: 'active',     related: [], sessionCount: 9,  lastSession: '2026-02-14' },
+  { id: 'p15', name: 'Luca Rossi',         initials: 'LR', email: 'luca.rossi@email.it',            phone: '+39 347 123 4567',  dob: '1993-04-05', status: 'inactive',   related: [], sessionCount: 3,  lastSession: '2025-12-10' },
+  { id: 'p16', name: 'Valentina Cruz',     initials: 'VC', email: 'valentina.cruz@empresa.mx',      phone: '+52 55 1234 5678',  dob: '1990-08-22', status: 'active',     related: [{ id: 'p17', name: 'Andrés Cruz',     relationship: 'Partner' }], sessionCount: 16, lastSession: '2026-02-20' },
+  { id: 'p17', name: 'Andrés Cruz',        initials: 'AC', email: 'andres.cruz@empresa.mx',         phone: '+52 55 1234 5679',  dob: '1989-03-11', status: 'active',     related: [{ id: 'p16', name: 'Valentina Cruz',  relationship: 'Partner' }], sessionCount: 10, lastSession: '2026-02-19' },
+  { id: 'p18', name: 'Priya Sharma',       initials: 'PS', email: 'priya.sharma@company.in',        phone: '+91 98765 43210',   dob: '1992-12-03', status: 'active',     related: [], sessionCount: 6,  lastSession: '2026-02-17' },
+  { id: 'p19', name: 'Oliver Müller',      initials: 'OM', email: 'oliver.mueller@post.de',         phone: '+49 151 1234 5678', dob: '1984-06-17', status: 'discharged', related: [], sessionCount: 22, lastSession: '2025-10-30' },
+  { id: 'p20', name: 'Ana Belén Ruiz',     initials: 'AR', email: 'anabelen.ruiz@correo.es',        phone: '+34 691 456 789',   dob: '1998-01-09', status: 'active',     related: [], sessionCount: 5,  lastSession: '2026-02-21' },
+  { id: 'p21', name: 'Tom Nguyen',         initials: 'TN', email: 'tom.nguyen@techstart.vn',        phone: '+84 90 123 4567',   dob: '1994-10-31', status: 'on-hold',    related: [], sessionCount: 2,  lastSession: '2026-01-05' },
+  { id: 'p22', name: 'Sara Lindqvist',     initials: 'SL', email: 'sara.lindqvist@post.se',         phone: '+46 70 123 45 67',  dob: '1986-05-26', status: 'active',     related: [], sessionCount: 13, lastSession: '2026-02-18' },
+  { id: 'p23', name: 'Mohammed Al-Farsi',  initials: 'MA', email: 'm.alfarsi@work.om',              phone: '+968 9123 4567',    dob: '1981-07-14', status: 'inactive',   related: [], sessionCount: 1,  lastSession: '2025-11-20' },
+  { id: 'p24', name: 'Clara Dubois',       initials: 'CD', email: 'clara.dubois@mail.fr',           phone: '+33 6 12 34 56 78', dob: '1996-03-30', status: 'active',     related: [{ id: 'p25', name: 'Paul Dubois',     relationship: 'Sibling' }], sessionCount: 8,  lastSession: '2026-02-16' },
+  { id: 'p25', name: 'Paul Dubois',        initials: 'PD', email: 'paul.dubois@mail.fr',            phone: '+33 6 12 34 56 79', dob: '1993-11-11', status: 'active',     related: [{ id: 'p24', name: 'Clara Dubois',    relationship: 'Sibling' }], sessionCount: 5,  lastSession: '2026-02-15' },
+  { id: 'p26', name: 'Elena Popescu',      initials: 'EP', email: 'elena.popescu@email.ro',         phone: '+40 721 123 456',   dob: '1989-09-08', status: 'active',     related: [], sessionCount: 11, lastSession: '2026-02-20' },
+  { id: 'p27', name: 'José Antonio Vega',  initials: 'JV', email: 'joseantonio.vega@gmail.com',     phone: '+34 605 789 012',   dob: '1977-04-23', status: 'discharged', related: [], sessionCount: 30, lastSession: '2025-09-12' },
+  { id: 'p28', name: 'Nadia Kowalski',     initials: 'NK', email: 'nadia.kowalski@poczta.pl',       phone: '+48 501 234 567',   dob: '1997-08-16', status: 'active',     related: [], sessionCount: 4,  lastSession: '2026-02-13' },
+  { id: 'p29', name: 'Sebastián Morales',  initials: 'SM', email: 'sebastian.morales@correo.cl',    phone: '+56 9 1234 5678',   dob: '1983-02-07', status: 'on-hold',    related: [], sessionCount: 6,  lastSession: '2026-01-30' },
+  { id: 'p30', name: 'Chloe van der Berg', initials: 'CB', email: 'chloe.vanderberg@mail.nl',       phone: '+31 6 12345678',    dob: '1995-05-20', status: 'active',     related: [], sessionCount: 9,  lastSession: '2026-02-22' },
 ])
 
 // ── Views & Filters ──────────────────────────────────────────────────────────
@@ -94,6 +122,37 @@ const filtered = computed(() => {
     return 0
   })
   return list
+})
+
+// ── Display mode & Pagination ────────────────────────────────────────────────
+
+type DisplayMode = 'scroll' | 'paginate'
+const displayMode   = ref<DisplayMode>('scroll')
+const pageSize      = ref(10)
+const currentPage   = ref(1)
+const pageSizeOptions = [10, 15, 20, 25, 50]
+
+watch([filtered, displayMode, pageSize], () => { currentPage.value = 1 })
+
+const totalPages = computed(() => Math.max(1, Math.ceil(filtered.value.length / pageSize.value)))
+
+const displayedRows = computed(() => {
+  if (displayMode.value === 'scroll') return filtered.value
+  const start = (currentPage.value - 1) * pageSize.value
+  return filtered.value.slice(start, start + pageSize.value)
+})
+
+const pageStart = computed(() => Math.min((currentPage.value - 1) * pageSize.value + 1, filtered.value.length))
+const pageEnd   = computed(() => Math.min(currentPage.value * pageSize.value, filtered.value.length))
+
+function goToPage(p: number) { currentPage.value = Math.max(1, Math.min(p, totalPages.value)) }
+
+const pageNumbers = computed((): (number | '...')[] => {
+  const total = totalPages.value, cur = currentPage.value
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+  if (cur <= 4)        return [1, 2, 3, 4, 5, '...', total]
+  if (cur >= total - 3) return [1, '...', total - 4, total - 3, total - 2, total - 1, total]
+  return [1, '...', cur - 1, cur, cur + 1, '...', total]
 })
 
 // ── Columns & Options ────────────────────────────────────────────────────────
@@ -294,8 +353,8 @@ const statusMeta: Record<PatientStatus, { label: string; dot: string; badge: str
 </script>
 
 <template>
-  <div class="flex-1 overflow-y-auto min-h-0 p-4 sm:p-6 bg-muted/10">
-    <div class="mx-auto max-w-[1440px] w-full flex flex-col space-y-5">
+  <div class="flex-1 min-h-0 flex flex-col p-4 sm:p-6 bg-muted/10">
+    <div class="mx-auto max-w-[1440px] w-full flex flex-col flex-1 min-h-0 gap-5">
 
       <!-- Page header -->
       <div class="flex flex-wrap items-start justify-between gap-3 shrink-0">
@@ -306,7 +365,7 @@ const statusMeta: Record<PatientStatus, { label: string; dot: string; badge: str
       </div>
 
       <!-- Data Grid Card -->
-      <div class="bg-card border border-border rounded-xl shadow-sm flex flex-col overflow-hidden">
+      <div class="bg-card border border-border rounded-xl shadow-sm flex flex-col overflow-hidden flex-1 min-h-0">
 
         <!-- Toolbar -->
         <div class="border-b border-border px-4 py-2.5 shrink-0 bg-card">
@@ -410,6 +469,26 @@ const statusMeta: Record<PatientStatus, { label: string; dot: string; badge: str
                 </DropdownMenuContent>
               </DropdownMenu>
 
+              <!-- Scroll / Pages toggle (icon only) -->
+              <div class="hidden sm:flex items-center gap-0.5 bg-muted/50 border border-border rounded-md p-0.5">
+                <button
+                  class="flex items-center justify-center w-7 h-6 rounded transition-all"
+                  :class="displayMode === 'scroll' ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'"
+                  title="Scroll mode"
+                  @click="displayMode = 'scroll'"
+                >
+                  <AlignJustify class="w-3.5 h-3.5" />
+                </button>
+                <button
+                  class="flex items-center justify-center w-7 h-6 rounded transition-all"
+                  :class="displayMode === 'paginate' ? 'bg-card shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'"
+                  title="Pages mode"
+                  @click="displayMode = 'paginate'"
+                >
+                  <Rows3 class="w-3.5 h-3.5" />
+                </button>
+              </div>
+
               <div class="w-[1px] h-5 bg-border mx-1.5 hidden sm:block" />
 
               <Button size="sm" class="h-8 text-sm px-3.5 shadow-sm rounded-md" @click="newPatientModalOpen = true">
@@ -432,7 +511,7 @@ const statusMeta: Record<PatientStatus, { label: string; dot: string; badge: str
         </div>
 
         <!-- Data Grid Table -->
-        <div ref="tableWrapperRef" class="overflow-x-auto bg-card">
+        <div ref="tableWrapperRef" class="overflow-x-auto bg-card flex-1 min-h-0" :class="displayMode === 'scroll' ? 'overflow-y-auto' : 'overflow-y-visible'">
           <Table aria-label="Patients Directory" class="table-fixed border-collapse" :style="{ width: `max(100%, ${gridMinWidth}px)` }">
             <colgroup>
               <col v-for="col in visibleColumns" :key="col.key" :style="{ width: col.computedWidth + 'px' }" />
@@ -511,7 +590,7 @@ const statusMeta: Record<PatientStatus, { label: string; dot: string; badge: str
               </TableRow>
 
               <TableRow
-                v-for="p in filtered" :key="p.id"
+                v-for="p in displayedRows" :key="p.id"
                 class="group border-b border-border hover:bg-foreground/[0.04] even:bg-foreground/[0.02] transition-colors"
               >
                 <TableCell
@@ -641,12 +720,12 @@ const statusMeta: Record<PatientStatus, { label: string; dot: string; badge: str
               </TableRow>
             </TableBody>
 
-            <!-- Summary Footer -->
-            <TableFooter class="bg-card sticky bottom-0">
-              <TableRow class="hover:bg-transparent border-t border-border shadow-[0_-1px_3px_rgba(0,0,0,0.02)]">
+            <!-- Summary Footer (scroll mode only) -->
+            <TableFooter v-if="displayMode === 'scroll'" class="bg-card z-10 sticky bottom-0">
+              <TableRow class="hover:bg-transparent border-t border-border">
                 <TableCell
                   v-for="col in visibleColumns" :key="col.key"
-                  class="px-4 border-r py-3 text-xs font-semibold tracking-wider text-muted-foreground uppercase"
+                  class="px-4 border-r py-2.5 text-xs font-semibold tracking-wider text-muted-foreground uppercase"
                 >
                   <template v-if="col.key === 'name'">
                     {{ filtered.length }} PATIENT{{ filtered.length !== 1 ? 'S' : '' }}
@@ -663,6 +742,59 @@ const statusMeta: Record<PatientStatus, { label: string; dot: string; badge: str
             </TableFooter>
           </Table>
         </div>
+
+      </div>
+
+      <!-- ── Pagination bar (Pages mode only) ── -->
+      <div v-if="displayMode === 'paginate'" class="shrink-0 flex items-center gap-4">
+
+        <!-- Per page (left) -->
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-muted-foreground whitespace-nowrap">Per page</span>
+          <Select :model-value="String(pageSize)" @update:model-value="(v) => { pageSize = Number(v); currentPage = 1 }">
+            <SelectTrigger class="h-8 text-xs w-16 px-2">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem v-for="s in pageSizeOptions" :key="s" :value="String(s)" class="text-xs">{{ s }}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <!-- Pagination (center, takes remaining space) -->
+        <div class="flex-1 flex justify-center">
+          <Pagination
+            :total="filtered.length"
+            :items-per-page="pageSize"
+            :page="currentPage"
+            :sibling-count="1"
+            show-edges
+            @update:page="goToPage"
+          >
+            <PaginationContent v-slot="{ items }">
+              <PaginationFirst />
+              <PaginationPrevious />
+              <template v-for="(item, idx) in items" :key="idx">
+                <PaginationItem
+                  v-if="item.type === 'page'"
+                  :value="item.value"
+                  :is-active="item.value === currentPage"
+                >
+                  {{ item.value }}
+                </PaginationItem>
+                <PaginationEllipsis v-else :index="idx" />
+              </template>
+              <PaginationNext />
+              <PaginationLast />
+            </PaginationContent>
+          </Pagination>
+        </div>
+
+        <!-- Showing X–Y of Z (right, mirrors left width) -->
+        <p class="text-xs text-muted-foreground tabular-nums whitespace-nowrap hidden md:block" style="min-width: 6rem; text-align: right;">
+          {{ pageStart }}–{{ pageEnd }} of {{ filtered.length }}
+        </p>
+
       </div>
 
     </div>
