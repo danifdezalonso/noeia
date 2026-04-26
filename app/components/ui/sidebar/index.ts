@@ -19,7 +19,8 @@ export { default as SidebarInset } from './SidebarInset.vue'
 
 export interface SidebarContext {
   open: Ref<boolean>
-  mobileOpen: Ref<boolean>
+  openMobile: Ref<boolean>
+  setOpenMobile: (value: boolean) => void
   isMobile: Ref<boolean>
   toggleSidebar: () => void
   state: ComputedRef<'expanded' | 'collapsed'>

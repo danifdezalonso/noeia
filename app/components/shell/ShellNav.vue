@@ -43,7 +43,7 @@ const { persona } = usePersona()
 const isDark = useDark()
 const toggleDark = useToggle(isDark)
 
-const { mobileOpen, state, isMobile, toggleSidebar } = useSidebar()
+const { openMobile, setOpenMobile, state, isMobile, toggleSidebar } = useSidebar()
 const iconOnly = computed(() => state.value === 'collapsed' && !isMobile.value)
 
 const iconMap: Record<string, Component> = {
@@ -285,7 +285,7 @@ function submitCreateOrg() {
                     <SidebarMenuButton
                       :is-active="isActive(item.path)"
                       :tooltip="item.label"
-                      @click="mobileOpen = false; navigateTo(item.path)"
+                      @click="setOpenMobile(false); navigateTo(item.path)"
                     >
                       <Sparkles />
                       <span>{{ item.label }}</span>
@@ -312,7 +312,7 @@ function submitCreateOrg() {
                             ? 'text-sidebar-foreground bg-sidebar-accent font-medium'
                             : 'text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent'
                         ]"
-                        @click="mobileOpen = false"
+                        @click="setOpenMobile(false)"
                       >
                         <component :is="sub.icon" class="w-3.5 h-3.5 shrink-0" />
                         {{ sub.label }}
@@ -328,7 +328,7 @@ function submitCreateOrg() {
                   as-child
                   :is-active="isActive(item.path)"
                   :tooltip="item.label"
-                  @click="mobileOpen = false"
+                  @click="setOpenMobile(false)"
                 >
                   <NuxtLink :to="item.path">
                     <component :is="iconMap[item.icon]" />
@@ -348,7 +348,7 @@ function submitCreateOrg() {
           <SidebarMenu>
             <!-- Org-section items from navItems (e.g. Office for org persona) -->
             <SidebarMenuItem v-for="item in shell.navItems.value.filter(i => i.section === 'organization')" :key="item.id">
-              <SidebarMenuButton as-child :is-active="isActive(item.path)" :tooltip="item.label" @click="mobileOpen = false">
+              <SidebarMenuButton as-child :is-active="isActive(item.path)" :tooltip="item.label" @click="setOpenMobile(false)">
                 <NuxtLink :to="item.path">
                   <component :is="iconMap[item.icon]" />
                   <span>{{ item.label }}</span>
@@ -357,7 +357,7 @@ function submitCreateOrg() {
             </SidebarMenuItem>
             <!-- Team (doctor persona) -->
             <SidebarMenuItem v-if="persona.role === 'doctor'">
-              <SidebarMenuButton as-child :is-active="isActive('/doctor/dashboard/team')" tooltip="Team" @click="mobileOpen = false">
+              <SidebarMenuButton as-child :is-active="isActive('/doctor/dashboard/team')" tooltip="Team" @click="setOpenMobile(false)">
                 <NuxtLink to="/doctor/dashboard/team">
                   <Users />
                   <span>Team</span>

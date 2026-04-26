@@ -10,6 +10,7 @@ import {
 import { useEventListener } from '@vueuse/core'
 import { SHELL_KEY } from '~/composables/useDashboard'
 import { Button } from '~/components/ui/button'
+import { SidebarTrigger } from '~/components/ui/sidebar'
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuTrigger,
   DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel,
@@ -76,6 +77,9 @@ const notifications = [
   />
 
   <header class="relative h-14 bg-sidebar border border-sidebar-border flex items-center px-3 sm:px-4 gap-2 sm:gap-3 z-50 flex-shrink-0 mx-2 mt-2 rounded-xl shadow-sm">
+
+    <!-- ── Mobile sidebar trigger ── -->
+    <SidebarTrigger class="md:hidden flex-shrink-0" />
 
     <!-- ── Center: Command search trigger ── -->
     <div class="flex-1 min-w-0">
