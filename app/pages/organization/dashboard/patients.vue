@@ -4,7 +4,7 @@ import {
   UserRound, Mail, Phone, CalendarDays, Link2,
   Pencil, Trash2, Eye, CalendarPlus, UserX, MoreVertical,
   GripVertical, Check, Menu, ArrowUpRight, Activity,
-  ChevronDown as ChevronDownIcon, AlignJustify, Rows3,
+  ChevronDown as ChevronDownIcon, AlignJustify, Rows3, SlidersHorizontal,
 } from 'lucide-vue-next'
 import { format, parseISO } from 'date-fns'
 import { markRaw, ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
@@ -369,45 +369,46 @@ const statusMeta: Record<PatientStatus, { label: string; dot: string; badge: str
 
         <!-- Toolbar -->
         <div class="border-b border-border px-4 py-2.5 shrink-0 bg-card">
-          <!-- Row 1: View dropdown + right controls -->
           <div class="flex items-center justify-between gap-2">
-            <!-- Left: View Dropdown -->
-            <DropdownMenu>
-              <DropdownMenuTrigger as-child>
-                <Button variant="ghost" size="sm" class="text-muted-foreground text-sm font-medium h-8 px-2.5 hover:bg-muted">
-                  <Menu class="w-4 h-4 mr-2" />
-                  {{ viewOptions.find(o => o.value === currentView)?.label }}
-                  <span class="ml-1.5 opacity-70">&middot; {{ filtered.length }}</span>
-                  <ChevronDownIcon class="w-3.5 h-3.5 ml-1.5 opacity-50" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" class="w-48">
-                <DropdownMenuLabel class="text-xs text-muted-foreground font-normal">Views</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  v-for="v in viewOptions" :key="v.value"
-                  @click="currentView = v.value"
-                  class="cursor-pointer text-sm"
-                  :class="currentView === v.value ? 'font-medium text-foreground bg-muted/50' : 'text-muted-foreground'"
-                >
-                  {{ v.label }}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+
+            <!-- Left: Search -->
+            <div class="relative flex-1 max-w-xs">
+              <Search class="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+              <Input
+                v-model="search"
+                placeholder="Search patients..."
+                class="h-8 w-full pl-8 text-sm border-transparent bg-muted/50 hover:bg-muted focus-visible:bg-background focus-visible:border-primary/30 focus-visible:ring-1 focus-visible:ring-primary shadow-none rounded-md transition-all"
+              />
+            </div>
 
             <!-- Right controls -->
             <div class="flex items-center gap-1.5">
-              <!-- Search: hidden on mobile (shown in row 2) -->
-              <div class="relative mr-2 hidden sm:block">
-                <Search class="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                <Input
-                  v-model="search"
-                  placeholder="Search..."
-                  class="h-8 w-56 pl-8 text-sm border-transparent bg-muted/50 hover:bg-muted focus-visible:bg-background focus-visible:border-primary/30 focus-visible:ring-1 focus-visible:ring-primary shadow-none rounded-md transition-all"
-                />
-              </div>
 
-              <!-- Sort Dropdown: desktop only -->
+              <!-- View Dropdown -->
+              <DropdownMenu>
+                <DropdownMenuTrigger as-child>
+                  <Button variant="ghost" size="sm" class="text-muted-foreground text-sm font-medium h-8 px-2.5 hover:bg-muted hidden sm:flex">
+                    <Menu class="w-4 h-4 mr-2" />
+                    {{ viewOptions.find(o => o.value === currentView)?.label }}
+                    <span class="ml-1.5 opacity-70">&middot; {{ filtered.length }}</span>
+                    <ChevronDownIcon class="w-3.5 h-3.5 ml-1.5 opacity-50" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" class="w-48">
+                  <DropdownMenuLabel class="text-xs text-muted-foreground font-normal">Views</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    v-for="v in viewOptions" :key="v.value"
+                    @click="currentView = v.value"
+                    class="cursor-pointer text-sm"
+                    :class="currentView === v.value ? 'font-medium text-foreground bg-muted/50' : 'text-muted-foreground'"
+                  >
+                    {{ v.label }}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <!-- Sort Dropdown -->
               <DropdownMenu>
                 <DropdownMenuTrigger as-child>
                   <Button variant="ghost" size="sm" class="text-muted-foreground h-8 text-sm px-3 font-medium hover:bg-muted hidden sm:flex">
@@ -429,7 +430,7 @@ const statusMeta: Record<PatientStatus, { label: string; dot: string; badge: str
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              <!-- Options Dropdown: desktop only -->
+              <!-- Options Dropdown -->
               <DropdownMenu>
                 <DropdownMenuTrigger as-child>
                   <Button variant="ghost" size="sm" class="text-muted-foreground h-8 text-sm px-3 font-medium hover:bg-muted hidden sm:flex">
@@ -469,7 +470,7 @@ const statusMeta: Record<PatientStatus, { label: string; dot: string; badge: str
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              <!-- Scroll / Pages toggle (icon only) -->
+              <!-- Scroll / Pages toggle (icon only, desktop) -->
               <div class="hidden sm:flex items-center gap-0.5 bg-muted/50 border border-border rounded-md p-0.5">
                 <button
                   class="flex items-center justify-center w-7 h-6 rounded transition-all"
@@ -489,23 +490,62 @@ const statusMeta: Record<PatientStatus, { label: string; dot: string; badge: str
                 </button>
               </div>
 
+              <!-- Mobile: all options in a single dropdown -->
+              <DropdownMenu>
+                <DropdownMenuTrigger as-child>
+                  <Button variant="ghost" size="icon" class="sm:hidden h-8 w-8 text-muted-foreground hover:bg-muted">
+                    <SlidersHorizontal class="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" class="w-52">
+
+                  <DropdownMenuLabel class="text-xs text-muted-foreground font-normal">View</DropdownMenuLabel>
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem
+                      v-for="v in viewOptions" :key="v.value"
+                      @click="currentView = v.value"
+                      class="cursor-pointer text-sm justify-between"
+                    >
+                      {{ v.label }}
+                      <Check v-if="currentView === v.value" class="w-3.5 h-3.5 text-primary" />
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel class="text-xs text-muted-foreground font-normal">Sort by</DropdownMenuLabel>
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem
+                      v-for="col in columnsState.filter(c => c.sortable)" :key="col.key"
+                      @click="toggleSort(col.key as SortKey)"
+                      class="text-sm cursor-pointer justify-between"
+                    >
+                      {{ col.label }}
+                      <ChevronUp   v-if="sortKey === col.key && sortDir === 'asc'"  class="w-3.5 h-3.5 text-primary" />
+                      <ChevronDown v-if="sortKey === col.key && sortDir === 'desc'" class="w-3.5 h-3.5 text-primary" />
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+
+                  <DropdownMenuSeparator />
+                  <DropdownMenuLabel class="text-xs text-muted-foreground font-normal">Display</DropdownMenuLabel>
+                  <DropdownMenuGroup>
+                    <DropdownMenuItem @click="displayMode = 'scroll'" class="text-sm cursor-pointer justify-between">
+                      <div class="flex items-center gap-2"><AlignJustify class="w-3.5 h-3.5" /> Scroll</div>
+                      <Check v-if="displayMode === 'scroll'" class="w-3.5 h-3.5 text-primary" />
+                    </DropdownMenuItem>
+                    <DropdownMenuItem @click="displayMode = 'paginate'" class="text-sm cursor-pointer justify-between">
+                      <div class="flex items-center gap-2"><Rows3 class="w-3.5 h-3.5" /> Pages</div>
+                      <Check v-if="displayMode === 'paginate'" class="w-3.5 h-3.5 text-primary" />
+                    </DropdownMenuItem>
+                  </DropdownMenuGroup>
+
+                </DropdownMenuContent>
+              </DropdownMenu>
+
               <div class="w-[1px] h-5 bg-border mx-1.5 hidden sm:block" />
 
               <Button size="sm" class="h-8 text-sm px-3.5 shadow-sm rounded-md" @click="newPatientModalOpen = true">
                 <Plus class="w-4 h-4 mr-1.5" /> New Patient
               </Button>
-            </div>
-          </div>
-
-          <!-- Row 2: full-width search on mobile only -->
-          <div class="mt-2 sm:hidden">
-            <div class="relative">
-              <Search class="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-              <Input
-                v-model="search"
-                placeholder="Search..."
-                class="h-8 w-full pl-8 text-sm border-transparent bg-muted/50 hover:bg-muted focus-visible:bg-background focus-visible:border-primary/30 focus-visible:ring-1 focus-visible:ring-primary shadow-none rounded-md transition-all"
-              />
             </div>
           </div>
         </div>
