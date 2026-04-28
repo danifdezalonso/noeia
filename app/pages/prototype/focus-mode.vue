@@ -446,7 +446,7 @@ const noeSuggestedPrompts = [
 </script>
 
 <template>
-  <div class="h-screen w-screen flex flex-col bg-[#0A0A0A] text-zinc-100 overflow-hidden font-sans">
+  <div class="fixed inset-0 z-50 flex flex-col bg-[#0A0A0A] text-zinc-100 overflow-hidden font-sans">
     
     <!-- Top Bar -->
     <header class="h-[52px] shrink-0 border-b border-white/10 flex items-center justify-between px-4 bg-[#0A0A0A] z-20">
