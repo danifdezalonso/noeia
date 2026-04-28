@@ -1,806 +1,653 @@
 <script setup lang="ts">
 definePageMeta({ layout: false })
 
-import { ref, onMounted, onUnmounted, computed, shallowRef } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
-import {
-  useEditor,
-  EditorContent,
-  Extension,
-  Mark,
-  mergeAttributes
-} from '@tiptap/vue-3'
+import { useEditor, EditorContent, Mark, mergeAttributes } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import Highlight from '@tiptap/extension-highlight'
-import Underline from '@tiptap/extension-underline'
 import Placeholder from '@tiptap/extension-placeholder'
 import CharacterCount from '@tiptap/extension-character-count'
-import TaskList from '@tiptap/extension-task-list'
-import TaskItem from '@tiptap/extension-task-item'
 import {
-  MessageSquare,
-  CalendarDays,
-  X,
-  ArrowLeft,
-  Send,
-  Bold,
-  Italic,
-  Underline as UnderlineIcon,
-  Highlighter,
-  Link as LinkIcon,
-  Heading1,
-  Heading2,
-  List,
-  CheckSquare,
-  Minus,
-  MessageSquarePlus,
-  PanelRightClose,
-  PanelRightOpen,
-  Sparkles,
-  Search,
-  Maximize2
+  ArrowLeft, Send, PanelRightClose, PanelRightOpen, Sparkles, X
 } from 'lucide-vue-next'
 
-// --- Mock Data ---
-const patient = {
-  id: 'p_mia_anderson',
-  name: 'Mia Anderson',
-  totalSessions: 6,
-}
+// ── Mock data ──────────────────────────────────────────────────────────────
+
+const patient = { name: 'Mia Anderson', totalSessions: 6 }
 
 const sessions = [
   {
-    id: 's6',
-    number: 6,
-    dateLabel: '28 abr',
-    time: '14:00',
-    status: 'scheduled',
-    type: 'follow-up',
-    note: null,
+    id: 's6', number: 6, date: '28 abr', time: '14:00',
+    status: 'scheduled', type: 'follow-up',
+    title: null, note: null,
   },
   {
-    id: 's5',
-    number: 5,
-    dateLabel: 'today',
-    time: '01:54',
-    status: 'current',
-    type: 'follow-up',
-    title: 'Sleep diary review · CBT-I phase 2',
-    note: `# Sleep diary review · CBT-I phase 2
-
-**Session focus:** CBT-I sleep restriction phase.
-
-Maddy completed the diary for the full week. Sleep efficiency improved to 78% (target ≥85%). She is still resisting the strict wake time on weekends — explored underlying beliefs about "catching up".
-
-Introduced sleep window narrowing: 00:00–06:30 this week.`,
+    id: 's5', number: 5, date: 'Hoy', time: '01:54',
+    status: 'current', type: 'follow-up',
+    title: 'Sleep diary review · CBT-I fase 2', note: null,
   },
   {
-    id: 's4',
-    number: 4,
-    dateLabel: '23 abr',
-    time: '15:00',
-    status: 'past',
-    type: 'follow-up',
-    title: 'Sleep restriction adherence',
-    note: `# Sleep restriction adherence
-
-Reviewed week 1 of sleep restriction. Adherence patchy on weekends. Discussed cognitive reframe of "lost sleep". Set diary as homework. 2 tasks assigned.`,
+    id: 's4', number: 4, date: '23 abr', time: '15:00',
+    status: 'past', type: 'follow-up',
+    title: 'Adherencia a la restricción de sueño',
+    note: 'Revisión semana 1 de restricción de sueño. Adherencia irregular en fines de semana. Reencuadre cognitivo de "sueño perdido". Diario asignado como tarea.',
   },
   {
-    id: 's3',
-    number: 3,
-    dateLabel: '19 abr',
-    time: '16:00',
-    status: 'past',
-    type: 'follow-up',
-    title: 'Psychoeducation: sleep drive',
-    note: `# Psychoeducation: sleep drive
-
-Walked Maddy through process-S and process-C. She found the framing useful and asked good clarifying questions about caffeine timing.`,
+    id: 's3', number: 3, date: '19 abr', time: '16:00',
+    status: 'past', type: 'follow-up',
+    title: 'Psicoeducación: impulso de sueño',
+    note: 'Explicación de los procesos S y C a Maddy. Encontró el marco útil y formuló buenas preguntas sobre el momento óptimo de la cafeína.',
   },
   {
-    id: 's2',
-    number: 2,
-    dateLabel: '12 abr',
-    time: '16:00',
-    status: 'past',
-    type: 'follow-up',
-    title: 'Introducing sleep restriction',
-    note: `# Introducing sleep restriction
-
-Baseline efficiency 64%. First sleep window: 00:30–07:00. Maddy expressed scepticism about earlier waking — agreed to try for one week.`,
+    id: 's2', number: 2, date: '12 abr', time: '16:00',
+    status: 'past', type: 'follow-up',
+    title: 'Introducción a la restricción de sueño',
+    note: 'Eficiencia basal: 64%. Primera ventana de sueño: 00:30–07:00. Maddy expresó escepticismo sobre madrugar pero aceptó intentarlo una semana.',
   },
   {
-    id: 's1',
-    number: 1,
-    dateLabel: '30 mar',
-    time: '16:00',
-    status: 'past',
-    type: 'intake',
+    id: 's1', number: 1, date: '30 mar', time: '16:00',
+    status: 'past', type: 'intake',
     title: 'Intake',
-    note: `# Intake
-
-Presenting concern: chronic insomnia, ~6 months. Onset coincided with job change.
-
-Sleep history: mother used to wake her early on weekends to "reset the schedule". Maddy frames her current weekend lie-in as resistance.
-
-Working diagnosis: chronic insomnia disorder. Plan: CBT-I, 6-session protocol.`,
+    note: 'Motivo de consulta: insomnio crónico, ~6 meses. Inicio coincide con cambio laboral.\n\nHistoria de sueño: la madre la despertaba los fines de semana para "resetear el horario". Maddy enmarca su grasa matutina actual como resistencia.\n\nDiagnóstico de trabajo: trastorno de insomnio crónico. Plan: TCC-I, protocolo de 6 sesiones.',
   },
 ]
 
-const initialComments = [
+const noeInitialMessages = [
   {
-    id: 'c1',
-    anchor: { from: 0, to: 0 },
-    anchorText: 'underlying beliefs about "catching up"',
-    author: { name: 'Maria García', initials: 'MG' },
-    body: 'Worth flagging — this "catching up" belief might tie back to her intake notes about parental sleep messages. Check session #1?',
-    replies: [],
-    resolvedAt: null,
-    createdAt: new Date().toISOString(),
+    role: 'user' as const,
+    text: "¿Cuál fue la eficiencia de sueño de Maddy esta sesión?",
+  },
+  {
+    role: 'noe' as const,
+    text: "De la nota de hoy:\n\n- **Eficiencia de sueño: 78%** (objetivo ≥85%)\n- Diario completado la semana entera ✓\n- Hora de despertar en fin de semana aún resistida\n- Nueva ventana de sueño: 00:00–06:30\n\nLa creencia de \"recuperar sueño\" es la palanca cognitiva clave para la próxima sesión.",
   },
 ]
 
 const noeResponses: Record<string, string> = {
-  'summarize key themes': `Three themes:
-
-- **Adherence ambivalence** — diary engagement strong, weekend wake-time resisted
-- **Sub-threshold efficiency** — 78%, target 85% to advance the window
-- **Cognitive lever** — "catching up" belief surfaced
-
-Likely next session: cognitive work on the catching-up belief.`,
-
-  'suggest follow-up questions': `Three to consider for next session:
-
-1. What goes through your mind on Sunday morning when you stay in bed?
-2. How would the week feel if you held the wake time consistently?
-3. Where did the idea of "catching up" first come from?`,
-
-  'what did we cover 2 weeks ago': `Session #2 (12 abr) introduced sleep restriction. Key points:
-
-- Baseline efficiency 64%
-- First sleep window: 00:30–07:00
-- Maddy expressed scepticism about earlier waking but agreed to try for one week`,
-
-  'session 1': `From the intake (30 mar):
-
-> "Mother used to wake her early on weekends to 'reset the schedule'. Maddy frames her current weekend lie-in as resistance."`,
+  'temas': `Tres temas recurrentes:\n\n- **Ambivalencia de adherencia** — diario fuerte, fines de semana resistidos\n- **Eficiencia sub-umbral** — 78% vs objetivo 85%\n- **Palanca cognitiva** — creencia de "recuperar sueño" emergió`,
+  'preguntas': `Preguntas para la próxima sesión:\n\n1. ¿Qué pasa por tu mente el domingo por la mañana en cama?\n2. ¿De dónde surgió la idea de "recuperar sueño"?\n3. ¿Cómo sería la semana con una hora de despertar consistente?`,
+  'sesión 1': `Del intake (30 mar):\n\n> "La madre la despertaba los fines de semana para 'resetear el horario'. Maddy enmarca su grasa matutina actual como resistencia."`,
+  'session 1': `Del intake (30 mar):\n\n> "La madre la despertaba los fines de semana para 'resetear el horario'. Maddy enmarca su grasa matutina actual como resistencia."`,
 }
+const noeFallback = `En la versión real respondería desde todas las notas de sesión. Prueba: "resumen de temas", "preguntas de seguimiento", o "sesión 1".`
 
-const noeFallback = `In a real version I'd answer this from the full session context. For the prototype, try one of: "summarize key themes", "suggest follow-up questions", "what did we cover 2 weeks ago".`
+// ── Custom Comment Mark ────────────────────────────────────────────────────
 
-// --- Custom Comment Mark ---
 const CommentMark = Mark.create({
   name: 'comment',
-  addOptions() {
-    return { HTMLAttributes: { class: 'comment-mark' } }
-  },
+  addOptions() { return { HTMLAttributes: { class: 'comment-mark' } } },
   addAttributes() {
     return {
       commentId: {
         default: null,
-        parseHTML: element => element.getAttribute('data-comment-id'),
-        renderHTML: attributes => {
-          if (!attributes.commentId) return {}
-          return { 'data-comment-id': attributes.commentId }
-        }
-      }
+        parseHTML: (el) => el.getAttribute('data-comment-id'),
+        renderHTML: (attrs) => attrs.commentId ? { 'data-comment-id': attrs.commentId } : {},
+      },
     }
   },
   parseHTML() { return [{ tag: 'span[data-comment-id]' }] },
   renderHTML({ HTMLAttributes }) {
     return ['span', mergeAttributes(this.options.HTMLAttributes, HTMLAttributes), 0]
-  }
+  },
 })
 
-// --- State ---
+// ── State ──────────────────────────────────────────────────────────────────
+
 const router = useRouter()
-const activeLeftPanel = ref<'sessions' | 'comments' | null>(null)
-const peekSession = ref<typeof sessions[0] | null>(null)
 
-const isNoeCollapsed = ref(false)
-const noeSidebarWidth = ref(400)
-const isDraggingSidebar = ref(false)
+const sidebarOpen  = ref(false)
+const sidebarPinned = ref(false)
+const peekSession  = ref<typeof sessions[0] | null>(null)
 
-const noeMessages = ref<{ role: 'user' | 'noe', text: string }[]>([])
-const noeInput = ref('')
-const isNoeTyping = ref(false)
+const noeCollapsed  = ref(false)
+const noeMessages   = ref([...noeInitialMessages])
+const noeInput      = ref('')
+const isNoeTyping   = ref(false)
+const noeChatEl     = ref<HTMLElement | null>(null)
 
-const comments = ref([...initialComments])
-const commentFilter = ref<'all' | 'open' | 'resolved' | 'mine'>('all')
+// ── Editor ─────────────────────────────────────────────────────────────────
 
-const newCommentActive = ref(false)
-const newCommentText = ref('')
-const newCommentAnchor = ref<{ from: number, to: number } | null>(null)
+const editorHTML = `<h1>Sleep diary review · CBT-I fase 2</h1><p><strong>Foco de sesión:</strong> Fase de restricción de sueño TCC-I.</p><p>Maddy completó el diario la semana completa. La eficiencia de sueño mejoró al 78% (objetivo ≥85%). Sigue resistiendo la hora fija de despertar en fines de semana — exploradas <span data-comment-id="c1" class="comment-mark">creencias subyacentes sobre "recuperar sueño"</span>.</p><p>Introducida ventana de sueño reducida: 00:00–06:30 esta semana.</p>`
 
-const activeSession = sessions.find(s => s.status === 'current')!
-
-// --- Bubble Menu State ---
-const bubbleMenuVisible = ref(false)
-const bubbleMenuCoords = ref({ top: 0, left: 0 })
-
-const bubbleMenuStyle = computed(() => ({
-  position: 'fixed' as const,
-  top: (bubbleMenuCoords.value.top - 8) + 'px',
-  left: bubbleMenuCoords.value.left + 'px',
-  transform: 'translate(-50%, -100%)',
-  zIndex: 50,
-}))
-
-function updateBubbleMenu() {
-  if (!editor.value) { bubbleMenuVisible.value = false; return }
-  const { from, to, empty } = editor.value.state.selection
-  if (empty) { bubbleMenuVisible.value = false; return }
-  const startCoords = editor.value.view.coordsAtPos(from)
-  const endCoords = editor.value.view.coordsAtPos(to)
-  bubbleMenuCoords.value = {
-    top: Math.min(startCoords.top, endCoords.top),
-    left: (startCoords.left + endCoords.right) / 2,
-  }
-  bubbleMenuVisible.value = true
-}
-
-// --- Editor Setup ---
 const editor = useEditor({
-  content: activeSession.note,
+  content: editorHTML,
   extensions: [
-    StarterKit.configure({
-      codeBlock: false,
-      heading: { levels: [1, 2, 3] }
-    }),
+    StarterKit.configure({ codeBlock: false, heading: { levels: [1, 2, 3] } }),
     Highlight.configure({ multicolor: true }),
-    Underline,
-    Placeholder.configure({ placeholder: 'Start writing…' }),
+    Placeholder.configure({ placeholder: 'Empieza a escribir…' }),
     CharacterCount,
-    TaskList,
-    TaskItem.configure({ nested: true }),
-    CommentMark
+    CommentMark,
   ],
   editorProps: {
     attributes: {
-      class: 'prose prose-invert prose-p:leading-relaxed prose-p:font-normal prose-headings:font-medium focus:outline-none max-w-none text-[16px] leading-[1.7]',
+      class: 'prose prose-invert prose-p:leading-relaxed prose-headings:font-semibold focus:outline-none max-w-none text-[16px] leading-[1.75]',
     },
   },
-  onUpdate: () => { updateBubbleMenu() },
-  onSelectionUpdate: () => { updateBubbleMenu() },
-  onBlur: () => { bubbleMenuVisible.value = false },
 })
 
-// Insert initial comment mark into editor on mount
-onMounted(() => {
-  if (editor.value) {
-    // A quick hack to find the text and wrap it in the mark
-    const textToFind = initialComments[0].anchorText
-    let pos = -1
-    editor.value.state.doc.descendants((node, p) => {
-      if (node.isText && node.text?.includes(textToFind)) {
-        pos = p + node.text.indexOf(textToFind)
-      }
-    })
-    if (pos !== -1) {
-      initialComments[0].anchor = { from: pos, to: pos + textToFind.length }
-      editor.value.commands.setTextSelection({ from: pos, to: pos + textToFind.length })
-      editor.value.commands.setMark('comment', { commentId: 'c1' })
-      editor.value.commands.setTextSelection(pos + textToFind.length) // clear selection
-    }
-  }
-})
+const wordCount = computed(() => editor.value?.storage.characterCount.words() ?? 0)
 
-// --- Handlers ---
-const toggleLeftPanel = (panel: 'sessions' | 'comments') => {
-  if (activeLeftPanel.value === panel) activeLeftPanel.value = null
-  else activeLeftPanel.value = panel
+// ── Computed ───────────────────────────────────────────────────────────────
+
+const isSidebarVisible  = computed(() => sidebarOpen.value || sidebarPinned.value)
+const sidebarPanelWidth = computed(() => isSidebarVisible.value ? '260px' : '0px')
+const noePanelWidth     = computed(() => noeCollapsed.value ? '48px' : '360px')
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+
+function formatNoeText(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n- /g, '<br/>• ')
+    .replace(/\n/g, '<br/>')
 }
 
-const closePeek = () => {
-  peekSession.value = null
+// ── Handlers ───────────────────────────────────────────────────────────────
+
+function toggleSidebar() {
+  sidebarOpen.value = !sidebarOpen.value
+  if (!sidebarOpen.value) sidebarPinned.value = false
 }
 
-const sendNoeMessage = async () => {
+function openPeek(session: typeof sessions[0]) {
+  if (session.status === 'current') return
+  peekSession.value = session
+}
+
+async function sendNoe() {
   const text = noeInput.value.trim()
-  if (!text) return
-
+  if (!text || isNoeTyping.value) return
   noeMessages.value.push({ role: 'user', text })
   noeInput.value = ''
   isNoeTyping.value = true
-
-  const normalized = text.toLowerCase()
-  let response = noeFallback
-  for (const [trigger, res] of Object.entries(noeResponses)) {
-    if (normalized.includes(trigger)) {
-      response = res
-      break
-    }
-  }
-
-  // Simulate delay
-  await new Promise(r => setTimeout(r, 600 + Math.random() * 600))
+  await new Promise(r => setTimeout(r, 650 + Math.random() * 550))
   isNoeTyping.value = false
+  const lower = text.toLowerCase()
+  let response = noeFallback
+  for (const [key, val] of Object.entries(noeResponses)) {
+    if (lower.includes(key)) { response = val; break }
+  }
   noeMessages.value.push({ role: 'noe', text: response })
+  await nextTick()
+  if (noeChatEl.value) noeChatEl.value.scrollTop = noeChatEl.value.scrollHeight
 }
 
-const handleSidebarDrag = (e: MouseEvent) => {
-  if (!isDraggingSidebar.value) return
-  // Sidebar is on the right, so width is window.innerWidth - e.clientX
-  let newWidth = window.innerWidth - e.clientX
-  if (newWidth < 320) newWidth = 320
-  if (newWidth > 560) newWidth = 560
-  noeSidebarWidth.value = newWidth
-}
-
-const stopSidebarDrag = () => {
-  isDraggingSidebar.value = false
-  document.removeEventListener('mousemove', handleSidebarDrag)
-  document.removeEventListener('mouseup', stopSidebarDrag)
-  document.body.style.cursor = ''
-}
-
-const startSidebarDrag = () => {
-  isDraggingSidebar.value = true
-  document.addEventListener('mousemove', handleSidebarDrag)
-  document.addEventListener('mouseup', stopSidebarDrag)
-  document.body.style.cursor = 'col-resize'
-}
-
-const handleKeydown = (e: KeyboardEvent) => {
+function handleKeydown(e: KeyboardEvent) {
   if (e.key === 'Escape') {
-    if (peekSession.value) peekSession.value = null
-    else if (newCommentActive.value) newCommentActive.value = false
-    else if (activeLeftPanel.value) activeLeftPanel.value = null
+    if (peekSession.value) { peekSession.value = null; return }
+    if (sidebarOpen.value && !sidebarPinned.value) { sidebarOpen.value = false; return }
   }
-  if (e.metaKey && e.key === '.') {
-    e.preventDefault()
-    console.log('Focus mode toggled')
-  }
-  if (e.metaKey && e.key === '\\') {
-    e.preventDefault()
-    toggleLeftPanel('sessions')
-  }
-  if (e.metaKey && e.altKey && e.key === 'm') {
-    e.preventDefault()
-    startComment()
-  }
+  if (e.metaKey && e.key === '[') { e.preventDefault(); toggleSidebar() }
+  if (e.metaKey && e.key === '.') { e.preventDefault() }
 }
 
-onMounted(() => {
-  window.addEventListener('keydown', handleKeydown)
-})
-
+onMounted(() => window.addEventListener('keydown', handleKeydown))
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeydown)
+  editor.value?.destroy()
 })
-
-const startComment = () => {
-  if (!editor.value || editor.value.state.selection.empty) return
-  const { from, to } = editor.value.state.selection
-  newCommentAnchor.value = { from, to }
-  newCommentActive.value = true
-  // Focus the input would happen here (using a ref on the textarea)
-}
-
-const saveComment = () => {
-  if (!newCommentText.value.trim() || !newCommentAnchor.value || !editor.value) return
-  const id = 'c' + Date.now()
-  const text = editor.value.state.doc.textBetween(newCommentAnchor.value.from, newCommentAnchor.value.to)
-  
-  editor.value.commands.setTextSelection(newCommentAnchor.value)
-  editor.value.commands.setMark('comment', { commentId: id })
-  editor.value.commands.setTextSelection(newCommentAnchor.value.to)
-
-  comments.value.push({
-    id,
-    anchor: newCommentAnchor.value,
-    anchorText: text,
-    author: { name: 'Dr. Clinician', initials: 'DC' },
-    body: newCommentText.value,
-    replies: [],
-    resolvedAt: null,
-    createdAt: new Date().toISOString()
-  })
-
-  newCommentText.value = ''
-  newCommentActive.value = false
-  newCommentAnchor.value = null
-  activeLeftPanel.value = 'comments'
-}
-
-const scrollToComment = (id: string) => {
-  // Simple scroll mock
-  const el = document.querySelector('[data-comment-id="' + id + '"]')
-  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-}
-
-const resolveComment = (id: string) => {
-  const c = comments.value.find(x => x.id === id)
-  if (c) {
-    c.resolvedAt = c.resolvedAt ? null : new Date().toISOString()
-  }
-}
-
-const wordCount = computed(() => editor.value?.storage.characterCount.words() || 0)
-const taskCount = computed(() => {
-  if (!editor.value) return { total: 0, checked: 0 }
-  let total = 0
-  let checked = 0
-  editor.value.state.doc.descendants((node) => {
-    if (node.type.name === 'taskItem') {
-      total++
-      if (node.attrs.checked) checked++
-    }
-  })
-  return { total, checked }
-})
-
-const filteredComments = computed(() => {
-  if (commentFilter.value === 'open') return comments.value.filter(c => !c.resolvedAt)
-  if (commentFilter.value === 'resolved') return comments.value.filter(c => !!c.resolvedAt)
-  if (commentFilter.value === 'mine') return comments.value.filter(c => c.author.initials === 'DC')
-  return comments.value
-})
-
-const noeSuggestedPrompts = [
-  "Summarize key themes",
-  "Suggest follow-up questions",
-  "What did we cover 2 weeks ago?"
-]
 </script>
 
 <template>
-  <div class="fixed inset-0 z-50 flex flex-col bg-[#0A0A0A] text-zinc-100 overflow-hidden font-sans">
-    
-    <!-- Top Bar -->
-    <header class="h-[52px] shrink-0 border-b border-white/10 flex items-center justify-between px-4 bg-[#0A0A0A] z-20">
+  <div class="fixed inset-0 flex flex-col bg-[#0A0A0A] text-zinc-100 overflow-hidden font-sans antialiased select-none">
+
+    <!-- ── Header ──────────────────────────────────────────────────────── -->
+    <header class="h-[52px] shrink-0 border-b border-white/[0.07] flex items-center justify-between px-4 bg-[#0A0A0A] z-10">
       <div class="flex items-center gap-3">
-        <button class="p-1.5 hover:bg-white/10 rounded-md transition-colors" @click="router.back()">
+        <button
+          class="p-1.5 hover:bg-white/[0.08] rounded-md transition-colors"
+          @click="router.back()"
+        >
           <ArrowLeft class="w-4 h-4 text-zinc-400" />
         </button>
-        <div class="flex items-center gap-2">
-          <span class="font-medium hover:underline cursor-pointer">{{ patient.name }}</span>
-          <span class="text-zinc-500">·</span>
-          <span class="text-zinc-500 text-sm">{{ patient.totalSessions }} sessions</span>
+        <div class="flex items-center gap-2 text-sm">
+          <span class="font-medium text-zinc-100">{{ patient.name }}</span>
+          <span class="text-zinc-700">·</span>
+          <span class="text-zinc-500 text-xs">{{ patient.totalSessions }} sesiones</span>
         </div>
       </div>
+
       <div class="flex items-center gap-3">
         <div class="flex items-center gap-1.5">
-          <div class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
-          <span class="text-xs font-medium text-red-500">12:43</span>
+          <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+          <span class="text-xs font-mono font-medium text-red-400">12:43</span>
         </div>
-        <div class="w-px h-3.5 bg-white/10"></div>
-        <span class="text-xs text-zinc-500 flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500/80"></span> Saved</span>
-        <div class="w-px h-3.5 bg-white/10"></div>
-        <button class="px-3 py-1.5 text-sm font-medium bg-white/10 hover:bg-white/15 rounded-md transition-colors">
-          Transcribe
+        <span class="text-zinc-800">|</span>
+        <span class="text-xs text-zinc-500 flex items-center gap-1.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500/80 inline-block"></span>
+          Guardado
+        </span>
+        <span class="text-zinc-800">|</span>
+        <button class="px-3 py-1.5 text-xs font-medium bg-white/[0.06] hover:bg-white/[0.1] rounded-md transition-colors">
+          Transcribir
         </button>
         <button
-          class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors border"
-          style="background:rgba(233,69,96,0.12);border-color:rgba(233,69,96,0.3);color:rgb(233,69,96);"
+          class="px-3 py-1.5 text-xs font-medium rounded-md border transition-colors"
+          style="background:rgba(239,68,68,0.08);border-color:rgba(239,68,68,0.2);color:rgb(252,165,165);"
           @click="router.back()"
-          title="Exit focus mode (⌘.)"
         >
-          Focus
+          Foco activo
         </button>
       </div>
     </header>
 
-    <div class="flex-1 flex overflow-hidden relative">
-      
-      <!-- Left Rail -->
-      <div class="w-[40px] shrink-0 border-r border-white/10 bg-[#0A0A0A] flex flex-col items-center py-4 gap-4 z-20">
-        <button 
-          :class="['p-2 rounded-md transition-colors', activeLeftPanel === 'sessions' ? 'bg-white/10 text-white' : 'text-zinc-400 hover:text-white hover:bg-white/5']"
-          title="Sessions (Cmd+\\)"
-          @click="toggleLeftPanel('sessions')"
-        >
-          <CalendarDays class="w-4 h-4" />
-        </button>
-        <button 
-          :class="['p-2 rounded-md transition-colors relative', activeLeftPanel === 'comments' ? 'bg-white/10 text-white' : 'text-zinc-400 hover:text-white hover:bg-white/5']"
-          title="Comments"
-          @click="toggleLeftPanel('comments')"
-        >
-          <MessageSquare class="w-4 h-4" />
-          <span v-if="comments.filter(c => !c.resolvedAt).length > 0" class="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
-        </button>
-      </div>
+    <!-- ── Body ────────────────────────────────────────────────────────── -->
+    <div class="flex-1 flex overflow-hidden min-h-0">
 
-      <!-- Slide-over Left Panel -->
-      <div 
-        :class="['absolute top-0 bottom-0 left-[40px] w-[240px] bg-[#121212] border-r border-white/10 z-10 transition-transform duration-300 flex flex-col', activeLeftPanel ? 'translate-x-0' : '-translate-x-full']"
-      >
-        <!-- Sessions Panel -->
-        <div v-if="activeLeftPanel === 'sessions'" class="flex-1 flex flex-col min-h-0">
-          <div class="p-3 border-b border-white/5">
-            <div class="relative">
-              <Search class="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-500" />
-              <input type="text" placeholder="Search sessions..." class="w-full bg-white/5 border border-white/10 rounded-md py-1.5 pl-8 pr-3 text-xs text-white placeholder:text-zinc-500 focus:outline-none focus:border-white/20" />
-            </div>
-          </div>
-          <div class="flex-1 overflow-y-auto p-2 space-y-1">
-            <button 
-              v-for="session in sessions" :key="session.id"
-              class="w-full text-left p-2 rounded-md hover:bg-white/5 transition-colors group flex items-start gap-2"
-              @click="peekSession = session"
-            >
-              <div class="mt-1 flex shrink-0 justify-center w-3">
-                <div v-if="session.status === 'scheduled'" class="w-1.5 h-1.5 rounded-full border border-dashed border-zinc-500"></div>
-                <div v-else-if="session.status === 'past'" class="w-1.5 h-1.5 rounded-full bg-zinc-600"></div>
-                <div v-else class="w-1.5 h-1.5 rounded-full bg-red-500"></div>
-              </div>
-              <div class="min-w-0 flex-1">
-                <div class="flex items-center justify-between">
-                  <span class="text-xs font-medium text-zinc-200">Session #{{ session.number }}</span>
-                  <span class="text-[10px] text-zinc-500">{{ session.dateLabel }}</span>
-                </div>
-                <p class="text-xs text-zinc-500 truncate mt-0.5">{{ session.title || session.type }}</p>
-              </div>
-            </button>
-          </div>
-        </div>
+      <!-- ── Left zone: icon rail + session sidebar ─────────────────── -->
+      <div class="flex shrink-0">
 
-        <!-- Comments Panel -->
-        <div v-else-if="activeLeftPanel === 'comments'" class="flex-1 flex flex-col min-h-0">
-          <div class="p-3 border-b border-white/5">
-            <h3 class="text-sm font-medium mb-3">Comments</h3>
-            <div class="flex flex-wrap gap-1.5">
-              <button v-for="f in ['all', 'open', 'resolved', 'mine']" :key="f" 
-                :class="['text-[10px] px-2 py-1 rounded-full capitalize transition-colors', commentFilter === f ? 'bg-amber-500/20 text-amber-500 border border-amber-500/30' : 'bg-white/5 text-zinc-400 border border-transparent hover:bg-white/10']"
-                @click="commentFilter = f as any"
-              >
-                {{ f }}
-              </button>
-            </div>
-          </div>
-          <div class="flex-1 overflow-y-auto p-3 space-y-3">
-            <div v-if="filteredComments.length === 0" class="text-xs text-zinc-500 text-center mt-4">
-              No comments found.
-            </div>
-            <div v-for="comment in filteredComments" :key="comment.id" 
-              :class="['p-3 rounded-lg border text-xs cursor-pointer transition-colors', comment.resolvedAt ? 'bg-white/5 border-transparent opacity-60' : 'bg-[#1A1A1A] border-white/10 hover:border-white/20']"
-              @click="scrollToComment(comment.id)"
-            >
-              <div class="flex items-center justify-between mb-2">
-                <div class="flex items-center gap-1.5">
-                  <div class="w-5 h-5 rounded-full bg-zinc-800 flex items-center justify-center text-[9px] font-medium text-zinc-300">
-                    {{ comment.author.initials }}
-                  </div>
-                  <span class="font-medium text-zinc-300">{{ comment.author.name }}</span>
-                </div>
-                <button @click.stop="resolveComment(comment.id)" title="Toggle resolve" class="text-zinc-500 hover:text-white">
-                  <CheckSquare class="w-3.5 h-3.5" />
-                </button>
-              </div>
-              <blockquote class="pl-2 border-l-2 border-zinc-700 text-zinc-500 mb-2 italic line-clamp-2">
-                "{{ comment.anchorText }}"
-              </blockquote>
-              <p class="text-zinc-200">{{ comment.body }}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Peek Slide-over -->
-      <div 
-        :class="['absolute top-0 bottom-0 left-[280px] w-[500px] bg-[#0A0A0A] border-r border-white/10 z-10 transition-transform duration-300 flex flex-col shadow-2xl', peekSession ? 'translate-x-0' : '-translate-x-full']"
-        style="box-shadow: 20px 0 25px -5px rgba(0,0,0,0.5);"
-      >
-        <div v-if="peekSession" class="flex-1 flex flex-col min-h-0">
-          <div class="p-4 flex items-center justify-between border-b border-white/5">
-            <div>
-              <div class="text-xs text-zinc-500 mb-1">Session #{{ peekSession.number }} · {{ peekSession.dateLabel }}</div>
-              <h2 class="text-lg font-medium">{{ peekSession.title || peekSession.type }}</h2>
-            </div>
-            <button class="p-1.5 hover:bg-white/10 rounded-md transition-colors" @click="closePeek">
-              <X class="w-4 h-4 text-zinc-400" />
-            </button>
-          </div>
-          <div class="flex-1 overflow-y-auto p-6 prose prose-invert prose-sm max-w-none text-zinc-300">
-            <div v-if="peekSession.note" v-html="peekSession.note.replace(/\\n/g, '<br/>')"></div>
-            <div v-else class="text-zinc-500 italic">No notes for this session.</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Center Editor Area -->
-      <div class="flex-1 flex flex-col relative min-w-0 bg-[#0A0A0A]">
-        
-        <!-- Sticky Editor Toolbar -->
-        <div class="sticky top-0 z-10 mx-auto w-full max-w-[820px] pt-4 px-12">
-          <div class="flex items-center gap-1 p-1 bg-white/5 border border-white/10 rounded-lg backdrop-blur-md w-fit shadow-sm">
-            <button @click="editor?.chain().focus().toggleHeading({ level: 1 }).run()" :class="['p-1.5 rounded hover:bg-white/10 transition-colors', editor?.isActive('heading', { level: 1 }) ? 'bg-white/10 text-white' : 'text-zinc-400']"><Heading1 class="w-4 h-4" /></button>
-            <button @click="editor?.chain().focus().toggleHeading({ level: 2 }).run()" :class="['p-1.5 rounded hover:bg-white/10 transition-colors', editor?.isActive('heading', { level: 2 }) ? 'bg-white/10 text-white' : 'text-zinc-400']"><Heading2 class="w-4 h-4" /></button>
-            <div class="w-px h-4 bg-white/10 mx-1"></div>
-            <button @click="editor?.chain().focus().toggleBold().run()" :class="['p-1.5 rounded hover:bg-white/10 transition-colors', editor?.isActive('bold') ? 'bg-white/10 text-white' : 'text-zinc-400']"><Bold class="w-4 h-4" /></button>
-            <button @click="editor?.chain().focus().toggleItalic().run()" :class="['p-1.5 rounded hover:bg-white/10 transition-colors', editor?.isActive('italic') ? 'bg-white/10 text-white' : 'text-zinc-400']"><Italic class="w-4 h-4" /></button>
-            <button @click="editor?.chain().focus().toggleUnderline().run()" :class="['p-1.5 rounded hover:bg-white/10 transition-colors', editor?.isActive('underline') ? 'bg-white/10 text-white' : 'text-zinc-400']"><UnderlineIcon class="w-4 h-4" /></button>
-            <button @click="editor?.chain().focus().toggleHighlight().run()" :class="['p-1.5 rounded hover:bg-white/10 transition-colors', editor?.isActive('highlight') ? 'bg-amber-500/20 text-amber-500' : 'text-zinc-400']"><Highlighter class="w-4 h-4" /></button>
-            <div class="w-px h-4 bg-white/10 mx-1"></div>
-            <button @click="editor?.chain().focus().toggleBulletList().run()" :class="['p-1.5 rounded hover:bg-white/10 transition-colors', editor?.isActive('bulletList') ? 'bg-white/10 text-white' : 'text-zinc-400']"><List class="w-4 h-4" /></button>
-            <button @click="editor?.chain().focus().toggleTaskList().run()" :class="['p-1.5 rounded hover:bg-white/10 transition-colors', editor?.isActive('taskList') ? 'bg-white/10 text-white' : 'text-zinc-400']"><CheckSquare class="w-4 h-4" /></button>
-            <div class="w-px h-4 bg-white/10 mx-1"></div>
-            <button @click="startComment" class="p-1.5 rounded hover:bg-white/10 text-zinc-400 transition-colors" title="Comment (⌥⌘M)"><MessageSquarePlus class="w-4 h-4" /></button>
-          </div>
-        </div>
-
-        <!-- Editor Content -->
-        <div class="flex-1 overflow-y-auto pb-32">
-          <div class="mx-auto w-full max-w-[820px] px-12 py-10">
-            <EditorContent :editor="editor" v-if="editor" />
-          </div>
-        </div>
-
-        <!-- Sticky Footer inside Editor area -->
-        <div class="absolute bottom-0 left-0 right-0 p-4 pointer-events-none">
-          <div class="mx-auto w-full max-w-[820px] px-12 flex justify-between items-center opacity-70 pointer-events-auto">
-            <div class="flex items-center gap-4 text-xs text-zinc-500">
-              <span>{{ wordCount }} words</span>
-              <span>{{ comments.length }} comments</span>
-              <span>{{ taskCount.checked }}/{{ taskCount.total }} tasks</span>
-            </div>
-            <div class="text-xs text-zinc-500 flex items-center gap-1.5">
-              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Autosaved
-            </div>
-          </div>
-        </div>
-
-        <!-- Custom Bubble Menu (shown on text selection) -->
-        <Teleport to="body">
-          <div
-            v-if="bubbleMenuVisible && editor"
-            :style="bubbleMenuStyle"
-            class="flex bg-zinc-800 border border-white/10 rounded-lg shadow-xl overflow-hidden p-1 gap-0.5"
+        <!-- Icon rail (always 48px) -->
+        <div class="w-12 flex flex-col items-center pt-4 gap-2 border-r border-white/[0.07] bg-[#0A0A0A]">
+          <button
+            :class="[
+              'p-2.5 rounded-xl transition-all duration-150',
+              isSidebarVisible
+                ? 'bg-white/[0.1] text-zinc-100 shadow-sm'
+                : 'text-zinc-600 hover:text-zinc-300 hover:bg-white/[0.06]'
+            ]"
+            title="Sesiones (⌘[)"
+            @click="toggleSidebar"
           >
-            <button @click="editor.chain().focus().toggleBold().run()" :class="['p-1.5 hover:bg-white/10 rounded', editor.isActive('bold') ? 'bg-white/10 text-white' : 'text-zinc-300']"><Bold class="w-4 h-4" /></button>
-            <button @click="editor.chain().focus().toggleItalic().run()" :class="['p-1.5 hover:bg-white/10 rounded', editor.isActive('italic') ? 'bg-white/10 text-white' : 'text-zinc-300']"><Italic class="w-4 h-4" /></button>
-            <button @click="editor.chain().focus().toggleUnderline().run()" :class="['p-1.5 hover:bg-white/10 rounded', editor.isActive('underline') ? 'bg-white/10 text-white' : 'text-zinc-300']"><UnderlineIcon class="w-4 h-4" /></button>
-            <button @click="editor.chain().focus().toggleHighlight().run()" :class="['p-1.5 hover:bg-white/10 rounded', editor.isActive('highlight') ? 'bg-amber-500/20 text-amber-500' : 'text-zinc-300']"><Highlighter class="w-4 h-4" /></button>
-            <div class="w-px h-5 bg-white/10 my-auto mx-1"></div>
-            <button @click="startComment" class="p-1.5 hover:bg-white/10 rounded text-zinc-300" title="Comment (⌥⌘M)"><MessageSquarePlus class="w-4 h-4" /></button>
-            <button @click="editor.chain().focus().setLink({ href: '' }).run()" class="p-1.5 hover:bg-white/10 rounded text-zinc-300"><LinkIcon class="w-4 h-4" /></button>
-          </div>
-        </Teleport>
-
-        <!-- New Comment Popover Mock -->
-        <div v-if="newCommentActive" class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-zinc-800 border border-white/10 rounded-xl shadow-2xl w-80 p-3 z-50">
-          <div class="flex justify-between items-center mb-2">
-            <span class="text-xs font-medium">Add comment</span>
-            <button @click="newCommentActive = false" class="text-zinc-400 hover:text-white"><X class="w-3.5 h-3.5" /></button>
-          </div>
-          <textarea v-model="newCommentText" rows="3" class="w-full bg-black/30 border border-white/10 rounded-lg p-2 text-sm text-white focus:outline-none focus:border-white/20 mb-2 resize-none placeholder:text-zinc-600" placeholder="Type your comment..."></textarea>
-          <div class="flex justify-end">
-            <button @click="saveComment" class="bg-amber-600 hover:bg-amber-500 text-white text-xs font-medium px-3 py-1.5 rounded-md transition-colors">Comment</button>
-          </div>
-        </div>
-
-      </div>
-
-      <!-- Resizer handle -->
-      <div 
-        v-if="!isNoeCollapsed"
-        class="w-1 cursor-col-resize hover:bg-white/10 active:bg-white/20 transition-colors z-20"
-        @mousedown.prevent="startSidebarDrag"
-      ></div>
-
-      <!-- Right Noe Sidebar -->
-      <div 
-        :class="['bg-[#121212] border-l border-white/10 flex flex-col shrink-0 transition-all duration-300 z-10', isNoeCollapsed ? 'w-[48px]' : '']"
-        :style="isNoeCollapsed ? {} : { width: noeSidebarWidth + 'px' }"
-      >
-        <div class="h-[52px] px-3 flex items-center justify-between border-b border-white/5 shrink-0">
-          <div v-if="!isNoeCollapsed" class="flex items-center gap-2">
-            <Sparkles class="w-4 h-4 text-amber-500" />
-            <span class="font-medium text-sm">Noe</span>
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-          </div>
-          <button 
-            @click="isNoeCollapsed = !isNoeCollapsed"
-            class="p-1.5 text-zinc-400 hover:text-white hover:bg-white/5 rounded-md transition-colors ml-auto"
-          >
-            <PanelRightClose v-if="!isNoeCollapsed" class="w-4 h-4" />
-            <PanelRightOpen v-else class="w-4 h-4" />
+            <!-- Custom sessions glyph: stacked lines + pulse mark -->
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" class="w-[18px] h-[18px]" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="2.5" y1="5"   x2="12.5" y2="5"   stroke-width="1.6"/>
+              <line x1="2.5" y1="9.5" x2="12.5" y2="9.5" stroke-width="1.6"/>
+              <line x1="2.5" y1="14"  x2="8"    y2="14"  stroke-width="1.6"/>
+              <!-- ECG/pulse mark at right -->
+              <polyline points="9.5,14 10.8,11 12.5,17 14,12.5 15.5,14" stroke-width="1.25" fill="none"/>
+            </svg>
           </button>
         </div>
 
-        <div v-if="!isNoeCollapsed" class="flex-1 flex flex-col min-h-0">
-          
-          <!-- Chat Area -->
-          <div class="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
-            <div v-if="noeMessages.length === 0" class="flex flex-col items-center justify-center h-full text-center px-4">
-              <div class="w-12 h-12 rounded-full bg-amber-500/10 flex items-center justify-center mb-4">
-                <Sparkles class="w-6 h-6 text-amber-500" />
-              </div>
-              <h3 class="text-sm font-medium text-white mb-2">Ask Noe about this session</h3>
-              <p class="text-xs text-zinc-500 mb-6">Noe can help you summarize, analyze, or prepare for the next session.</p>
-              
-              <div class="flex flex-col gap-2 w-full">
-                <button 
-                  v-for="prompt in noeSuggestedPrompts" :key="prompt"
-                  class="text-xs text-left px-4 py-2.5 bg-white/5 hover:bg-white/10 border border-white/5 rounded-lg transition-colors text-zinc-300"
-                  @click="noeInput = prompt; sendNoeMessage()"
-                >
-                  "{{ prompt }}"
-                </button>
-              </div>
-            </div>
-            
-            <template v-else>
-              <div v-for="(msg, idx) in noeMessages" :key="idx" :class="['max-w-[85%] text-sm rounded-2xl p-3', msg.role === 'user' ? 'bg-zinc-800 text-white self-end rounded-tr-sm' : 'bg-transparent text-zinc-200 self-start prose prose-invert prose-sm prose-p:leading-relaxed']">
-                <div v-if="msg.role === 'noe'" v-html="msg.text.replace(/\\n/g, '<br/>')"></div>
-                <div v-else>{{ msg.text }}</div>
-              </div>
-              <div v-if="isNoeTyping" class="self-start bg-transparent text-zinc-500 text-sm flex items-center gap-1.5 px-3 py-2">
-                <span class="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce"></span>
-                <span class="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style="animation-delay: 0.2s"></span>
-                <span class="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style="animation-delay: 0.4s"></span>
-              </div>
-            </template>
-          </div>
+        <!-- Session sidebar (width animates in/out) -->
+        <div
+          class="overflow-hidden transition-[width] duration-300 ease-in-out border-r border-white/[0.07]"
+          :style="{ width: sidebarPanelWidth }"
+        >
+          <div class="w-[260px] h-full flex flex-col bg-[#0F0F0F]">
 
-          <!-- Input Area -->
-          <div class="p-4 border-t border-white/5 bg-[#121212]">
-            <div class="relative flex items-end gap-2 bg-zinc-900 border border-white/10 rounded-xl p-2 focus-within:border-white/30 transition-colors">
-              <textarea 
-                v-model="noeInput"
-                class="w-full bg-transparent text-sm text-white placeholder:text-zinc-600 resize-none max-h-32 focus:outline-none py-1.5 pl-2"
-                rows="1"
-                placeholder="Message Noe..."
-                @keydown.enter.prevent="sendNoeMessage"
-              ></textarea>
-              <button 
-                @click="sendNoeMessage"
-                :disabled="!noeInput.trim() || isNoeTyping"
-                class="p-2 bg-amber-600 hover:bg-amber-500 disabled:bg-zinc-800 disabled:text-zinc-600 text-white rounded-lg transition-colors shrink-0"
+            <!-- Sidebar header -->
+            <div class="h-[52px] px-4 flex items-center justify-between shrink-0 border-b border-white/[0.06]">
+              <span class="text-[11px] font-medium text-zinc-500 tracking-widest uppercase">Sesiones</span>
+              <!-- Pin toggle -->
+              <button
+                :class="[
+                  'p-1.5 rounded-md transition-colors text-xs',
+                  sidebarPinned ? 'text-amber-400 bg-amber-500/[0.12]' : 'text-zinc-600 hover:text-zinc-300 hover:bg-white/[0.06]'
+                ]"
+                :title="sidebarPinned ? 'Desfijar sidebar' : 'Fijar sidebar abierto'"
+                @click="sidebarPinned = !sidebarPinned"
               >
-                <Send class="w-4 h-4" />
+                <svg viewBox="0 0 16 16" fill="currentColor" class="w-3.5 h-3.5">
+                  <path d="M9.828.722a.5.5 0 0 1 .354.146l4.95 4.95a.5.5 0 0 1 0 .707c-.48.48-1.072.588-1.503.588-.177 0-.335-.018-.46-.039l-3.134 3.134a5.927 5.927 0 0 1 .16 1.013c.046.702-.032 1.687-.72 2.375a.5.5 0 0 1-.707 0l-2.829-2.828-3.182 3.182c-.195.195-1.219.902-1.414.707-.195-.195.512-1.22.707-1.414l3.182-3.182-2.828-2.829a.5.5 0 0 1 0-.707c.688-.688 1.673-.767 2.375-.72a5.922 5.922 0 0 1 1.013.16l3.134-3.133a2.772 2.772 0 0 1-.04-.461c0-.43.108-1.022.589-1.503a.5.5 0 0 1 .353-.146z"/>
+                </svg>
               </button>
             </div>
-            <div class="text-[10px] text-center text-zinc-600 mt-2">
-              Noe can make mistakes. Check important info.
+
+            <!-- Timeline scroll area -->
+            <div class="flex-1 overflow-y-auto py-5 px-3">
+              <div class="relative">
+                <!-- Vertical spine -->
+                <div class="absolute left-[15px] top-5 bottom-5 w-px bg-white/[0.07]"></div>
+
+                <div class="flex flex-col gap-0.5">
+                  <button
+                    v-for="session in sessions"
+                    :key="session.id"
+                    :class="[
+                      'relative w-full text-left pl-9 pr-3 py-3 rounded-xl group transition-colors',
+                      session.status === 'current'
+                        ? 'bg-white/[0.06] cursor-default'
+                        : session.status === 'past'
+                          ? 'hover:bg-white/[0.04] cursor-pointer'
+                          : 'cursor-default opacity-50',
+                    ]"
+                    @click="openPeek(session)"
+                  >
+                    <!-- Spine dot -->
+                    <div class="absolute left-[12px] top-1/2 -translate-y-1/2 flex items-center justify-center">
+                      <template v-if="session.status === 'current'">
+                        <span class="w-[7px] h-[7px] rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.6)]"></span>
+                      </template>
+                      <template v-else-if="session.status === 'scheduled'">
+                        <span class="w-[7px] h-[7px] rounded-full border border-dashed border-zinc-600"></span>
+                      </template>
+                      <template v-else>
+                        <span class="w-[7px] h-[7px] rounded-full bg-zinc-700"></span>
+                      </template>
+                    </div>
+
+                    <!-- Session info -->
+                    <div class="min-w-0">
+                      <div class="flex items-center justify-between gap-2 mb-0.5">
+                        <span class="text-[11px] font-semibold text-zinc-300">S{{ session.number }}</span>
+                        <span class="text-[10px] text-zinc-600 tabular-nums">{{ session.date }}</span>
+                      </div>
+                      <p class="text-[11px] text-zinc-500 truncate leading-snug">
+                        {{ session.title || session.type }}
+                      </p>
+                      <div class="flex items-center gap-1.5 mt-1.5">
+                        <span
+                          :class="[
+                            'inline-block text-[9px] font-semibold px-1.5 py-0.5 rounded-md uppercase tracking-wide',
+                            session.type === 'intake'
+                              ? 'bg-violet-500/[0.15] text-violet-400'
+                              : 'bg-zinc-800 text-zinc-600'
+                          ]"
+                        >
+                          {{ session.type === 'intake' ? 'Intake' : 'Seguim.' }}
+                        </span>
+                        <span class="text-[10px] text-zinc-600 tabular-nums">{{ session.time }}</span>
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Center: editor + overlays ───────────────────────────────── -->
+      <div class="flex-1 flex flex-col min-w-0 relative select-text">
+
+        <!-- Peek panel overlay (slides in from the right of the center zone) -->
+        <Transition name="peek">
+          <div v-if="peekSession" class="absolute inset-0 z-20 flex">
+            <!-- Backdrop -->
+            <div
+              class="absolute inset-0 bg-black/40 backdrop-blur-[1px]"
+              @click="peekSession = null"
+            ></div>
+
+            <!-- Panel -->
+            <div class="relative ml-auto w-[540px] h-full bg-[#111111] border-l border-white/[0.08] flex flex-col shadow-2xl">
+              <div class="h-[52px] px-5 flex items-center justify-between shrink-0 border-b border-white/[0.06]">
+                <div class="min-w-0">
+                  <div class="text-[10px] text-zinc-600 mb-0.5">
+                    Sesión #{{ peekSession.number }} · {{ peekSession.date }} · {{ peekSession.time }}
+                  </div>
+                  <h2 class="text-sm font-medium truncate">{{ peekSession.title || peekSession.type }}</h2>
+                </div>
+                <button
+                  class="ml-4 p-1.5 hover:bg-white/[0.08] rounded-md transition-colors shrink-0"
+                  title="Cerrar (Esc)"
+                  @click="peekSession = null"
+                >
+                  <X class="w-4 h-4 text-zinc-400" />
+                </button>
+              </div>
+
+              <div class="flex-1 overflow-y-auto px-8 py-8 prose prose-invert prose-sm max-w-none text-zinc-300 prose-p:leading-relaxed">
+                <template v-if="peekSession.note">
+                  <p v-for="(para, i) in peekSession.note.split('\n\n')" :key="i" class="mb-4">
+                    {{ para }}
+                  </p>
+                </template>
+                <p v-else class="text-zinc-600 italic">Sin nota para esta sesión.</p>
+              </div>
+            </div>
+          </div>
+        </Transition>
+
+        <!-- Editor toolbar -->
+        <div class="shrink-0 px-12 pt-5 pb-3 border-b border-white/[0.04]">
+          <div class="mx-auto max-w-[720px]">
+            <div class="flex items-center gap-0.5 w-fit bg-white/[0.04] border border-white/[0.06] rounded-lg p-1">
+              <!-- Heading buttons -->
+              <button
+                @click="editor?.chain().focus().toggleHeading({ level: 1 }).run()"
+                :class="['px-2 py-1 rounded text-[11px] font-bold transition-colors', editor?.isActive('heading', { level: 1 }) ? 'bg-white/[0.1] text-white' : 'text-zinc-600 hover:text-zinc-200']"
+              >H1</button>
+              <button
+                @click="editor?.chain().focus().toggleHeading({ level: 2 }).run()"
+                :class="['px-2 py-1 rounded text-[11px] font-bold transition-colors', editor?.isActive('heading', { level: 2 }) ? 'bg-white/[0.1] text-white' : 'text-zinc-600 hover:text-zinc-200']"
+              >H2</button>
+
+              <div class="w-px h-4 bg-white/[0.08] mx-0.5"></div>
+
+              <!-- Inline marks -->
+              <button
+                @click="editor?.chain().focus().toggleBold().run()"
+                :class="['p-1.5 rounded font-bold transition-colors text-[13px] leading-none', editor?.isActive('bold') ? 'bg-white/[0.1] text-white' : 'text-zinc-600 hover:text-zinc-200']"
+              >B</button>
+              <button
+                @click="editor?.chain().focus().toggleItalic().run()"
+                :class="['p-1.5 rounded italic transition-colors text-[13px] leading-none', editor?.isActive('italic') ? 'bg-white/[0.1] text-white' : 'text-zinc-600 hover:text-zinc-200']"
+              >I</button>
+              <button
+                @click="editor?.chain().focus().toggleUnderline().run()"
+                :class="['p-1.5 rounded underline transition-colors text-[13px] leading-none', editor?.isActive('underline') ? 'bg-white/[0.1] text-white' : 'text-zinc-600 hover:text-zinc-200']"
+              >U</button>
+              <button
+                @click="editor?.chain().focus().toggleHighlight().run()"
+                :class="['p-1.5 rounded transition-colors', editor?.isActive('highlight') ? 'bg-amber-500/[0.2] text-amber-400' : 'text-zinc-600 hover:text-zinc-200']"
+                title="Resaltar"
+              >
+                <svg viewBox="0 0 16 16" fill="currentColor" class="w-3.5 h-3.5">
+                  <rect x="1.5" y="11" width="13" height="3" rx="1.5" opacity="0.6"/>
+                  <path d="M4.5 10.5 L8 2.5 L11.5 10.5 Z"/>
+                </svg>
+              </button>
+
+              <div class="w-px h-4 bg-white/[0.08] mx-0.5"></div>
+
+              <!-- Lists -->
+              <button
+                @click="editor?.chain().focus().toggleBulletList().run()"
+                :class="['p-1.5 rounded transition-colors', editor?.isActive('bulletList') ? 'bg-white/[0.1] text-white' : 'text-zinc-600 hover:text-zinc-200']"
+                title="Lista"
+              >
+                <svg viewBox="0 0 16 16" fill="currentColor" class="w-3.5 h-3.5">
+                  <circle cx="2.5" cy="4" r="1.3"/>
+                  <circle cx="2.5" cy="8" r="1.3"/>
+                  <circle cx="2.5" cy="12" r="1.3"/>
+                  <rect x="5.5" y="3" width="9" height="2" rx="1"/>
+                  <rect x="5.5" y="7" width="9" height="2" rx="1"/>
+                  <rect x="5.5" y="11" width="7" height="2" rx="1"/>
+                </svg>
+              </button>
             </div>
           </div>
         </div>
 
+        <!-- Editor scroll area -->
+        <div class="flex-1 overflow-y-auto min-h-0">
+          <div class="mx-auto max-w-[980px] px-10 pt-8 pb-40 flex gap-8">
+            <!-- Editor column -->
+            <div class="flex-1 min-w-0">
+              <EditorContent v-if="editor" :editor="editor" />
+            </div>
+            <!-- Comment thread (right margin) -->
+            <div class="w-[220px] shrink-0 pt-[108px]">
+              <div class="bg-[#181818] border border-white/[0.08] rounded-xl shadow-lg p-3.5 text-xs sticky top-4">
+                <!-- Thread header -->
+                <div class="flex items-center gap-2 mb-3">
+                  <div class="w-6 h-6 rounded-full bg-violet-700/40 flex items-center justify-center text-[9px] font-bold text-violet-300 shrink-0">
+                    MG
+                  </div>
+                  <div class="min-w-0">
+                    <div class="text-[11px] font-medium text-zinc-200 leading-none">Maria García</div>
+                    <div class="text-[9px] text-zinc-600 mt-0.5">hace 2 h</div>
+                  </div>
+                </div>
+                <!-- Anchor quote -->
+                <div class="border-l-2 border-amber-500/40 pl-2 mb-2.5">
+                  <span class="text-[10px] text-zinc-500 italic leading-relaxed">
+                    "creencias subyacentes sobre «recuperar sueño»"
+                  </span>
+                </div>
+                <!-- Comment body -->
+                <p class="text-[11px] text-zinc-300 leading-relaxed mb-3">
+                  Esta creencia puede estar conectada con las notas del intake sobre los patrones parentales. ¿Revisamos la sesión #1?
+                </p>
+                <!-- Reply input -->
+                <div class="border-t border-white/[0.06] pt-2.5">
+                  <input
+                    type="text"
+                    placeholder="Responder a Maria…"
+                    class="w-full bg-transparent text-zinc-400 placeholder:text-zinc-700 text-[11px] focus:outline-none focus:text-zinc-200 transition-colors"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer: stats + shortcuts -->
+        <div class="shrink-0 border-t border-white/[0.05] px-12 py-3 flex items-center justify-between">
+          <span class="text-[11px] text-zinc-700">{{ wordCount }} palabras</span>
+          <div class="flex items-center gap-4 text-[10px] text-zinc-700 font-mono">
+            <span><kbd class="not-italic">⌘.</kbd>&nbsp;foco</span>
+            <span><kbd class="not-italic">⌘[</kbd>&nbsp;sesiones</span>
+            <span><kbd class="not-italic">Esc</kbd>&nbsp;cerrar</span>
+          </div>
+        </div>
       </div>
+
+      <!-- ── Right: Noe sidebar ────────────────────────────────────────── -->
+      <div
+        class="shrink-0 border-l border-white/[0.07] bg-[#0D0D0D] overflow-hidden transition-[width] duration-300 ease-in-out"
+        :style="{ width: noePanelWidth }"
+      >
+        <!-- Fixed-width inner container so content doesn't reflow during transition -->
+        <div class="w-[360px] h-full flex flex-col">
+
+          <!-- Noe header -->
+          <div class="h-[52px] flex items-center shrink-0 border-b border-white/[0.06] px-3">
+            <div v-if="!noeCollapsed" class="flex items-center gap-2 ml-1 mr-auto">
+              <Sparkles class="w-4 h-4 text-amber-500 shrink-0" />
+              <span class="text-sm font-medium">Noe</span>
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+            </div>
+            <button
+              :class="['p-1.5 rounded-md text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.06] transition-colors', noeCollapsed ? 'mx-auto' : 'ml-auto']"
+              @click="noeCollapsed = !noeCollapsed"
+              :title="noeCollapsed ? 'Expandir Noe' : 'Colapsar Noe'"
+            >
+              <PanelRightClose v-if="!noeCollapsed" class="w-4 h-4" />
+              <PanelRightOpen  v-else              class="w-4 h-4" />
+            </button>
+          </div>
+
+          <!-- Chat messages -->
+          <div ref="noeChatEl" class="flex-1 overflow-y-auto p-4 flex flex-col gap-3 min-h-0">
+            <div
+              v-for="(msg, i) in noeMessages"
+              :key="i"
+              :class="['flex', msg.role === 'user' ? 'justify-end' : 'justify-start']"
+            >
+              <div
+                :class="[
+                  'max-w-[88%] rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed',
+                  msg.role === 'user'
+                    ? 'bg-white/[0.08] text-zinc-100 rounded-tr-sm'
+                    : 'text-zinc-200 rounded-tl-sm'
+                ]"
+              >
+                <div v-if="msg.role === 'noe'" v-html="formatNoeText(msg.text)"></div>
+                <span v-else>{{ msg.text }}</span>
+              </div>
+            </div>
+
+            <!-- Typing dots -->
+            <div v-if="isNoeTyping" class="flex items-center gap-1.5 px-2 py-1.5">
+              <span class="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style="animation-delay:0ms"></span>
+              <span class="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style="animation-delay:150ms"></span>
+              <span class="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-bounce" style="animation-delay:300ms"></span>
+            </div>
+          </div>
+
+          <!-- Suggested prompts (only when fresh) -->
+          <div v-if="noeMessages.length === 0" class="px-4 pb-3 flex flex-col gap-1.5">
+            <button
+              v-for="p in ['Resumen de temas', 'Preguntas de seguimiento', 'Sesión 1']"
+              :key="p"
+              class="text-[11px] text-left text-zinc-500 bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.06] rounded-lg px-3 py-2 transition-colors"
+              @click="noeInput = p; sendNoe()"
+            >
+              {{ p }}
+            </button>
+          </div>
+
+          <!-- Input -->
+          <div class="shrink-0 p-3 border-t border-white/[0.06]">
+            <div class="flex items-end gap-2 bg-white/[0.05] border border-white/[0.07] rounded-xl px-3 py-2 focus-within:border-white/[0.18] transition-colors">
+              <textarea
+                v-model="noeInput"
+                rows="1"
+                placeholder="Pregunta a Noe…"
+                class="flex-1 bg-transparent text-[13px] text-white placeholder:text-zinc-700 resize-none max-h-28 focus:outline-none py-0.5"
+                @keydown.enter.exact.prevent="sendNoe"
+              ></textarea>
+              <button
+                @click="sendNoe"
+                :disabled="!noeInput.trim() || isNoeTyping"
+                class="p-1.5 bg-amber-600 hover:bg-amber-500 disabled:bg-zinc-800 disabled:text-zinc-600 text-white rounded-lg transition-colors shrink-0 mb-0.5"
+              >
+                <Send class="w-3.5 h-3.5" />
+              </button>
+            </div>
+            <p class="text-[10px] text-center text-zinc-700 mt-2">Noe puede cometer errores. Verifica lo importante.</p>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 </template>
 
-<style>
-/* Tiptap Editor Styles */
-.ProseMirror p.is-editor-empty:first-child::before {
-  color: #52525b;
+<style scoped>
+/* Tiptap placeholder */
+:deep(.ProseMirror p.is-editor-empty:first-child::before) {
+  color: #3f3f46;
   content: attr(data-placeholder);
   float: left;
   height: 0;
   pointer-events: none;
 }
 
-.comment-mark {
-  border-bottom: 2px solid rgba(245, 158, 11, 0.4);
-  background-color: rgba(245, 158, 11, 0.1);
+/* Comment mark highlight */
+:deep(.comment-mark) {
+  background-color: rgba(245, 158, 11, 0.12);
+  border-bottom: 1.5px solid rgba(245, 158, 11, 0.45);
+  border-radius: 2px;
+  padding-bottom: 1px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color 0.15s;
 }
-.comment-mark:hover {
-  background-color: rgba(245, 158, 11, 0.2);
+:deep(.comment-mark:hover) {
+  background-color: rgba(245, 158, 11, 0.22);
 }
 
-ul[data-type="taskList"] {
-  list-style: none;
-  padding: 0;
-}
-ul[data-type="taskList"] p {
-  margin: 0;
-}
-ul[data-type="taskList"] li {
-  display: flex;
+/* Prose heading sizing in the editor */
+:deep(.ProseMirror h1) {
+  font-size: 1.6rem;
+  line-height: 1.25;
   margin-bottom: 0.5rem;
+  color: #f4f4f5;
 }
-ul[data-type="taskList"] li > label {
-  flex: 0 0 auto;
-  margin-right: 0.5rem;
-  user-select: none;
+:deep(.ProseMirror h2) {
+  font-size: 1.2rem;
+  line-height: 1.3;
+  margin-bottom: 0.4rem;
+  color: #e4e4e7;
 }
-ul[data-type="taskList"] li > div {
-  flex: 1 1 auto;
+:deep(.ProseMirror p) {
+  color: #a1a1aa;
+  margin-bottom: 0.75rem;
 }
+:deep(.ProseMirror strong) {
+  color: #e4e4e7;
+}
+
+/* Peek transition */
+.peek-enter-active { transition: opacity 0.2s ease; }
+.peek-leave-active { transition: opacity 0.18s ease; }
+.peek-enter-from, .peek-leave-to { opacity: 0; }
 </style>
