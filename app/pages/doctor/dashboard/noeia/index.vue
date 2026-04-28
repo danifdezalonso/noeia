@@ -1415,6 +1415,11 @@ onUnmounted(() => {
 
           <!-- Transcribe -->
           <div class="flex items-center gap-2 shrink-0">
+            <NuxtLink to="/prototype/focus-mode">
+              <button class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium border border-border bg-card text-foreground rounded-lg hover:bg-accent transition-colors shadow-sm">
+                Focus mode
+              </button>
+            </NuxtLink>
             <div class="relative flex">
               <button
                 :class="[
