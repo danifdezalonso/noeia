@@ -9,7 +9,7 @@ import Highlight from '@tiptap/extension-highlight'
 import Placeholder from '@tiptap/extension-placeholder'
 import CharacterCount from '@tiptap/extension-character-count'
 import {
-  ArrowLeft, Send, PanelRightClose, PanelRightOpen, Sparkles, X
+  ArrowLeft, Send, PanelRightClose, PanelRightOpen, Sparkles, X, Copy, Check, Save
 } from 'lucide-vue-next'
 
 // ── Mock data ──────────────────────────────────────────────────────────────
@@ -128,6 +128,21 @@ const editor = useEditor({
 
 const wordCount = computed(() => editor.value?.storage.characterCount.words() ?? 0)
 
+const isCopied = ref(false)
+const isSaved  = ref(false)
+
+async function copyNote() {
+  const text = editor.value?.getText() ?? ''
+  await navigator.clipboard.writeText(text)
+  isCopied.value = true
+  setTimeout(() => { isCopied.value = false }, 1800)
+}
+
+function saveNote() {
+  isSaved.value = true
+  setTimeout(() => { isSaved.value = false }, 1800)
+}
+
 // ── Computed ───────────────────────────────────────────────────────────────
 
 const isSidebarVisible  = computed(() => sidebarOpen.value || sidebarPinned.value)
@@ -222,6 +237,31 @@ onUnmounted(() => {
           Guardado
         </span>
         <span class="text-zinc-800">|</span>
+        <!-- Copy note -->
+        <button
+          class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-white/[0.06] hover:bg-white/[0.1] rounded-md transition-colors"
+          :title="isCopied ? 'Copiado' : 'Copiar nota'"
+          @click="copyNote"
+        >
+          <Check v-if="isCopied" class="w-3.5 h-3.5 text-emerald-400" />
+          <Copy v-else class="w-3.5 h-3.5 text-zinc-400" />
+          <span>Copiar</span>
+        </button>
+
+        <!-- Save note -->
+        <button
+          class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors"
+          :class="isSaved
+            ? 'bg-emerald-500/[0.15] text-emerald-300'
+            : 'bg-white/[0.06] hover:bg-white/[0.1] text-zinc-200'"
+          :title="isSaved ? 'Guardado' : 'Guardar nota'"
+          @click="saveNote"
+        >
+          <Check v-if="isSaved" class="w-3.5 h-3.5 text-emerald-400" />
+          <Save v-else class="w-3.5 h-3.5 text-zinc-400" />
+          <span>{{ isSaved ? 'Guardado' : 'Guardar' }}</span>
+        </button>
+
         <button class="px-3 py-1.5 text-xs font-medium bg-white/[0.06] hover:bg-white/[0.1] rounded-md transition-colors">
           Transcribir
         </button>

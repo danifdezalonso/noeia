@@ -8,7 +8,7 @@ import {
   ExternalLink, PenLine, Zap, RotateCcw,
   LayoutTemplate, Search, ArrowUpDown, FileText, User, Globe,
   RefreshCw, FilePlus, FileEdit, Check,
-  ListChecks, Share2, MessageSquareMore, CheckCircle2,
+  ListChecks, Share2, MessageSquareMore, CheckCircle2, Save,
 } from 'lucide-vue-next'
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '~/components/ui/dialog'
 import {
@@ -638,6 +638,7 @@ const calSidebarOpen = ref(true)
 const isRecording    = ref(false)
 const transcribeOpen = ref(false)
 const copyOpen       = ref(false)
+const isNoteSaved    = ref(false)
 const micOpen        = ref(false)
 const noeInput          = ref('')
 const noeMessages       = ref<{ role: 'user' | 'noe'; text: string }[]>([])
@@ -953,6 +954,11 @@ function copyContext() {
   const text = contextAreaRef.value?.innerText ?? selected.value?.contextText ?? ''
   navigator.clipboard.writeText(text).catch(() => {})
   copyOpen.value = false
+}
+
+function saveNote() {
+  isNoteSaved.value = true
+  setTimeout(() => { isNoteSaved.value = false }, 2000)
 }
 
 const pendingTimers = ref<ReturnType<typeof setTimeout>[]>([])
@@ -1759,6 +1765,19 @@ onUnmounted(() => {
                   </div>
                 </Transition>
               </div>
+
+              <!-- Save button -->
+              <button
+                class="flex items-center justify-center border rounded-lg p-2 transition-colors"
+                :class="isNoteSaved
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500'
+                  : 'border-border text-muted-foreground hover:bg-accent hover:text-foreground'"
+                :title="isNoteSaved ? 'Guardado' : 'Guardar nota'"
+                @click="saveNote"
+              >
+                <Check v-if="isNoteSaved" class="w-3.5 h-3.5" />
+                <Save v-else class="w-3.5 h-3.5" />
+              </button>
               </div><!-- end right group -->
             </div>
 

@@ -24,6 +24,7 @@ import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
 import { Badge } from '~/components/ui/badge'
 import { Avatar, AvatarFallback } from '~/components/ui/avatar'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '~/components/ui/tooltip'
 
 definePageMeta({ layout: 'dashboard' })
 
@@ -262,9 +263,11 @@ function onResizeEnd() {
 
 // ── Modal state ────────────────────────────────────────────────────────────
 
-const addModalOpen = ref(false)
-const inviteEmail  = ref('')
-const inviteError  = ref('')
+const addModalOpen     = ref(false)
+const inviteEmail      = ref('')
+const inviteError      = ref('')
+const inviteSuccessOpen = ref(false)
+const invitedEmail     = ref('')
 
 function openAdd() {
   inviteEmail.value = ''
@@ -280,8 +283,8 @@ function openEdit(d: Doctor) {
 
 function saveDoctor() {
   inviteError.value = ''
-  if (!inviteEmail.value.trim()) { inviteError.value = 'Email is required'; return }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteEmail.value.trim())) { inviteError.value = 'Enter a valid email address'; return }
+  if (!inviteEmail.value.trim()) { inviteError.value = 'Se requiere un email'; return }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inviteEmail.value.trim())) { inviteError.value = 'Introduce un email válido'; return }
   const newId = `d${Date.now()}`
   doctors.value.unshift({
     id: newId,
@@ -294,9 +297,22 @@ function saveDoctor() {
     joinedDate: new Date().toISOString().slice(0, 10),
     sessionFeePercent: 70,
   })
+  invitedEmail.value = inviteEmail.value.trim()
   addModalOpen.value = false
-  success('Invitation sent', `An invitation email has been sent to ${inviteEmail.value.trim()}.`)
-  navigateTo(`/organization/dashboard/doctors/${newId}`)
+  inviteSuccessOpen.value = true
+}
+
+function inviteMore() {
+  inviteSuccessOpen.value = false
+  inviteEmail.value = ''
+  inviteError.value = ''
+  addModalOpen.value = true
+}
+
+function inviteDone() {
+  const id = doctors.value.find(d => d.email === invitedEmail.value)?.id
+  inviteSuccessOpen.value = false
+  if (id) navigateTo(`/organization/dashboard/doctors/${id}`)
 }
 
 // ── Fee Edit Modal ─────────────────────────────────────────────────────────
@@ -696,6 +712,60 @@ const statusMeta: Record<DoctorStatus, { label: string; dot: string; badge: stri
           <Button variant="outline">Cancel</Button>
         </DialogClose>
         <Button @click="saveDoctor">Send invitation</Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+
+  <!-- ── Invite Success Modal ──────────────────────────────────────────────── -->
+  <Dialog v-model:open="inviteSuccessOpen">
+    <DialogContent class="sm:max-w-sm text-center" :show-close="true">
+      <DialogHeader class="items-center gap-3 pt-2">
+        <!-- Green check circle -->
+        <div class="w-14 h-14 rounded-full bg-emerald-900/60 flex items-center justify-center mx-auto">
+          <svg class="w-7 h-7 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <DialogTitle class="text-xl font-bold">Enviado</DialogTitle>
+      </DialogHeader>
+
+      <!-- Invitation row -->
+      <div class="flex items-center justify-between gap-3 bg-muted/40 border border-border rounded-xl px-4 py-3 my-2 text-left">
+        <div class="flex items-center gap-3 min-w-0">
+          <svg class="w-4 h-4 text-muted-foreground shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+          <div class="min-w-0">
+            <p class="text-sm font-medium text-foreground truncate">{{ invitedEmail }}</p>
+            <p class="text-xs text-muted-foreground">Caduca en 31 días</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-1 shrink-0">
+          <span class="text-xs text-muted-foreground whitespace-nowrap">Invitado como médico</span>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger as-child>
+                <button class="text-muted-foreground hover:text-foreground transition-colors">
+                  <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                  </svg>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Recibirán un email para unirse a tu organización</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+      </div>
+
+      <DialogFooter class="flex-row justify-between gap-2 mt-1">
+        <Button variant="outline" class="flex-1" @click="inviteMore">
+          Invitar a más médicos
+        </Button>
+        <Button class="flex-1" @click="inviteDone">
+          Listo
+        </Button>
       </DialogFooter>
     </DialogContent>
   </Dialog>
