@@ -144,142 +144,147 @@ function handleContinue() {
         <p v-if="practiceTypeError" class="text-xs text-destructive">{{ practiceTypeError }}</p>
       </div>
 
-      <!-- Organisation name -->
-      <div class="space-y-1.5">
-        <Label for="orgName">Organisation name</Label>
-        <Input
-          id="orgName"
-          v-model="form.orgName"
-          placeholder="e.g. MindCare Clinics"
-          :class="errors.orgName ? 'border-destructive focus-visible:ring-destructive/30' : ''"
-          @input="errors.orgName = ''"
-        />
-        <p v-if="errors.orgName" class="text-xs text-destructive">{{ errors.orgName }}</p>
-        <p v-else class="text-xs text-muted-foreground">Working solo? Your professional name works too.</p>
-      </div>
+      <!-- Fields revealed after a practice type is chosen -->
+      <template v-if="practiceType !== null">
 
-      <!-- Workspace URL -->
-      <div class="space-y-1.5">
-        <Label>Workspace URL</Label>
-        <div
-          class="flex items-center overflow-hidden rounded-md border transition-colors"
-          :class="slugState === 'taken' ? 'border-destructive/50' : slugState === 'available' ? 'border-emerald-500/50' : 'border-input'"
-        >
-          <span class="px-3 h-9 text-sm text-muted-foreground whitespace-nowrap border-r border-input bg-muted flex items-center">
-            noeia.app/
-          </span>
-          <Input
-            v-model="orgSlug"
-            placeholder="your-org"
-            class="border-0 rounded-none focus-visible:ring-0 focus-visible:ring-offset-0 h-9"
-          />
-          <span class="flex items-center gap-1 pr-2.5 shrink-0">
-            <Loader2 v-if="slugState === 'checking'" class="w-3.5 h-3.5 animate-spin text-muted-foreground" />
-            <CheckCircle2 v-else-if="slugState === 'available'" class="w-3.5 h-3.5 text-emerald-500" />
-            <XCircle v-else-if="slugState === 'taken'" class="w-3.5 h-3.5 text-destructive" />
-          </span>
-        </div>
-        <p
-          v-if="slugState === 'available' || slugState === 'taken'"
-          class="text-xs"
-          :class="slugState === 'taken' ? 'text-destructive' : 'text-emerald-600'"
-        >
-          {{ slugState === 'available' ? 'Available' : 'Already taken — try a different URL' }}
-        </p>
-      </div>
-
-      <!-- Specialty multi-select -->
-      <div class="space-y-1.5">
-        <Label>Specialty</Label>
-        <Popover v-model:open="specialtyOpen">
-          <PopoverTrigger as-child>
-            <Button
-              variant="outline"
-              role="combobox"
-              :aria-expanded="specialtyOpen"
-              class="w-full min-h-9 h-auto justify-between font-normal"
-              :class="errors.specialty ? 'border-destructive' : ''"
-            >
-              <div class="flex flex-wrap gap-1 flex-1 text-left">
-                <span
-                  v-for="s in form.specialty"
-                  :key="s"
-                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-primary/10 text-primary"
-                  @click.stop="toggleSpecialty(s)"
-                >
-                  {{ s }}
-                  <span class="opacity-50 hover:opacity-100">×</span>
-                </span>
-                <span v-if="!form.specialty.length" class="text-muted-foreground text-sm">Please select</span>
-              </div>
-              <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent class="w-full p-0" align="start" style="width: var(--radix-popover-trigger-width);">
-            <Command>
-              <CommandInput placeholder="Search specialties…" />
-              <CommandEmpty>No specialties found.</CommandEmpty>
-              <CommandList>
-                <CommandGroup>
-                  <CommandItem
-                    v-for="s in SPECIALTIES"
-                    :key="s"
-                    :value="s"
-                    @select="toggleSpecialty(s)"
-                  >
-                    <Check class="mr-2 h-4 w-4" :class="form.specialty.includes(s) ? 'opacity-100' : 'opacity-0'" />
-                    {{ s }}
-                  </CommandItem>
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
-        <p v-if="errors.specialty" class="text-xs text-destructive">{{ errors.specialty }}</p>
-      </div>
-
-      <!-- Clinic-only questions -->
-      <template v-if="practiceType === 'clinic'">
-
-        <!-- Team size toggle -->
-        <div class="space-y-2">
-          <Label>How many clinicians do you work with?</Label>
-          <div class="flex gap-2 flex-wrap">
-            <Button
-              v-for="size in TEAM_SIZES"
-              :key="size"
-              type="button"
-              :variant="form.teamSize === size ? 'default' : 'outline'"
-              size="sm"
-              @click="form.teamSize = size; errors.teamSize = ''"
-            >
-              {{ size }}
-            </Button>
-          </div>
-          <p v-if="errors.teamSize" class="text-xs text-destructive">{{ errors.teamSize }}</p>
-        </div>
-
-        <!-- Role -->
+        <!-- Organisation name -->
         <div class="space-y-1.5">
-          <Label>What is your role within the organisation?</Label>
-          <Select v-model="form.role" @update:model-value="errors.role = ''">
-            <SelectTrigger :class="errors.role ? 'border-destructive' : ''">
-              <SelectValue placeholder="Please select" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem v-for="r in ROLES" :key="r" :value="r">{{ r }}</SelectItem>
-            </SelectContent>
-          </Select>
-          <p v-if="errors.role" class="text-xs text-destructive">{{ errors.role }}</p>
+          <Label for="orgName">Organisation name</Label>
+          <Input
+            id="orgName"
+            v-model="form.orgName"
+            placeholder="e.g. MindCare Clinics"
+            :class="errors.orgName ? 'border-destructive focus-visible:ring-destructive/30' : ''"
+            @input="errors.orgName = ''"
+          />
+          <p v-if="errors.orgName" class="text-xs text-destructive">{{ errors.orgName }}</p>
+          <p v-else class="text-xs text-muted-foreground">Working solo? Your professional name works too.</p>
         </div>
+
+        <!-- Workspace URL -->
+        <div class="space-y-1.5">
+          <Label>Workspace URL</Label>
+          <div
+            class="flex items-center overflow-hidden rounded-md border transition-colors"
+            :class="slugState === 'taken' ? 'border-destructive/50' : slugState === 'available' ? 'border-emerald-500/50' : 'border-input'"
+          >
+            <span class="px-3 h-9 text-sm text-muted-foreground whitespace-nowrap border-r border-input bg-muted flex items-center">
+              noeia.app/
+            </span>
+            <Input
+              v-model="orgSlug"
+              placeholder="your-org"
+              class="border-0 rounded-none focus-visible:ring-0 focus-visible:ring-offset-0 h-9"
+            />
+            <span class="flex items-center gap-1 pr-2.5 shrink-0">
+              <Loader2 v-if="slugState === 'checking'" class="w-3.5 h-3.5 animate-spin text-muted-foreground" />
+              <CheckCircle2 v-else-if="slugState === 'available'" class="w-3.5 h-3.5 text-emerald-500" />
+              <XCircle v-else-if="slugState === 'taken'" class="w-3.5 h-3.5 text-destructive" />
+            </span>
+          </div>
+          <p
+            v-if="slugState === 'available' || slugState === 'taken'"
+            class="text-xs"
+            :class="slugState === 'taken' ? 'text-destructive' : 'text-emerald-600'"
+          >
+            {{ slugState === 'available' ? 'Available' : 'Already taken — try a different URL' }}
+          </p>
+        </div>
+
+        <!-- Specialty multi-select -->
+        <div class="space-y-1.5">
+          <Label>Specialty</Label>
+          <Popover v-model:open="specialtyOpen">
+            <PopoverTrigger as-child>
+              <Button
+                variant="outline"
+                role="combobox"
+                :aria-expanded="specialtyOpen"
+                class="w-full min-h-9 h-auto justify-between font-normal"
+                :class="errors.specialty ? 'border-destructive' : ''"
+              >
+                <div class="flex flex-wrap gap-1 flex-1 text-left">
+                  <span
+                    v-for="s in form.specialty"
+                    :key="s"
+                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-primary/10 text-primary"
+                    @click.stop="toggleSpecialty(s)"
+                  >
+                    {{ s }}
+                    <span class="opacity-50 hover:opacity-100">×</span>
+                  </span>
+                  <span v-if="!form.specialty.length" class="text-muted-foreground text-sm">Please select</span>
+                </div>
+                <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent class="w-full p-0" align="start" style="width: var(--radix-popover-trigger-width);">
+              <Command>
+                <CommandInput placeholder="Search specialties…" />
+                <CommandEmpty>No specialties found.</CommandEmpty>
+                <CommandList>
+                  <CommandGroup>
+                    <CommandItem
+                      v-for="s in SPECIALTIES"
+                      :key="s"
+                      :value="s"
+                      @select="toggleSpecialty(s)"
+                    >
+                      <Check class="mr-2 h-4 w-4" :class="form.specialty.includes(s) ? 'opacity-100' : 'opacity-0'" />
+                      {{ s }}
+                    </CommandItem>
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+          <p v-if="errors.specialty" class="text-xs text-destructive">{{ errors.specialty }}</p>
+        </div>
+
+        <!-- Clinic-only questions -->
+        <template v-if="practiceType === 'clinic'">
+
+          <!-- Team size toggle -->
+          <div class="space-y-2">
+            <Label>How many clinicians do you work with?</Label>
+            <div class="flex gap-2 flex-wrap">
+              <Button
+                v-for="size in TEAM_SIZES.filter(s => s !== 'Just me')"
+                :key="size"
+                type="button"
+                :variant="form.teamSize === size ? 'default' : 'outline'"
+                size="sm"
+                @click="form.teamSize = size; errors.teamSize = ''"
+              >
+                {{ size }}
+              </Button>
+            </div>
+            <p v-if="errors.teamSize" class="text-xs text-destructive">{{ errors.teamSize }}</p>
+          </div>
+
+          <!-- Role -->
+          <div class="space-y-1.5">
+            <Label>What is your role within the organisation?</Label>
+            <Select v-model="form.role" @update:model-value="errors.role = ''">
+              <SelectTrigger :class="errors.role ? 'border-destructive' : ''">
+                <SelectValue placeholder="Please select" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="r in ROLES" :key="r" :value="r">{{ r }}</SelectItem>
+              </SelectContent>
+            </Select>
+            <p v-if="errors.role" class="text-xs text-destructive">{{ errors.role }}</p>
+          </div>
+
+        </template>
+
+        <!-- Continue -->
+        <Button class="w-full" size="lg" @click="handleContinue">
+          Continue
+          <ArrowRight class="ml-1 w-4 h-4" />
+        </Button>
 
       </template>
-
-      <!-- Continue -->
-      <Button class="w-full" size="lg" @click="handleContinue">
-        Continue
-        <ArrowRight class="ml-1 w-4 h-4" />
-      </Button>
     </div>
   </div>
 </template>
