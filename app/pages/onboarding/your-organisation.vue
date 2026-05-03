@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Check, ChevronsUpDown, CheckCircle2, XCircle, Loader2, ChevronLeft, ArrowRight } from 'lucide-vue-next'
+import { Check, ChevronsUpDown, CheckCircle2, XCircle, Loader2, ChevronLeft, ArrowRight, User, Users } from 'lucide-vue-next'
 import { SPECIALTIES, ROLES, TEAM_SIZES } from '~/composables/useOnboardingForm'
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '~/components/ui/command'
@@ -57,6 +57,24 @@ function toggleSpecialty(s: string) {
   errors.specialty = ''
 }
 
+// ─── Practice type ────────────────────────────────────────────────────────────
+const practiceType = ref<'solo' | 'clinic' | null>(null)
+const practiceTypeError = ref('')
+
+function setPracticeType(type: 'solo' | 'clinic') {
+  practiceType.value = type
+  practiceTypeError.value = ''
+  if (type === 'solo') {
+    // Pre-fill clinic-only fields so validateOrg passes without showing them
+    form.value.teamSize = 'Just me'
+    form.value.role = 'Individual clinician'
+  } else {
+    // Reset so user must pick explicitly
+    form.value.teamSize = ''
+    form.value.role = ''
+  }
+}
+
 // ─── Local error state ────────────────────────────────────────────────────────
 const errors = reactive({ orgName: '', specialty: '', role: '', teamSize: '' })
 
@@ -67,6 +85,10 @@ function goBack() {
 }
 
 function handleContinue() {
+  if (!practiceType.value) {
+    practiceTypeError.value = 'Please select how you work'
+    return
+  }
   const { ok, errors: validationErrors } = validateOrg()
   errors.orgName = ''; errors.specialty = ''; errors.role = ''; errors.teamSize = ''
   Object.assign(errors, validationErrors)
@@ -94,6 +116,33 @@ function handleContinue() {
     </div>
 
     <div class="space-y-5">
+
+      <!-- Practice type selector -->
+      <div class="space-y-2">
+        <Label>¿Cómo trabajas?</Label>
+        <div class="grid grid-cols-2 gap-3">
+          <button
+            v-for="opt in [
+              { id: 'solo',   label: 'En solitario', desc: 'Freelance o consulta propia', icon: User },
+              { id: 'clinic', label: 'En clínica',   desc: 'Varios profesionales',        icon: Users },
+            ]"
+            :key="opt.id"
+            type="button"
+            class="flex flex-col items-start gap-3 rounded-xl border p-4 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            :class="practiceType === opt.id
+              ? 'border-primary bg-primary/5 ring-1 ring-primary/30'
+              : 'border-border bg-card hover:border-primary/40 hover:bg-accent'"
+            @click="setPracticeType(opt.id as 'solo' | 'clinic')"
+          >
+            <span class="text-sm font-semibold text-foreground">{{ opt.label }}</span>
+            <div class="flex items-center gap-2">
+              <component :is="opt.icon" class="w-5 h-5 shrink-0 text-muted-foreground" />
+              <span class="text-xs text-muted-foreground leading-snug">{{ opt.desc }}</span>
+            </div>
+          </button>
+        </div>
+        <p v-if="practiceTypeError" class="text-xs text-destructive">{{ practiceTypeError }}</p>
+      </div>
 
       <!-- Organisation name -->
       <div class="space-y-1.5">
@@ -189,37 +238,42 @@ function handleContinue() {
         <p v-if="errors.specialty" class="text-xs text-destructive">{{ errors.specialty }}</p>
       </div>
 
-      <!-- Team size toggle -->
-      <div class="space-y-2">
-        <Label>How many clinicians do you work with?</Label>
-        <div class="flex gap-2 flex-wrap">
-          <Button
-            v-for="size in TEAM_SIZES"
-            :key="size"
-            type="button"
-            :variant="form.teamSize === size ? 'default' : 'outline'"
-            size="sm"
-            @click="form.teamSize = size; errors.teamSize = ''"
-          >
-            {{ size }}
-          </Button>
-        </div>
-        <p v-if="errors.teamSize" class="text-xs text-destructive">{{ errors.teamSize }}</p>
-      </div>
+      <!-- Clinic-only questions -->
+      <template v-if="practiceType === 'clinic'">
 
-      <!-- Role -->
-      <div class="space-y-1.5">
-        <Label>What is your role within the organisation?</Label>
-        <Select v-model="form.role" @update:model-value="errors.role = ''">
-          <SelectTrigger :class="errors.role ? 'border-destructive' : ''">
-            <SelectValue placeholder="Please select" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem v-for="r in ROLES" :key="r" :value="r">{{ r }}</SelectItem>
-          </SelectContent>
-        </Select>
-        <p v-if="errors.role" class="text-xs text-destructive">{{ errors.role }}</p>
-      </div>
+        <!-- Team size toggle -->
+        <div class="space-y-2">
+          <Label>How many clinicians do you work with?</Label>
+          <div class="flex gap-2 flex-wrap">
+            <Button
+              v-for="size in TEAM_SIZES"
+              :key="size"
+              type="button"
+              :variant="form.teamSize === size ? 'default' : 'outline'"
+              size="sm"
+              @click="form.teamSize = size; errors.teamSize = ''"
+            >
+              {{ size }}
+            </Button>
+          </div>
+          <p v-if="errors.teamSize" class="text-xs text-destructive">{{ errors.teamSize }}</p>
+        </div>
+
+        <!-- Role -->
+        <div class="space-y-1.5">
+          <Label>What is your role within the organisation?</Label>
+          <Select v-model="form.role" @update:model-value="errors.role = ''">
+            <SelectTrigger :class="errors.role ? 'border-destructive' : ''">
+              <SelectValue placeholder="Please select" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem v-for="r in ROLES" :key="r" :value="r">{{ r }}</SelectItem>
+            </SelectContent>
+          </Select>
+          <p v-if="errors.role" class="text-xs text-destructive">{{ errors.role }}</p>
+        </div>
+
+      </template>
 
       <!-- Continue -->
       <Button class="w-full" size="lg" @click="handleContinue">
