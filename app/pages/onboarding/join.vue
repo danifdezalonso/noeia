@@ -7,6 +7,7 @@ import { Label } from '~/components/ui/label'
 import { Checkbox } from '~/components/ui/checkbox'
 import { Popover, PopoverContent, PopoverTrigger } from '~/components/ui/popover'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '~/components/ui/command'
+import LegalDocumentDialog from '~/components/LegalDocumentDialog.vue'
 
 definePageMeta({
   layout: 'onboarding',
@@ -28,7 +29,13 @@ useHead(computed(() => ({
 })))
 
 // ─── Default join form ─────────────────────────────────────────────────────────
-const errors = reactive({ firstName: '', lastName: '', country: '', language: '', terms: '' })
+const errors = reactive({ firstName: '', lastName: '', country: '', language: '', terms: '', usagePolicy: '' })
+const agreedToTerms   = ref(false)
+const agreedUsagePolicy = ref(false)
+const marketingOptIn  = ref(false)
+
+const termsOpen       = ref(false)
+const usagePolicyOpen = ref(false)
 
 const countryOpen   = ref(false)
 const languageOpen  = ref(false)
@@ -43,10 +50,20 @@ function selectPrefix(p: typeof PHONE_PREFIXES[0]) { selectedPhonePrefix.value =
 
 function goBack() { direction.value = 'back'; navigateTo('/onboarding/get-started') }
 
+function onTermsChange(v: boolean | 'indeterminate') {
+  agreedToTerms.value = v === true
+  errors.terms = ''
+}
+
 function handleContinue() {
-  const { ok, errors: ve } = validateJoin()
-  errors.firstName = ''; errors.lastName = ''; errors.country = ''; errors.language = ''; errors.terms = ''
+  form.value.agreedToTerms = agreedToTerms.value
+  const { ok: baseOk, errors: ve } = validateJoin()
+  errors.firstName = ''; errors.lastName = ''; errors.country = ''; errors.language = ''; errors.terms = ''; errors.usagePolicy = ''
   Object.assign(errors, ve)
+
+  if (!agreedUsagePolicy.value) errors.usagePolicy = 'Debes aceptar la Política de Uso'
+
+  const ok = baseOk && agreedUsagePolicy.value
   if (ok) { direction.value = 'forward'; navigateTo('/onboarding/your-organisation') }
 }
 
@@ -412,24 +429,62 @@ const expiredInvitations = ref([
           </div>
         </div>
 
-        <!-- Terms -->
-        <div class="space-y-1.5 pt-1">
-          <div class="flex items-start gap-3">
+        <!-- Legal checkboxes -->
+        <div class="space-y-3 pt-1">
+
+          <!-- Mandatory 1: Términos y Condiciones -->
+          <div class="space-y-1">
+            <div class="flex items-start gap-3">
+              <Checkbox
+                id="terms"
+                :checked="agreedToTerms"
+                aria-required="true"
+                class="mt-0.5 shrink-0"
+                :class="errors.terms ? 'border-destructive' : ''"
+                @update:checked="onTermsChange"
+              />
+              <label for="terms" class="text-xs text-foreground leading-relaxed cursor-pointer select-none">
+                He leído y acepto los
+                <button type="button" class="text-primary hover:text-primary/80 underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm" @click.stop="termsOpen = true">
+                  Términos y Condiciones</button>.
+              </label>
+            </div>
+            <p v-if="errors.terms" class="text-xs text-destructive pl-7">{{ errors.terms }}</p>
+          </div>
+
+          <!-- Mandatory 2: Política de Uso -->
+          <div class="space-y-1">
+            <div class="flex items-start gap-3">
+              <Checkbox
+                id="usage-policy"
+                :checked="agreedUsagePolicy"
+                aria-required="true"
+                class="mt-0.5 shrink-0"
+                :class="errors.usagePolicy ? 'border-destructive' : ''"
+                @update:checked="(v) => { agreedUsagePolicy = v === true; errors.usagePolicy = '' }"
+              />
+              <label for="usage-policy" class="text-xs text-foreground leading-relaxed cursor-pointer select-none">
+                He leído y acepto la
+                <button type="button" class="text-primary hover:text-primary/80 underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm" @click.stop="usagePolicyOpen = true">
+                  Política de Uso</button>.
+              </label>
+            </div>
+            <p v-if="errors.usagePolicy" class="text-xs text-destructive pl-7">{{ errors.usagePolicy }}</p>
+          </div>
+
+          <!-- Optional: Marketing (visually demoted) -->
+          <div class="flex items-start gap-3 pt-1.5 border-t border-border/60">
             <Checkbox
-              id="terms"
-              :checked="form.agreedToTerms"
-              class="mt-0.5"
-              :class="errors.terms ? 'border-destructive' : ''"
-              @update:checked="v => { form.agreedToTerms = v as boolean; errors.terms = '' }"
+              id="marketing"
+              :checked="marketingOptIn"
+              class="mt-0.5 shrink-0"
+              @update:checked="(v) => { marketingOptIn = v === true }"
             />
-            <label for="terms" class="text-xs text-muted-foreground leading-relaxed cursor-pointer">
-              I have read and agree to abide by the
-              <a href="#" class="text-primary hover:underline" @click.prevent>Usage Policy</a>,
-              <a href="#" class="text-primary hover:underline" @click.prevent>Privacy Policy</a> and
-              <a href="#" class="text-primary hover:underline" @click.prevent>Terms of Use</a>.
+            <label for="marketing" class="text-[11px] text-muted-foreground font-normal leading-relaxed cursor-pointer select-none">
+              Quiero recibir novedades del producto y recursos clínicos por email.
             </label>
           </div>
-          <p v-if="errors.terms" class="text-xs text-destructive pl-7">{{ errors.terms }}</p>
+
         </div>
 
         <Button type="submit" class="w-full mt-2" size="lg">
@@ -440,4 +495,97 @@ const expiredInvitations = ref([
     </template>
 
   </div>
+
+  <!-- ══ Términos y Condiciones dialog ══════════════════════════════════════ -->
+  <LegalDocumentDialog
+    title="Términos y Condiciones"
+    last-updated="1 de mayo de 2026"
+    :open="termsOpen"
+    @update:open="termsOpen = $event"
+    @accept="agreedToTerms = true; errors.terms = ''"
+  >
+    <h2>1. Aceptación de los términos</h2>
+    <p>Al crear una cuenta en Noeia y hacer clic en «Configurar mi espacio de trabajo», aceptas quedar vinculado por estos Términos y Condiciones. Si actúas en nombre de una organización, declaras tener autoridad para aceptarlos en su nombre.</p>
+    <p>Si no estás de acuerdo con alguno de estos términos, no debes utilizar el servicio.</p>
+
+    <h2>2. Descripción del servicio</h2>
+    <p>Noeia es una plataforma SaaS de gestión clínica para profesionales de la salud mental. Ofrece agenda, expediente clínico, facturación, transcripción de sesiones asistida por IA y generación de notas estructuradas.</p>
+    <p>Nos reservamos el derecho de modificar, suspender o discontinuar funcionalidades con aviso previo razonable.</p>
+
+    <h2>3. Cuenta de usuario y responsabilidades</h2>
+    <p>Eres responsable de mantener la confidencialidad de tus credenciales y de todas las actividades realizadas bajo tu cuenta. Debes notificarnos de inmediato ante cualquier uso no autorizado.</p>
+    <p>Toda la información que proporciones al registrarte debe ser veraz, completa y actualizada.</p>
+
+    <h2>4. Uso aceptable</h2>
+    <p>Te comprometes a utilizar el servicio únicamente para fines lícitos y de conformidad con la legislación aplicable. Queda prohibido usar Noeia para actividades fraudulentas, difamar a terceros o intentar acceder de forma no autorizada a los sistemas de la plataforma.</p>
+    <p>El uso clínico es exclusivo para profesionales habilitados según la legislación de su territorio.</p>
+
+    <h2>5. Propiedad intelectual</h2>
+    <p>Todos los derechos sobre el software, diseño, marca y contenidos propios de Noeia pertenecen a Noeia Technologies S.L. Nada en estos términos te transfiere dichos derechos.</p>
+    <p>Los datos clínicos y notas que generes son de tu propiedad; Noeia los trata únicamente como encargado del tratamiento.</p>
+
+    <h2>6. Suscripción y pagos</h2>
+    <p>El acceso al servicio está sujeto al plan contratado. Los detalles sobre precios, ciclos de facturación y condiciones de cancelación se establecen en el plan seleccionado y en el contrato de suscripción correspondiente.</p>
+    <p>Los precios pueden revisarse con un preaviso mínimo de 30 días.</p>
+
+    <h2>7. Limitación de responsabilidad</h2>
+    <p>En la medida en que lo permita la legislación aplicable, Noeia no será responsable de daños indirectos, incidentales o consecuentes derivados del uso o la imposibilidad de uso del servicio.</p>
+    <p>Noeia no sustituye el juicio clínico. Las funciones de IA son herramientas de apoyo y no deben interpretarse como diagnóstico médico.</p>
+
+    <h2>8. Modificaciones del servicio</h2>
+    <p>Podemos actualizar estos términos periódicamente. Te notificaremos por email con al menos 15 días de antelación ante cambios materiales. El uso continuado tras la entrada en vigor implica aceptación.</p>
+
+    <h2>9. Terminación</h2>
+    <p>Puedes cancelar tu cuenta desde la configuración en cualquier momento. Noeia puede suspender cuentas que incumplan estos términos, previa notificación salvo en casos de infracción grave.</p>
+    <p>Tras la cancelación, tus datos se conservan 30 días para exportarlos; después se eliminan conforme a nuestra política de retención.</p>
+
+    <h2>10. Legislación aplicable y jurisdicción</h2>
+    <p>Estos términos se rigen por la legislación española. Para cualquier controversia, las partes se someten a los juzgados y tribunales de Madrid, renunciando a cualquier otro fuero que pudiera corresponderles.</p>
+    <p><em>Última actualización: 1 de mayo de 2026.</em></p>
+  </LegalDocumentDialog>
+
+  <!-- ══ Política de Uso dialog ═════════════════════════════════════════════ -->
+  <LegalDocumentDialog
+    title="Política de Uso"
+    last-updated="1 de mayo de 2026"
+    :open="usagePolicyOpen"
+    @update:open="usagePolicyOpen = $event"
+    @accept="agreedUsagePolicy = true; errors.usagePolicy = ''"
+  >
+    <h2>1. Objeto y ámbito de aplicación</h2>
+    <p>La presente Política de Uso regula el acceso y la utilización de la plataforma Noeia por parte de los profesionales y organizaciones registrados. Su objetivo es garantizar un uso responsable, ético y conforme a la legalidad del servicio.</p>
+    <p>Esta política complementa los Términos y Condiciones y tiene carácter vinculante para todos los usuarios.</p>
+
+    <h2>2. Usuarios autorizados</h2>
+    <p>El acceso a Noeia está reservado a profesionales de la salud mental debidamente habilitados (psicólogos, psiquiatras, terapeutas y otros clínicos con titulación reconocida) y a las organizaciones que los representan.</p>
+    <p>Queda prohibida la cesión de credenciales a terceros no autorizados o el acceso compartido entre distintos profesionales bajo una misma cuenta individual.</p>
+
+    <h2>3. Uso clínico responsable</h2>
+    <p>Las funciones de inteligencia artificial de Noeia —transcripción, análisis de sesiones y generación de notas— son herramientas de apoyo al profesional. No sustituyen el juicio clínico ni pueden utilizarse como único criterio diagnóstico o terapéutico.</p>
+    <p>El profesional es el único responsable de verificar, revisar y validar cualquier contenido generado automáticamente antes de incorporarlo al expediente del paciente.</p>
+
+    <h2>4. Protección de datos de pacientes</h2>
+    <p>Los datos de salud introducidos en la plataforma son datos de categoría especial (Art. 9 RGPD). El usuario se compromete a obtener el consentimiento o la base jurídica adecuada de sus pacientes antes de tratar sus datos en Noeia.</p>
+    <p>Queda estrictamente prohibido introducir datos de pacientes sin la debida legitimación, compartir expedientes con personas no autorizadas o utilizar la plataforma para fines distintos a la atención clínica.</p>
+
+    <h2>5. Conductas prohibidas</h2>
+    <p>Entre otras conductas, se prohíbe expresamente: intentar acceder a datos de otros usuarios o pacientes; realizar ingeniería inversa del software; automatizar el acceso mediante bots o scripts no autorizados; publicar o transmitir contenido ilegal, difamatorio o que infrinja derechos de terceros; y usar el servicio para fines comerciales distintos a la gestión clínica propia.</p>
+
+    <h2>6. Seguridad de la cuenta</h2>
+    <p>El usuario debe utilizar contraseñas robustas, activar la autenticación de doble factor cuando esté disponible, y cerrar sesión al terminar en dispositivos compartidos. Cualquier brecha de seguridad conocida debe comunicarse a Noeia sin demora.</p>
+
+    <h2>7. Disponibilidad del servicio</h2>
+    <p>Noeia aspira a una disponibilidad del 99,5% mensual, pero no garantiza un funcionamiento ininterrumpido. Las tareas de mantenimiento programado se comunicarán con antelación. El servicio puede interrumpirse temporalmente por causas de fuerza mayor.</p>
+
+    <h2>8. Conservación y exportación de datos</h2>
+    <p>El usuario puede exportar sus datos clínicos en cualquier momento desde la configuración de la cuenta en formatos estándar (PDF, CSV). Noeia conserva los datos durante el tiempo necesario para la prestación del servicio y el cumplimiento de las obligaciones legales aplicables.</p>
+
+    <h2>9. Incumplimiento y consecuencias</h2>
+    <p>El incumplimiento de esta política podrá dar lugar a la suspensión temporal o definitiva del acceso, sin perjuicio de las acciones legales que pudieran corresponder. Noeia notificará al usuario afectado salvo que la gravedad del incumplimiento o una obligación legal exijan una actuación inmediata.</p>
+
+    <h2>10. Actualizaciones de la política</h2>
+    <p>Noeia podrá actualizar esta política en cualquier momento. Los cambios materiales se comunicarán por email con un preaviso mínimo de 15 días. El uso continuado del servicio tras la entrada en vigor implica la aceptación de la versión actualizada.</p>
+    <p><em>Última actualización: 1 de mayo de 2026.</em></p>
+  </LegalDocumentDialog>
+
 </template>
